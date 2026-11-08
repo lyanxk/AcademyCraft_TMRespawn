@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/vecmanip/blood_retro",
+  "display": {
+    "icon": {
+      "id": "minecraft:feather"
+    },
+    "title": {
+      "translate": "achievement.ac_vecmanip.vec_reflection"
+    },
+    "description": {
+      "translate": "achievement.ac_vecmanip.vec_reflection.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

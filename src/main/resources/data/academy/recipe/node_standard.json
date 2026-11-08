@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " N ",
+    "CEC",
+    " B "
+  ],
+  "key": {
+    "N": {
+      "item": "academy:crystal_normal"
+    },
+    "C": {
+      "item": "academy:calc_chip"
+    },
+    "E": {
+      "item": "academy:energy_convert_component"
+    },
+    "B": {
+      "item": "academy:node_basic"
+    }
+  },
+  "result": {
+    "id": "academy:node_standard",
+    "count": 1
+  }
+}

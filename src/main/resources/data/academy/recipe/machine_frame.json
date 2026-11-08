@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " I ",
+    "IRI",
+    " I "
+  ],
+  "key": {
+    "I": {
+      "tag": "c:plates/iron"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    }
+  },
+  "result": {
+    "id": "academy:machine_frame",
+    "count": 1
+  }
+}

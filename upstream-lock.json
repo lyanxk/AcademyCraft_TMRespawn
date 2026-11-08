@@ -1,0 +1,63 @@
+{
+  "original": {
+    "repository": "https://github.com/LambdaInnovation/AcademyCraft",
+    "commit": "7b1401cd420bd6888a2b9d8db5cd8a69fe314bb9",
+    "minecraft": "1.12.2",
+    "version": "1.1.3"
+  },
+  "legacyLibrary": {
+    "repository": "https://github.com/LambdaInnovation/LambdaLib2",
+    "commit": "abb4b9f1702a731652b80b05c7163dca9dca2237",
+    "tag": "0.2.0"
+  },
+  "port1211": {
+    "repository": "https://github.com/win10ogod/AcademyCraft-neo-1.21.1",
+    "commit": "dc759f03d332ed775c5f300a9fcabcb7f84786ea",
+    "destination": "."
+  },
+  "reborn262": {
+    "repository": "https://github.com/AcademyCraft-Dev-Team/AcademyCraft-Reborn",
+    "commit": "1e176d6cdfe6235ad64513ecf9676765270a1074",
+    "branch": "26.2",
+    "destination": "ports/reborn-26.2"
+  },
+  "reborn263": {
+    "repository": "https://github.com/AcademyCraft-Dev-Team/AcademyCraft-Reborn",
+    "commit": "f5bf1db4dc034825947964250b5ece601f3bacc1",
+    "branch": "26.3",
+    "destination": "ports/reborn-26.3"
+  },
+  "optionalIntegrations": {
+    "jei": {
+      "repository": "https://github.com/mezz/JustEnoughItems",
+      "apiReferenceCommit": "830dd298712cbf8c567baf08ecd8c242874708df",
+      "minecraft": "1.21.1",
+      "apiArtifact": "mezz.jei:jei-1.21.1-common-api:19.70.0.469",
+      "apiSha256": "9c7d7fc48bf177f963f2d463527f97a175b05046c047d85804cc202f6264cbb8",
+      "runtimeArtifact": "mezz.jei:jei-1.21.1-neoforge:19.70.0.469",
+      "repositoryMaven": "https://maven.blamejared.com",
+      "validation": "compileJava only; runtime pending unified testing"
+    },
+    "crafttweaker": {
+      "repository": "https://github.com/CraftTweaker/CraftTweaker",
+      "apiReferenceCommit": "c0467befe01d83632929378a337b64d44a0cbe67",
+      "minecraft": "1.21.1",
+      "artifact": "com.blamejared.crafttweaker:CraftTweaker-neoforge-1.21.1:21.0.39",
+      "sha256": "3a1bb173d8099f9ed96c59b11f9ed633dc0ca82f1f9e70c8db160b7af4bfa7fa",
+      "annotationArtifact": "org.openzen.zencode:JavaAnnotations:0.3.8",
+      "annotationSha256": "a40c4cdc8a919cbd403720355eefb5a6f1bb14e1ccc705e742d215522cb8b9db",
+      "repositoryMaven": "https://maven.blamejared.com",
+      "validation": "compileJava only; script execution and runtime pending unified testing"
+    }
+  },
+  "scopeExclusions": {
+    "legacyRf": {
+      "reason": "User requested FE instead of legacy RF compatibility on 2026-11-07",
+      "status": "NeoForge FE capability only; legacy ac_rf_input/ac_rf_output registry IDs retained for save compatibility; 1 IF = 4 FE"
+    },
+    "ic2": {
+      "reason": "User explicitly excluded IC2 compatibility on 2026-11-07",
+      "status": "Dependency, adapters and EU recipes removed; old registry IDs retained only for reading existing saves"
+    }
+  }
+}

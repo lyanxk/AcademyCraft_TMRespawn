@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/meltdowner/rad_intensify",
+  "display": {
+    "icon": {
+      "id": "academy:silbarn"
+    },
+    "title": {
+      "translate": "achievement.ac_meltdowner.light_shield"
+    },
+    "description": {
+      "translate": "achievement.ac_meltdowner.light_shield.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

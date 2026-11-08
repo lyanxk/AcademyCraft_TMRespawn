@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "cn.academy.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [],
+  "client": [
+    "ItemInHandAccess",
+    "MediaSoundManagerAccess",
+    "MediaSoundEngineAccess",
+    "MediaChannelAccess"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/meltdowner/meltdowner",
+  "display": {
+    "icon": {
+      "id": "academy:silbarn"
+    },
+    "title": {
+      "translate": "achievement.ac_meltdowner.mine_ray"
+    },
+    "description": {
+      "translate": "achievement.ac_meltdowner.mine_ray.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/electromaster/lv1",
+  "display": {
+    "icon": {
+      "id": "academy:coin"
+    },
+    "title": {
+      "translate": "achievement.ac_electromaster.arc_gen"
+    },
+    "description": {
+      "translate": "achievement.ac_electromaster.arc_gen.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

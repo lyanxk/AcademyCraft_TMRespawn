@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " R ",
+    "SMS",
+    "DRD"
+  ],
+  "key": {
+    "R": {
+      "item": "academy:reso_crystal"
+    },
+    "S": {
+      "item": "minecraft:redstone"
+    },
+    "M": {
+      "item": "academy:machine_frame"
+    },
+    "D": {
+      "item": "academy:data_chip"
+    }
+  },
+  "result": {
+    "id": "academy:matrix",
+    "count": 1
+  }
+}

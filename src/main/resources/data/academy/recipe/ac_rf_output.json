@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "EMR",
+    " C "
+  ],
+  "key": {
+    "E": {
+      "item": "academy:energy_unit"
+    },
+    "M": {
+      "item": "academy:machine_frame"
+    },
+    "R": {
+      "item": "academy:reso_crystal"
+    },
+    "C": {
+      "item": "academy:energy_convert_component"
+    }
+  },
+  "result": {
+    "id": "academy:ac_rf_output",
+    "count": 1
+  }
+}

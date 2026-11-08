@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/electromaster/arc_gen",
+  "display": {
+    "icon": {
+      "id": "academy:coin"
+    },
+    "title": {
+      "translate": "achievement.ac_electromaster.attack_creeper"
+    },
+    "description": {
+      "translate": "achievement.ac_electromaster.attack_creeper.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

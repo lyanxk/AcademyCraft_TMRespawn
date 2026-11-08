@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/electromaster/attack_creeper",
+  "display": {
+    "icon": {
+      "id": "academy:coin"
+    },
+    "title": {
+      "translate": "achievement.ac_electromaster.mag_movement"
+    },
+    "description": {
+      "translate": "achievement.ac_electromaster.mag_movement.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "parent": "academy:root",
+  "display": {
+    "icon": {
+      "id": "academy:coin"
+    },
+    "title": {
+      "translate": "achievement.ac_electromaster.lv1"
+    },
+    "description": {
+      "translate": "achievement.ac_electromaster.lv1.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

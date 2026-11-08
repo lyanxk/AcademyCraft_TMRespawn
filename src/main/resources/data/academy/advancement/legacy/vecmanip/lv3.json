@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/vecmanip/lv2",
+  "display": {
+    "icon": {
+      "id": "minecraft:feather"
+    },
+    "title": {
+      "translate": "achievement.ac_vecmanip.lv3"
+    },
+    "description": {
+      "translate": "achievement.ac_vecmanip.lv3.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

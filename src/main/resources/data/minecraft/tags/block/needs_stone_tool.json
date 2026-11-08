@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    "academy:constraint_metal",
+    "academy:node_basic",
+    "academy:node_standard",
+    "academy:node_advanced",
+    "academy:phase_gen",
+    "academy:solar_gen",
+    "academy:imag_fusor",
+    "academy:metal_former"
+  ]
+}

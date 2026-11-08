@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/vecmanip/storm_wing",
+  "display": {
+    "icon": {
+      "id": "minecraft:feather"
+    },
+    "title": {
+      "translate": "achievement.ac_vecmanip.blood_retro"
+    },
+    "description": {
+      "translate": "achievement.ac_vecmanip.blood_retro.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

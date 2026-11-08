@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/electromaster/thunder_bolt",
+  "display": {
+    "icon": {
+      "id": "academy:coin"
+    },
+    "title": {
+      "translate": "achievement.ac_electromaster.railgun"
+    },
+    "description": {
+      "translate": "achievement.ac_electromaster.railgun.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

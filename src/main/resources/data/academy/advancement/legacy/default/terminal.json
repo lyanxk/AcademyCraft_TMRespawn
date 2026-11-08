@@ -1,0 +1,26 @@
+{
+  "parent": "academy:root",
+  "display": {
+    "icon": {
+      "id": "academy:terminal_installer"
+    },
+    "title": {
+      "translate": "achievement.ac_terminal"
+    },
+    "description": {
+      "translate": "achievement.ac_terminal.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "academy:terminal_installer"
+          }
+        ]
+      }
+    }
+  }
+}

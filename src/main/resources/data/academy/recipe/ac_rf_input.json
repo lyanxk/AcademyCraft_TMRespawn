@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "EMP",
+    " C "
+  ],
+  "key": {
+    "E": {
+      "item": "academy:energy_unit"
+    },
+    "M": {
+      "item": "academy:machine_frame"
+    },
+    "P": {
+      "item": "academy:constraint_plate"
+    },
+    "C": {
+      "item": "academy:energy_convert_component"
+    }
+  },
+  "result": {
+    "id": "academy:ac_rf_input",
+    "count": 1
+  }
+}

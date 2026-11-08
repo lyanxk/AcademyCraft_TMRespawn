@@ -1,0 +1,36 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "academy:item/matter_unit"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "academy:phase_filled": 1,
+        "academy:frame": 0
+      },
+      "model": "academy:item/matter_unit_phase_liquid_0"
+    },
+    {
+      "predicate": {
+        "academy:phase_filled": 1,
+        "academy:frame": 1
+      },
+      "model": "academy:item/matter_unit_phase_liquid_1"
+    },
+    {
+      "predicate": {
+        "academy:phase_filled": 1,
+        "academy:frame": 2
+      },
+      "model": "academy:item/matter_unit_phase_liquid_2"
+    },
+    {
+      "predicate": {
+        "academy:phase_filled": 1,
+        "academy:frame": 3
+      },
+      "model": "academy:item/matter_unit_phase_liquid_3"
+    }
+  ]
+}

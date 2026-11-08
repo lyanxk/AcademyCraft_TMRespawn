@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/meltdowner/light_shield",
+  "display": {
+    "icon": {
+      "id": "academy:silbarn"
+    },
+    "title": {
+      "translate": "achievement.ac_meltdowner.meltdowner"
+    },
+    "description": {
+      "translate": "achievement.ac_meltdowner.meltdowner.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

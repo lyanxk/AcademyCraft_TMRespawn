@@ -1,0 +1,26 @@
+{
+  "parent": "academy:legacy/default/phase_liquid",
+  "display": {
+    "icon": {
+      "id": "academy:matrix"
+    },
+    "title": {
+      "translate": "achievement.ac_matrix1"
+    },
+    "description": {
+      "translate": "achievement.ac_matrix1.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "academy:matrix"
+          }
+        ]
+      }
+    }
+  }
+}

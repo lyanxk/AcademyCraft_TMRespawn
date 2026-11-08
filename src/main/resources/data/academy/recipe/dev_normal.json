@@ -1,0 +1,41 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " P ",
+    "MBI",
+    "CFR"
+  ],
+  "key": {
+    "P": {
+      "item": "academy:developer_portable"
+    },
+    "M": {
+      "type": "neoforge:components",
+      "items": "academy:mat_core",
+      "components": {
+        "minecraft:custom_model_data": 0
+      },
+      "strict": false
+    },
+    "B": {
+      "tag": "minecraft:beds"
+    },
+    "I": {
+      "item": "minecraft:piston"
+    },
+    "C": {
+      "item": "academy:crystal_normal"
+    },
+    "F": {
+      "item": "academy:machine_frame"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    }
+  },
+  "result": {
+    "id": "academy:dev_normal",
+    "count": 1
+  }
+}

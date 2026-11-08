@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/meltdowner/lv3",
+  "display": {
+    "icon": {
+      "id": "academy:silbarn"
+    },
+    "title": {
+      "translate": "achievement.ac_meltdowner.lv4"
+    },
+    "description": {
+      "translate": "achievement.ac_meltdowner.lv4.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

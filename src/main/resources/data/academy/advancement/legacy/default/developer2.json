@@ -1,0 +1,26 @@
+{
+  "parent": "academy:legacy/default/developer1",
+  "display": {
+    "icon": {
+      "id": "academy:dev_normal"
+    },
+    "title": {
+      "translate": "achievement.ac_developer2"
+    },
+    "description": {
+      "translate": "achievement.ac_developer2.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "academy:dev_normal"
+          }
+        ]
+      }
+    }
+  }
+}

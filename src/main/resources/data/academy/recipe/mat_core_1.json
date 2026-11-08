@@ -1,0 +1,32 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "R",
+    "C",
+    "M"
+  ],
+  "key": {
+    "R": {
+      "item": "academy:reso_crystal"
+    },
+    "C": {
+      "item": "academy:crystal_normal"
+    },
+    "M": {
+      "type": "neoforge:components",
+      "items": "academy:mat_core",
+      "components": {
+        "minecraft:custom_model_data": 0
+      },
+      "strict": false
+    }
+  },
+  "result": {
+    "id": "academy:mat_core",
+    "count": 1,
+    "components": {
+      "minecraft:custom_model_data": 1
+    }
+  }
+}

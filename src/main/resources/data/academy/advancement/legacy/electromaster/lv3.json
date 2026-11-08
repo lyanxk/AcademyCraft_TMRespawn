@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/electromaster/lv2",
+  "display": {
+    "icon": {
+      "id": "academy:coin"
+    },
+    "title": {
+      "translate": "achievement.ac_electromaster.lv3"
+    },
+    "description": {
+      "translate": "achievement.ac_electromaster.lv3.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

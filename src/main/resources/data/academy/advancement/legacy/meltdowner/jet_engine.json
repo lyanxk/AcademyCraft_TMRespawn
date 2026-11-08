@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/meltdowner/mine_ray",
+  "display": {
+    "icon": {
+      "id": "academy:silbarn"
+    },
+    "title": {
+      "translate": "achievement.ac_meltdowner.jet_engine"
+    },
+    "description": {
+      "translate": "achievement.ac_meltdowner.jet_engine.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

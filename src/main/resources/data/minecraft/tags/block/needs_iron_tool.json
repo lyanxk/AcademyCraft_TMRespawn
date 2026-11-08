@@ -1,0 +1,14 @@
+{
+  "replace": false,
+  "values": [
+    "academy:multiblock_part",
+    "academy:crystal_ore",
+    "academy:imagsil_ore",
+    "academy:reso_ore",
+    "academy:dev_advanced",
+    "academy:dev_normal",
+    "academy:windgen_base",
+    "academy:windgen_main",
+    "academy:windgen_pillar"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/meltdowner/lv1",
+  "display": {
+    "icon": {
+      "id": "academy:silbarn"
+    },
+    "title": {
+      "translate": "achievement.ac_meltdowner.rad_intensify"
+    },
+    "description": {
+      "translate": "achievement.ac_meltdowner.rad_intensify.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

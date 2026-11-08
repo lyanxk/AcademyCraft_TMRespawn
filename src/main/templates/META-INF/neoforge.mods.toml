@@ -1,0 +1,41 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="${mod_license}"
+issueTrackerURL="https://github.com/LambdaInnovation/AcademyCraft/issues"
+
+[[mixins]]
+config="academy.mixins.json"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+displayURL="https://github.com/LambdaInnovation/AcademyCraft"
+logoFile="logo.png"
+authors="Lambda Innovation; NeoForge port contributors"
+credits="The original AcademyCraft team and all players"
+description='''
+A mod about superability. Become an ESPer and alter your reality in Minecraft.
+This is the NeoForge 1.21.1 port of AcademyCraft.
+'''
+
+[[dependencies.${mod_id}]]
+modId="neoforge"
+type="required"
+versionRange="[${neo_version},)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="jei"
+type="optional"
+versionRange="[19.70.0.469,20)"
+ordering="AFTER"
+side="CLIENT"
+
+[[dependencies.${mod_id}]]
+modId="minecraft"
+type="required"
+versionRange="${minecraft_version_range}"
+ordering="NONE"
+side="BOTH"

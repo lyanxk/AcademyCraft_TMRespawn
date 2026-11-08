@@ -1,0 +1,26 @@
+{
+  "parent": "academy:legacy/default/node",
+  "display": {
+    "icon": {
+      "id": "academy:developer_portable"
+    },
+    "title": {
+      "translate": "achievement.ac_developer1"
+    },
+    "description": {
+      "translate": "achievement.ac_developer1.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "academy:developer_portable"
+          }
+        ]
+      }
+    }
+  }
+}

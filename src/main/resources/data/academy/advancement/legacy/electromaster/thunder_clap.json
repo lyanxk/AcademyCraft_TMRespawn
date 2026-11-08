@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/electromaster/railgun",
+  "display": {
+    "icon": {
+      "id": "academy:coin"
+    },
+    "title": {
+      "translate": "achievement.ac_electromaster.thunder_clap"
+    },
+    "description": {
+      "translate": "achievement.ac_electromaster.thunder_clap.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

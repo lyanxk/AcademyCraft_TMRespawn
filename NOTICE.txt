@@ -1,0 +1,38 @@
+AcademyCraft TMRespawn
+
+Primary gameplay and resource reference: AcademyCraft 1.1.3 for Minecraft 1.12.2,
+Copyright Lambda Innovation and contributors.
+https://github.com/LambdaInnovation/AcademyCraft
+
+The 1.21.1 implementation is derived from win10ogod/AcademyCraft-neo-1.21.1,
+commit dc759f03d332ed775c5f300a9fcabcb7f84786ea. Its existing Java port and
+adapted original resources are retained. TMRespawn changes are not an independent
+authorship claim over this implementation. See LICENSE.md and upstream-lock.json.
+
+AcademyCraft-Dev-Team/AcademyCraft-Reborn was also consulted in historical
+26.2/26.3 work. Those separate snapshots are not modules of this 1.21.1 artifact;
+their source repository identities remain recorded in upstream-lock.json.
+
+The legacy ControlOverrider patch derives from LambdaLib2
+0.2.0, Copyright Lambda Innovation, MIT license. Its MIT notice is retained in
+src/main/resources/META-INF/LICENSE-LambdaLib2.txt (also packaged in the jar). The patch is for the 1.12.2 library, not a 1.21.1 dependency.
+
+Local changes: TMRespawn input lifecycle repair, legacy library control fix,
+regression verification, source tracking and audit documentation.
+
+CPBarInterference adapts the LambdaLib2 CubicCurve interpolation.
+Copyright Lambda Innovation, 2013-2016; MIT notice as above.
+
+Typesafe Config 1.4.3 (com.typesafe:config) is included through Jar-in-Jar for
+the original HOCON about.conf parser. Copyright Lightbend and contributors.
+https://github.com/lightbend/config/tree/v1.4.3
+Apache License 2.0; see META-INF/LICENSE-typesafe-config.txt.
+
+TutorialMarkdown adapts LambdaLib2 MarkdownParser, GLMarkdownRenderer and Fragmentor,
+Copyright Lambda Innovation, 2013-2016, MIT; notice retained as above.
+
+LegacyPhaseFlow and LegacyPhaseSurfaceRenderer adapt MinecraftForge 1.12.x
+BlockFluidClassic, BlockFluidBase and client/model/ModelFluid.
+Copyright Minecraft Forge, LGPL 2.1 or later; the adapted source retains its notice.
+https://github.com/MinecraftForge/MinecraftForge/tree/1.12.x/src/main/java/net/minecraftforge/fluids
+See packaged META-INF/LICENSE-MinecraftForge.txt for the upstream license text.

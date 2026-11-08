@@ -1,0 +1,26 @@
+{
+  "parent": "academy:legacy/default/solargen",
+  "display": {
+    "icon": {
+      "id": "academy:windgen_main"
+    },
+    "title": {
+      "translate": "achievement.ac_windgen"
+    },
+    "description": {
+      "translate": "achievement.ac_windgen.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "academy:windgen_main"
+          }
+        ]
+      }
+    }
+  }
+}

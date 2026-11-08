@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0,
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "academy:cat_engine"
+        }
+      ],
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ]
+    }
+  ],
+  "random_sequence": "academy:blocks/cat_engine"
+}

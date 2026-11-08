@@ -1,0 +1,26 @@
+{
+  "parent": "academy:root",
+  "display": {
+    "icon": {
+      "id": "academy:crystal_low"
+    },
+    "title": {
+      "translate": "achievement.ac_crystal"
+    },
+    "description": {
+      "translate": "achievement.ac_crystal.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "academy:crystal_low"
+          }
+        ]
+      }
+    }
+  }
+}

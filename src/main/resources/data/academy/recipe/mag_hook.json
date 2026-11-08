@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " P ",
+    "PPP",
+    " P "
+  ],
+  "key": {
+    "P": {
+      "tag": "c:plates/iron"
+    }
+  },
+  "result": {
+    "id": "academy:mag_hook",
+    "count": 3
+  }
+}

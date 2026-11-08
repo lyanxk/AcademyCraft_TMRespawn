@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/electromaster/body_intensify",
+  "display": {
+    "icon": {
+      "id": "academy:coin"
+    },
+    "title": {
+      "translate": "achievement.ac_electromaster.mine_detect"
+    },
+    "description": {
+      "translate": "achievement.ac_electromaster.mine_detect.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

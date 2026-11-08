@@ -1,0 +1,17 @@
+{
+  "loader": "neoforge:separate_transforms",
+  "base": {
+    "parent": "minecraft:builtin/entity",
+    "textures": {
+      "particle": "academy:item/developer_portable_half"
+    }
+  },
+  "perspectives": {
+    "gui": {
+      "parent": "minecraft:item/generated",
+      "textures": {
+        "layer0": "academy:item/developer_portable_half"
+      }
+    }
+  }
+}

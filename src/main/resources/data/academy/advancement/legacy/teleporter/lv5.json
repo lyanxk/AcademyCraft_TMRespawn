@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/teleporter/lv4",
+  "display": {
+    "icon": {
+      "id": "minecraft:ender_pearl"
+    },
+    "title": {
+      "translate": "achievement.ac_teleporter.lv5"
+    },
+    "description": {
+      "translate": "achievement.ac_teleporter.lv5.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

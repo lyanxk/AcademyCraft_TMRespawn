@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "north": "academy:block/ief_working_3",
+    "south": "academy:block/machine_side",
+    "west": "academy:block/machine_side",
+    "east": "academy:block/machine_side",
+    "up": "academy:block/machine_top",
+    "down": "academy:block/machine_bottom",
+    "particle": "academy:block/machine_side"
+  }
+}

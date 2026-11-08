@@ -1,0 +1,124 @@
+{
+  "variants": {
+    "connected=false,facing=north,visual_stage=0": {
+      "model": "academy:block/node_basic"
+    },
+    "connected=false,facing=north,visual_stage=1": {
+      "model": "academy:block/node_basic_disconnected_stage_1"
+    },
+    "connected=false,facing=north,visual_stage=2": {
+      "model": "academy:block/node_basic_disconnected_stage_2"
+    },
+    "connected=false,facing=north,visual_stage=3": {
+      "model": "academy:block/node_basic_disconnected_stage_3"
+    },
+    "connected=false,facing=north,visual_stage=4": {
+      "model": "academy:block/node_basic_disconnected_stage_4"
+    },
+    "connected=false,facing=east,visual_stage=0": {
+      "model": "academy:block/node_basic"
+    },
+    "connected=false,facing=east,visual_stage=1": {
+      "model": "academy:block/node_basic_disconnected_stage_1"
+    },
+    "connected=false,facing=east,visual_stage=2": {
+      "model": "academy:block/node_basic_disconnected_stage_2"
+    },
+    "connected=false,facing=east,visual_stage=3": {
+      "model": "academy:block/node_basic_disconnected_stage_3"
+    },
+    "connected=false,facing=east,visual_stage=4": {
+      "model": "academy:block/node_basic_disconnected_stage_4"
+    },
+    "connected=false,facing=south,visual_stage=0": {
+      "model": "academy:block/node_basic"
+    },
+    "connected=false,facing=south,visual_stage=1": {
+      "model": "academy:block/node_basic_disconnected_stage_1"
+    },
+    "connected=false,facing=south,visual_stage=2": {
+      "model": "academy:block/node_basic_disconnected_stage_2"
+    },
+    "connected=false,facing=south,visual_stage=3": {
+      "model": "academy:block/node_basic_disconnected_stage_3"
+    },
+    "connected=false,facing=south,visual_stage=4": {
+      "model": "academy:block/node_basic_disconnected_stage_4"
+    },
+    "connected=false,facing=west,visual_stage=0": {
+      "model": "academy:block/node_basic"
+    },
+    "connected=false,facing=west,visual_stage=1": {
+      "model": "academy:block/node_basic_disconnected_stage_1"
+    },
+    "connected=false,facing=west,visual_stage=2": {
+      "model": "academy:block/node_basic_disconnected_stage_2"
+    },
+    "connected=false,facing=west,visual_stage=3": {
+      "model": "academy:block/node_basic_disconnected_stage_3"
+    },
+    "connected=false,facing=west,visual_stage=4": {
+      "model": "academy:block/node_basic_disconnected_stage_4"
+    },
+    "connected=true,facing=north,visual_stage=0": {
+      "model": "academy:block/node_basic_connected_stage_0"
+    },
+    "connected=true,facing=north,visual_stage=1": {
+      "model": "academy:block/node_basic_stage_1"
+    },
+    "connected=true,facing=north,visual_stage=2": {
+      "model": "academy:block/node_basic_stage_2"
+    },
+    "connected=true,facing=north,visual_stage=3": {
+      "model": "academy:block/node_basic_stage_3"
+    },
+    "connected=true,facing=north,visual_stage=4": {
+      "model": "academy:block/node_basic_stage_4"
+    },
+    "connected=true,facing=east,visual_stage=0": {
+      "model": "academy:block/node_basic_connected_stage_0"
+    },
+    "connected=true,facing=east,visual_stage=1": {
+      "model": "academy:block/node_basic_stage_1"
+    },
+    "connected=true,facing=east,visual_stage=2": {
+      "model": "academy:block/node_basic_stage_2"
+    },
+    "connected=true,facing=east,visual_stage=3": {
+      "model": "academy:block/node_basic_stage_3"
+    },
+    "connected=true,facing=east,visual_stage=4": {
+      "model": "academy:block/node_basic_stage_4"
+    },
+    "connected=true,facing=south,visual_stage=0": {
+      "model": "academy:block/node_basic_connected_stage_0"
+    },
+    "connected=true,facing=south,visual_stage=1": {
+      "model": "academy:block/node_basic_stage_1"
+    },
+    "connected=true,facing=south,visual_stage=2": {
+      "model": "academy:block/node_basic_stage_2"
+    },
+    "connected=true,facing=south,visual_stage=3": {
+      "model": "academy:block/node_basic_stage_3"
+    },
+    "connected=true,facing=south,visual_stage=4": {
+      "model": "academy:block/node_basic_stage_4"
+    },
+    "connected=true,facing=west,visual_stage=0": {
+      "model": "academy:block/node_basic_connected_stage_0"
+    },
+    "connected=true,facing=west,visual_stage=1": {
+      "model": "academy:block/node_basic_stage_1"
+    },
+    "connected=true,facing=west,visual_stage=2": {
+      "model": "academy:block/node_basic_stage_2"
+    },
+    "connected=true,facing=west,visual_stage=3": {
+      "model": "academy:block/node_basic_stage_3"
+    },
+    "connected=true,facing=west,visual_stage=4": {
+      "model": "academy:block/node_basic_stage_4"
+    }
+  }
+}

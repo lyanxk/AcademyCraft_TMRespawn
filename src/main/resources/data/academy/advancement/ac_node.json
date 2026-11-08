@@ -1,0 +1,19 @@
+{
+  "display": {
+    "icon": {
+      "id": "academy:node_basic"
+    },
+    "title": {
+      "translate": "advancements.general.ac_node"
+    },
+    "description": {
+      "translate": "advancements.general.ac_node.desc"
+    }
+  },
+  "parent": "academy:phase_generator",
+  "criteria": {
+    "ac_node": {
+      "trigger": "academy:ac_node"
+    }
+  }
+}

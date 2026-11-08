@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/teleporter/flashing",
+  "display": {
+    "icon": {
+      "id": "minecraft:ender_pearl"
+    },
+    "title": {
+      "translate": "achievement.ac_teleporter.mastery"
+    },
+    "description": {
+      "translate": "achievement.ac_teleporter.mastery.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

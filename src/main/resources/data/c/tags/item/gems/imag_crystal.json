@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "academy:crystal_low",
+    "academy:crystal_normal",
+    "academy:crystal_pure"
+  ]
+}

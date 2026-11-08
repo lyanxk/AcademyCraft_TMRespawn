@@ -1,0 +1,19 @@
+{
+  "parent": "academy:root",
+  "display": {
+    "icon": {
+      "id": "academy:matter_unit"
+    },
+    "title": {
+      "translate": "achievement.ac_phase_liquid"
+    },
+    "description": {
+      "translate": "achievement.ac_phase_liquid.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

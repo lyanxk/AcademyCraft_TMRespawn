@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/vecmanip/lv1",
+  "display": {
+    "icon": {
+      "id": "minecraft:feather"
+    },
+    "title": {
+      "translate": "achievement.ac_vecmanip.ground_shock"
+    },
+    "description": {
+      "translate": "achievement.ac_vecmanip.ground_shock.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

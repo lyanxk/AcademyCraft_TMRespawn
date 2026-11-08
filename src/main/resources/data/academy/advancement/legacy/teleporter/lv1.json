@@ -1,0 +1,19 @@
+{
+  "parent": "academy:root",
+  "display": {
+    "icon": {
+      "id": "minecraft:ender_pearl"
+    },
+    "title": {
+      "translate": "achievement.ac_teleporter.lv1"
+    },
+    "description": {
+      "translate": "achievement.ac_teleporter.lv1.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

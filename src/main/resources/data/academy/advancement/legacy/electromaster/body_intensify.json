@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/electromaster/mag_movement",
+  "display": {
+    "icon": {
+      "id": "academy:coin"
+    },
+    "title": {
+      "translate": "achievement.ac_electromaster.body_intensify"
+    },
+    "description": {
+      "translate": "achievement.ac_electromaster.body_intensify.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

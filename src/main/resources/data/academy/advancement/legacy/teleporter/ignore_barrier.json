@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/teleporter/critical_attack",
+  "display": {
+    "icon": {
+      "id": "minecraft:ender_pearl"
+    },
+    "title": {
+      "translate": "achievement.ac_teleporter.ignore_barrier"
+    },
+    "description": {
+      "translate": "achievement.ac_teleporter.ignore_barrier.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

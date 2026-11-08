@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/vecmanip/dir_blast",
+  "display": {
+    "icon": {
+      "id": "minecraft:feather"
+    },
+    "title": {
+      "translate": "achievement.ac_vecmanip.storm_wing"
+    },
+    "description": {
+      "translate": "achievement.ac_vecmanip.storm_wing.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

@@ -1,0 +1,109 @@
+diff --git a/src/main/java/cn/lambdalib2/util/ControlOverrider.java b/src/main/java/cn/lambdalib2/util/ControlOverrider.java
+index 6352d10..cf2b669 100644
+--- a/src/main/java/cn/lambdalib2/util/ControlOverrider.java
++++ b/src/main/java/cn/lambdalib2/util/ControlOverrider.java
+@@ -44,7 +44,7 @@ public class ControlOverrider {
+     private static Field pressedField;
+     private static Field kbMapField;
+ 
+-    private static Map<Integer, Override> activeOverrides = new HashMap<>();
++    private static Map<Integer, List<Override>> activeOverrides = new HashMap<>();
+     private static Map<String, OverrideGroup> overrideGroups = new HashMap<>();
+ 
+     private static boolean completeOverriding;
+@@ -129,7 +129,7 @@ public class ControlOverrider {
+      * Ends an override group.
+      */
+     public static void endOverride(String name) {
+-        Optional.of(overrideGroups.get(name)).ifPresent(OverrideGroup::end);
++        Optional.ofNullable(overrideGroups.get(name)).ifPresent(OverrideGroup::end);
+     }
+ 
+     private static void rebuild() {
+@@ -163,7 +163,7 @@ public class ControlOverrider {
+                         e.printStackTrace();
+                     }
+                     //kb.setKeyCode(-1);
+-                    activeOverrides.put(keyid, new Override(kb));
++                    activeOverrides.computeIfAbsent(keyid, ignored -> new ArrayList<>()).add(new Override(kb));
+                     log("Override new [" + keyid + "]");
+                 } else {
+                     log("Override ignored [" + keyid + "]");
+@@ -174,15 +174,14 @@ public class ControlOverrider {
+ 
+     private static void clearInternal() {
+         activeOverrides.entrySet().forEach(entry -> {
+-            Override ovr = entry.getValue();
+             int keyid = entry.getKey();
+-
+-            ovr.kb.setKeyCode(keyid);
+             if(!kbMap.containsItem(keyid))
+                 kbMap.addKey(keyid, new ArrayList<>() );
+             Collection<KeyBinding> collection = kbMap.lookup(keyid);
+             if(collection!=null) {
+-                collection.add(ovr.kb);
++                for (Override ovr : entry.getValue()) {
++                    if (!collection.contains(ovr.kb)) collection.add(ovr.kb);
++                }
+                 log("Override remove [" + keyid + "]");
+             }
+             else{
+@@ -194,24 +193,29 @@ public class ControlOverrider {
+     }
+ 
+     private static void releaseLocks() {
+-        for (Map.Entry<Integer, Override> ao : activeOverrides.entrySet()) {
++        for (Map.Entry<Integer, List<Override>> ao : activeOverrides.entrySet()) {
++            if (!kbMap.containsItem(ao.getKey())) kbMap.addKey(ao.getKey(), new ArrayList<>());
+             Collection<KeyBinding> collection = kbMap.lookup(ao.getKey());
+             if(collection!=null) {
+-                collection.add(ao.getValue().kb);
++                for (Override ovr : ao.getValue()) {
++                    if (!collection.contains(ovr.kb)) collection.add(ovr.kb);
++                }
+             }
+         }
+     }
+ 
+     private static void restoreLocks() {
+-        for (Map.Entry<Integer, Override> ao : activeOverrides.entrySet()) {
+-            try {
+-                pressedField.set(ao.getValue().kb, false);
+-            } catch (Exception e) {
+-                Throwables.propagate(e);
+-            }
+-            Collection<KeyBinding> collection = kbMap.lookup(ao.getKey());
+-            if(collection!=null) {
+-                collection.remove(ao.getValue().kb);
++        for (Map.Entry<Integer, List<Override>> ao : activeOverrides.entrySet()) {
++            for (Override ovr : ao.getValue()) {
++                try {
++                    pressedField.set(ovr.kb, false);
++                } catch (Exception e) {
++                    Throwables.propagate(e);
++                }
++                Collection<KeyBinding> collection = kbMap.lookup(ao.getKey());
++                if(collection!=null) {
++                    collection.remove(ovr.kb);
++                }
+             }
+         }
+     }
+@@ -246,8 +250,9 @@ public class ControlOverrider {
+         public static void onDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent evt) {
+             if (SideUtils.isClient()) {
+                 clearInternal();
+-                endCompleteOverride();
++                if (completeOverriding) endCompleteOverride();
+                 overrideGroups.clear();
++                lastTickGui = null;
+             }
+         }
+     }
+@@ -277,4 +282,4 @@ public class ControlOverrider {
+             ControlOverrider.rebuild();
+         }
+     }
+-}
+\ No newline at end of file
++}

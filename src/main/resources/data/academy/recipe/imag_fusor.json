@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "PCP",
+    "FMF",
+    "PUP"
+  ],
+  "key": {
+    "P": {
+      "item": "academy:constraint_plate"
+    },
+    "C": {
+      "item": "academy:crystal_low"
+    },
+    "F": {
+      "item": "academy:calc_chip"
+    },
+    "M": {
+      "item": "academy:machine_frame"
+    },
+    "U": {
+      "item": "academy:matter_unit"
+    }
+  },
+  "result": {
+    "id": "academy:imag_fusor",
+    "count": 1
+  }
+}

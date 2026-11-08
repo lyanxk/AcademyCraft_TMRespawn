@@ -1,0 +1,19 @@
+{
+  "parent": "academy:root",
+  "display": {
+    "icon": {
+      "id": "academy:silbarn"
+    },
+    "title": {
+      "translate": "achievement.ac_meltdowner.lv1"
+    },
+    "description": {
+      "translate": "achievement.ac_meltdowner.lv1.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

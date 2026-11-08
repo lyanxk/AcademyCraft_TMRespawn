@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "name": "academy:music",
+      "rolls": 1,
+      "bonus_rolls": 0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "academy:media_item",
+          "weight": 10,
+          "quality": 1,
+          "functions": [
+            {
+              "function": "academy:random_internal_media"
+            }
+          ]
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 90,
+          "quality": 1
+        }
+      ]
+    }
+  ]
+}

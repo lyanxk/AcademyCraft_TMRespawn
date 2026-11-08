@@ -1,0 +1,19 @@
+{
+  "parent": "academy:root",
+  "display": {
+    "icon": {
+      "id": "minecraft:feather"
+    },
+    "title": {
+      "translate": "achievement.ac_vecmanip.lv1"
+    },
+    "description": {
+      "translate": "achievement.ac_vecmanip.lv1.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

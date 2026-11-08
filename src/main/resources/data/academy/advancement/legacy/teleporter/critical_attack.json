@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/teleporter/threatening_teleport",
+  "display": {
+    "icon": {
+      "id": "minecraft:ender_pearl"
+    },
+    "title": {
+      "translate": "achievement.ac_teleporter.critical_attack"
+    },
+    "description": {
+      "translate": "achievement.ac_teleporter.critical_attack.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

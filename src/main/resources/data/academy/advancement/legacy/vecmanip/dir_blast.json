@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/vecmanip/ground_shock",
+  "display": {
+    "icon": {
+      "id": "minecraft:feather"
+    },
+    "title": {
+      "translate": "achievement.ac_vecmanip.dir_blast"
+    },
+    "description": {
+      "translate": "achievement.ac_vecmanip.dir_blast.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

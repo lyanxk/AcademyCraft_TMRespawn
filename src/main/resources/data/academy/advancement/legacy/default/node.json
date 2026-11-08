@@ -1,0 +1,26 @@
+{
+  "parent": "academy:legacy/default/phase_liquid",
+  "display": {
+    "icon": {
+      "id": "academy:node_basic"
+    },
+    "title": {
+      "translate": "achievement.ac_node"
+    },
+    "description": {
+      "translate": "achievement.ac_node.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "academy:node_basic"
+          }
+        ]
+      }
+    }
+  }
+}

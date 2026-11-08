@@ -1,0 +1,19 @@
+{
+  "parent": "academy:legacy/meltdowner/jet_engine",
+  "display": {
+    "icon": {
+      "id": "academy:silbarn"
+    },
+    "title": {
+      "translate": "achievement.ac_meltdowner.electron_missile"
+    },
+    "description": {
+      "translate": "achievement.ac_meltdowner.electron_missile.desc"
+    }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}
