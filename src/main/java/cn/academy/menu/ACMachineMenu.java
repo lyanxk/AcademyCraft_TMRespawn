@@ -1,5 +1,9 @@
 package cn.academy.menu;
 
+import cn.academy.data.GameplayRules;
+
+import cn.academy.data.GameplayData;
+
 import cn.academy.block.entity.ACMachineBlockEntity;
 import cn.academy.registry.ACMenus;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -186,7 +190,7 @@ public final class ACMachineMenu extends AbstractContainerMenu {
             case IMAG_FUSOR -> liquid ? new int[]{3} : energy ? new int[]{1} : new int[]{0};
             case METAL_FORMER -> cn.academy.support.EnergyItemHelper.isSupported(source) ? new int[]{1} : new int[]{0};
             case PHASE_GENERATOR -> energy ? new int[]{0} : liquid ? new int[]{3} : new int[0];
-            case MATRIX -> source.is(cn.academy.registry.ACItems.MAT_CORE.get())
+            case MATRIX -> source.is(GameplayRules.item(GameplayData.string("wireless", "matrix_core")))
                     ? new int[]{3} : new int[]{0, 1, 2};
             case NODE_BASIC, NODE_STANDARD, NODE_ADVANCED -> new int[]{0, 1};
             case FE_INPUT, FE_OUTPUT, EU_INPUT, EU_OUTPUT -> new int[0];

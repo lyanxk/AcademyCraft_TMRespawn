@@ -1,0 +1,47 @@
+{
+  "level": 2,
+  "cp_cost": 260.0,
+  "overload": 18.0,
+  "cooldown_ticks": 100,
+  "controllable": true,
+  "requirements": [
+    {
+      "skill": "electron_bomb",
+      "experience": 1.0
+    }
+  ],
+  "enhancements": [
+    4
+  ],
+  "required_any_skill_level": 0,
+  "enabled": true,
+  "destroy_blocks": true,
+  "damage_scale": 1.0,
+  "cp_consume_speed": 1.0,
+  "overload_consume_speed": 1.0,
+  "exp_increase_speed": 1.0,
+  "cooldown_curve": [
+    800,
+    400
+  ],
+  "cooldown_enhanced_level": 6,
+  "cooldown_enhanced_curve": [
+    800,
+    400
+  ],
+  "cooldown_tiers": 0,
+  "experience_per_use": 0.003,
+  "upgrade_level": 4,
+  "upgraded_absorption": [
+    50,
+    100
+  ],
+  "upgraded_damage": [
+    6,
+    12
+  ],
+  "upgraded_duration_seconds": [
+    9,
+    17
+  ]
+}

@@ -30,6 +30,7 @@ public final class AppInstallerItem extends Item {
         var application = java.util.Objects.requireNonNull(AppRegistry.getByName(app), "Unknown application " + app);
         if (player instanceof ServerPlayer) {
             var terminal = TerminalData.get(player);
+            if (!AppRegistry.enumeration().contains(application)) return InteractionResultHolder.fail(stack);
             if (!terminal.isTerminalInstalled())
                 player.sendSystemMessage(Component.translatable("ac.terminal.notinstalled"));
             else if (terminal.isInstalled(application))

@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.meltdowner.skill;
 
+import cn.academy.data.Balance;
+
 import cn.academy.ability.*;
 import cn.academy.ability.vanilla.electromaster.skill.ElectricAttackTrace;
 import cn.academy.entity.ACThrownItemEntity;
@@ -15,13 +17,15 @@ import java.util.*;
 /** Original RBContext's plain beam and silbarn scatter branches. */
 public final class RayBarrage {
     public static boolean perform(ServerPlayer player,AbilityState state,AbilitySkill skill) {
-        float exp=state.experience(skill.id());var ctx=AbilityContext.of(player,skill);
+        float proficiency=state.experience(skill.id());
+        boolean upgraded=MeltdownerSkillRules.upgraded(state,skill);
+        float exp=proficiency;var ctx=AbilityContext.of(player,skill);
         var audience=new ArrayList<ServerPlayer>();audience.add(player);
-        for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=625)audience.add(viewer);
-        var initial=ElectricAttackTrace.trace(player,20,false);
+        for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=Balance.i("ray_barrage", "perform_threshold_1"))audience.add(viewer);
+        var initial=ElectricAttackTrace.trace(player,Balance.i("ray_barrage", "perform_trace_1"),false);
         var silbarn=initial instanceof EntityHitResult hit && hit.getEntity() instanceof ACThrownItemEntity item
                 && item.getItem().is(ACItems.SILBARN.get()) && !item.isRemoved() && !item.isSilbarnHit()?item:null;
-        if(!state.consumeRaw(skill,lerp(450,380,exp),lerp(300,140,exp),player.isCreative()))return false;
+        if(!state.consumeRaw(skill,lerp(Balance.i("ray_barrage", "perform_lerp_1"),Balance.i("ray_barrage", "perform_lerp_2"),exp),lerp(Balance.i("ray_barrage", "perform_lerp_3"),Balance.i("ray_barrage", "perform_lerp_4"),exp),player.isCreative()))return false;
         Vec3 end;
         if(silbarn!=null) {
             end=silbarn.position();silbarn.breakSilbarn();
@@ -33,7 +37,7 @@ public final class RayBarrage {
             AABB bounds=new AABB(origin,origin);
             // Original passes degree-valued angles into Vec3d's radian rotations while constructing its bounds.
             for(float yaw:new float[]{minYaw,maxYaw})for(float pitch:new float[]{minPitch,maxPitch}) {
-                var point=origin.add(look.yRot(yaw).xRot(pitch).scale(20));bounds=bounds.minmax(new AABB(point,point));
+                var point=origin.add(look.yRot(yaw).xRot(pitch).scale(Balance.i("ray_barrage", "perform_scale_1")));bounds=bounds.minmax(new AABB(point,point));
             }
             for(var target:player.level().getEntities((Entity)null,bounds,e->e!=player && e!=silbarn)) {
                 double dx=target.getX()-player.getX(),dz=target.getZ()-player.getZ();
@@ -43,19 +47,19 @@ public final class RayBarrage {
                 float pitch=-(float)Math.toDegrees(Math.atan2(dy,Math.sqrt(dz*dz+dz*dz)));
                 float start=Mth.wrapDegrees(minYaw),finish=Mth.wrapDegrees(maxYaw),angle=Mth.wrapDegrees(yaw);
                 boolean within=start>finish?start<=angle || angle<=finish:start<=angle && angle<=finish;
-                if(within && minPitch<=pitch && pitch<=maxPitch)MDDamageHelper.attack(ctx,target,lerp(10,18,exp));
+                if(within && minPitch<=pitch && pitch<=maxPitch)MDDamageHelper.attack(ctx,target,upgraded?MeltdownerSkillRules.curve(skill,"upgraded_scatter_damage",proficiency):lerp(Balance.i("ray_barrage", "perform_lerp_5"),Balance.i("ray_barrage", "perform_lerp_6"),exp));
             }
         }else {
-            var trace=ElectricAttackTrace.trace(player,20,false);end=trace.getLocation();
+            var trace=ElectricAttackTrace.trace(player,Balance.i("ray_barrage", "perform_trace_2"),false);end=trace.getLocation();
             if(trace instanceof EntityHitResult hit) {
                 end=hit.getEntity().position().add(0,hit.getEntity().getEyeHeight()*.6,0);
-                MDDamageHelper.attack(ctx,hit.getEntity(),lerp(25,60,exp));
+                MDDamageHelper.attack(ctx,hit.getEntity(),upgraded?MeltdownerSkillRules.curve(skill,"upgraded_damage",proficiency):lerp(Balance.i("ray_barrage", "perform_lerp_7"),Balance.i("ray_barrage", "perform_lerp_8"),exp));
             }
         }
         var pre=new MdRayEffectPayload(silbarn==null?MdRayEffectPayload.PRE_PLAIN:MdRayEffectPayload.PRE_SCATTER,
                 player.getId(),player.position().add(0,1.6,0),end);
         audience.forEach(p->PacketDistributor.sendToPlayer(p,pre));
-        state.finishContext(skill,(int)lerp(100,40,exp),.005f);AbilityManager.completeUse(player,state,skill);return true;
+        state.finishContext(skill,(int)lerp(Balance.i("ray_barrage", "perform_lerp_9"),Balance.i("ray_barrage", "perform_lerp_10"),exp),Balance.f("ray_barrage", "perform_finish_context_1"));AbilityManager.completeUse(player,state,skill);return true;
     }
     private static float lerp(float a,float b,float exp){return a+(b-a)*exp;}
     private RayBarrage(){}

@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.meltdowner.skill;
 
+import cn.academy.data.Balance;
+
 import cn.academy.ability.*;
 import cn.academy.ability.vanilla.electromaster.skill.ElectricAttackTrace;
 import cn.academy.ability.vanilla.electromaster.skill.ElectromasterOreRules;
@@ -21,7 +23,7 @@ public final class MineRayContext {
     private final AbilitySkill skill;
     private final float cp,overload,speed,gain;
     private final int range,harvest,cooldown;
-    private final boolean lucky;
+    private final boolean lucky,silk;
     private BlockPos selected=RESET;
     private float hardness=Float.MAX_VALUE;
     private boolean ended;
@@ -38,22 +40,24 @@ public final class MineRayContext {
         boolean basic=skill.name().equals("mine_ray_basic");lucky=skill.name().equals("mine_ray_luck");
         variant=basic?0:lucky?2:1;
         audience.add(player);
-        for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=625)audience.add(viewer);
-        float exp=state.experience(skill.id());
-        range=basic?10:20;harvest=basic?2:5;
-        cp=lerp(basic?12:lucky?50:25,basic?7:lucky?35:15,exp);
-        overload=lerp(basic?200:lucky?350:300,basic?150:lucky?300:200,exp);
-        speed=lerp(basic?.2f:.5f,basic?.4f:1,exp);
-        cooldown=(int)lerp(basic?40:60,basic?20:30,exp);
-        gain=basic?.0005f:.0003f;
+        for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=Balance.i("mine_ray_context", "mine_ray_context_threshold_1"))audience.add(viewer);
+        float proficiency=state.experience(skill.id());
+        boolean upgraded=MeltdownerSkillRules.upgraded(state,skill);
+        float exp=proficiency;
+        silk=!basic && !lucky && upgraded;
+        range=range(state,variant);harvest=basic?(upgraded?MeltdownerSkillRules.integer(skill,"upgraded_harvest_level"):2):5;
+        cp=lerp(basic?Balance.i("mine_ray_context", "mine_ray_context_lerp_1"):lucky?Balance.i("mine_ray_context", "mine_ray_context_lerp_2"):Balance.i("mine_ray_context", "mine_ray_context_lerp_3"),basic?Balance.i("mine_ray_context", "mine_ray_context_lerp_4"):lucky?Balance.i("mine_ray_context", "mine_ray_context_lerp_5"):Balance.i("mine_ray_context", "mine_ray_context_lerp_6"),exp);
+        overload=lerp(basic?Balance.i("mine_ray_context", "mine_ray_context_lerp_7"):lucky?Balance.i("mine_ray_context", "mine_ray_context_lerp_8"):Balance.i("mine_ray_context", "mine_ray_context_lerp_9"),basic?Balance.i("mine_ray_context", "mine_ray_context_lerp_10"):lucky?Balance.i("mine_ray_context", "mine_ray_context_lerp_11"):Balance.i("mine_ray_context", "mine_ray_context_lerp_12"),exp);
+        speed=upgraded?MeltdownerSkillRules.curve(skill,"upgraded_speed",proficiency):lucky?MeltdownerSkillRules.curve(AbilityRegistry.skill("meltdowner.mine_ray_expert"),"upgraded_speed",proficiency):lerp(basic?Balance.f("mine_ray_context", "mine_ray_context_lerp_13"):Balance.f("mine_ray_context", "mine_ray_context_lerp_14"),basic?Balance.f("mine_ray_context", "mine_ray_context_lerp_15"):Balance.i("mine_ray_context", "mine_ray_context_lerp_16"),exp);
+        cooldown=(int)lerp(basic?Balance.i("mine_ray_context", "mine_ray_context_lerp_17"):Balance.i("mine_ray_context", "mine_ray_context_lerp_18"),basic?Balance.i("mine_ray_context", "mine_ray_context_lerp_19"):Balance.i("mine_ray_context", "mine_ray_context_lerp_20"),exp);
+        gain=basic?Balance.f("mine_ray_context", "mine_ray_context_gain_1"):Balance.f("mine_ray_context", "mine_ray_context_gain_2");
     }
     public void start(AbilityState state) {
-        state.consumeRaw(skill,0,overload,player.isCreative()); // Original ignores startup failure.
         send(true);
     }
     /** A failed payment disposes the context, but the original listener still executes this tick's digging. */
     public boolean tick(AbilityState state) {
-        boolean paid=state.consumeRaw(skill,cp,0,player.isCreative());
+        boolean paid=state.consumeRaw(skill,cp,overload/20,player.isCreative());
         var level=player.serverLevel();
         // LambdaLib2 supplies a MISS result with truncated end coordinates; MRContext never checks its type.
         BlockPos pos=ElectricAttackTrace.traceBlocks(player,range).getBlockPos();
@@ -72,11 +76,12 @@ public final class MineRayContext {
                 var block=level.getBlockState(pos);
                 level.playSound(null,pos,block.getSoundType(level,pos,player).getBreakSound(),SoundSource.BLOCKS,.5f,1);
                 var tool=new ItemStack(Items.NETHERITE_PICKAXE);
-                if(lucky)tool.enchant(level.registryAccess().holderOrThrow(Enchantments.FORTUNE),3);
+                if(lucky)tool.enchant(level.registryAccess().holderOrThrow(Enchantments.FORTUNE),MeltdownerSkillRules.integer(skill,"fortune_level"));
+                if(silk)tool.enchant(level.registryAccess().holderOrThrow(Enchantments.SILK_TOUCH),1);
                 // dropBlockAsItemWithChance did not call harvestBlock/spawnAfterBreak (no mining XP).
                 if(level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DOBLOCKDROPS)) {
-                    // Pre-raw-metal vanilla ores dropped the block, unaffected by Fortune.
-                    var drops=block.is(Blocks.IRON_ORE)||block.is(Blocks.GOLD_ORE)
+                    // Enchanted beams use the block loot table so Fortune and Silk Touch apply.
+                    var drops=!lucky && !silk && block.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK, net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("academy", "mine_ray_preserve_ore")))
                             ? java.util.List.of(new ItemStack(block.getBlock()))
                             : Block.getDrops(block,level,pos,level.getBlockEntity(pos),player,tool);
                     for(var drop:drops)
@@ -95,8 +100,14 @@ public final class MineRayContext {
         if(!ended){ended=true;state.finishContext(skill,cooldown,0);send(false);audience.clear();}
     }
     private void send(boolean start) {
-        var payload=new cn.academy.network.MineRayEffectPayload(player.getId(),slot,id,request,variant,start);
+        var payload=new cn.academy.network.MineRayEffectPayload(player.getId(),slot,id,request,variant,range,start);
         for(var viewer:audience)net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(viewer,payload);
+    }
+    public static int range(AbilityState state,int variant) {
+        var expert=AbilityRegistry.skill("meltdowner.mine_ray_expert");
+        if(variant==2 || variant==1 && MeltdownerSkillRules.upgraded(state,expert))
+            return MeltdownerSkillRules.integer(expert,"upgraded_range");
+        return Balance.i("mine_ray_context",variant==0?"mine_ray_context_range_1":"mine_ray_context_range_2");
     }
     private static float lerp(float a,float b,float exp){return a+(b-a)*exp;}
 }

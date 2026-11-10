@@ -1,0 +1,19 @@
+{
+  "tracks": [
+    {
+      "id": "level5_judgelight",
+      "model": 0,
+      "weight": 1
+    },
+    {
+      "id": "only_my_railgun",
+      "model": 1,
+      "weight": 1
+    },
+    {
+      "id": "sisters_noise",
+      "model": 2,
+      "weight": 1
+    }
+  ]
+}

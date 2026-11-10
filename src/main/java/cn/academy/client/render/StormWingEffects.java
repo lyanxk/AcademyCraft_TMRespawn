@@ -1,5 +1,7 @@
 package cn.academy.client.render;
 
+import cn.academy.data.SharedSkillCosts;
+
 import cn.academy.ability.*;
 import cn.academy.ability.vanilla.electromaster.skill.ElectricAttackTrace;
 import cn.academy.ability.vanilla.vecmanip.skill.StormWingContext;
@@ -32,7 +34,7 @@ public final class StormWingEffects {
         Vec3 previous,position;
         Wing(Player owner,int slot,int request,int id,float exp) {
             this.owner=owner;this.slot=slot;this.request=request;this.id=id;this.exp=exp;soundId=owner==local?-request:id;
-            chargeTime=70+(30-70)*exp;speed=(exp<.45f?.7f:1.2f)*(2+exp);
+            chargeTime=cn.academy.data.Balance.f("storm_wing_context", "charge_ticks_start")+(cn.academy.data.Balance.f("storm_wing_context", "charge_ticks_end")-cn.academy.data.Balance.f("storm_wing_context", "charge_ticks_start"))*exp;speed=(exp<cn.academy.data.Balance.f("storm_wing_context", "speed_threshold")?cn.academy.data.Balance.f("storm_wing_context", "slow_speed_factor"):cn.academy.data.Balance.f("storm_wing_context", "fast_speed_factor"))*(cn.academy.data.Balance.f("storm_wing_context", "speed_base")+exp);
             for(int i=0;i<4;i++)funnels[i]=new TornadoMesh(RANDOM,2,.16,1,2);
             previous=position=owner.position().add(0,1.6,0);
             ACContextSounds.handle(owner.getUUID(),"vecmanip.storm_wing",true,1,SoundSource.AMBIENT,soundId);
@@ -112,12 +114,12 @@ public final class StormWingEffects {
                     local.setDeltaMovement(move(velocity.x,target.x),move(velocity.y,target.y),move(velocity.z,target.z));
                 } else {
                     var hit=ElectricAttackTrace.traceBlockSegment(local,local.position().add(0,.5,0),local.position().add(0,-.3,0),null);
-                    local.setDeltaMovement(velocity.x,hit.getType()==HitResult.Type.MISS?velocity.y+.078:.1,velocity.z);
+                    local.setDeltaMovement(velocity.x,hit.getType()==HitResult.Type.MISS?velocity.y+cn.academy.data.Balance.d("storm_wing_context", "hover_compensation"):cn.academy.data.Balance.d("storm_wing_context", "ground_hover_velocity"),velocity.z);
                 }
                 local.resetFallDistance();
                 if(wing.active) {
-                    var skill=AbilityRegistry.skill("vecmanip.storm_wing");state.addExperience(skill,.00005f);
-                    state.consumeRaw(skill,40+(25-40)*wing.exp,10+(7-10)*wing.exp,local.isCreative());
+                    var skill=AbilityRegistry.skill("vecmanip.storm_wing");state.addExperience(skill,cn.academy.data.Balance.f("storm_wing_context", "tick_add_experience_1"));
+                    state.consumeRaw(skill,SharedSkillCosts.wingCp(wing.exp),SharedSkillCosts.wingOverload(wing.exp),local.isCreative());
                 }
                 if(!wing.active && wing.stateTicks>wing.chargeTime) {
                     wing.active=true;wing.stateTicks=0;
@@ -134,7 +136,7 @@ public final class StormWingEffects {
         }
         WINGS.removeIf(wing->wing.terminated && wing.terminateTicks>15);
     }
-    private static double move(double current,double target){double delta=target-current;return current+Math.min(Math.abs(delta),.16)*Math.signum(delta);}
+    private static double move(double current,double target){double delta=target-current;return current+Math.min(Math.abs(delta),cn.academy.data.Balance.d("storm_wing_context", "velocity_step"))*Math.signum(delta);}
     public static void render(RenderLevelStageEvent event) {
         if(event.getStage()!=RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS || !sync(Minecraft.getInstance()))return;
         var mc=Minecraft.getInstance();var pose=event.getPoseStack();var camera=event.getCamera().getPosition();var buffers=mc.renderBuffers().bufferSource();

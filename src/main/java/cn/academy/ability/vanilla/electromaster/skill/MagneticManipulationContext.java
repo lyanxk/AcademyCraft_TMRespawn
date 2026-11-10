@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.electromaster.skill;
 
+import cn.academy.data.Balance;
+
 import cn.academy.ability.*;
 import cn.academy.entity.MagManipEntityBlock;
 import cn.academy.network.MagneticManipulationPayload;
@@ -22,11 +24,11 @@ public final class MagneticManipulationContext {
     private boolean performed,ended;
     public MagneticManipulationContext(ServerPlayer player,AbilityState state,AbilitySkill skill,int slot,int request) {
         this.player=player;this.skill=skill;this.slot=slot;this.request=request;
-        float exp=state.experience(skill.id());boolean enhanced=state.level()>=4;
-        cp=enhanced?270+230*exp:140+(270-140)*exp;overload=enhanced?20:35+(20-35)*exp;
-        speed=enhanced?1+2*exp:.5f+(1-.5f)*exp;cooldown=enhanced?40:(int)(60+(40-60)*exp);
-        damage=enhanced?10+90*exp:10;
-        audience.add(player);for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=625)audience.add(viewer);
+        float exp=state.experience(skill.id());boolean enhanced=state.level()>=Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_threshold_1");
+        cp=enhanced?Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_cp_1")+Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_cp_2")*exp:Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_cp_3")+(Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_cp_4")-Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_cp_5"))*exp;overload=enhanced?Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_overload_1"):Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_overload_2")+(Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_overload_3")-Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_overload_4"))*exp;
+        speed=enhanced?1+Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_speed_1")*exp:Balance.f("magnetic_manipulation_context", "magnetic_manipulation_context_speed_2")+(1-Balance.f("magnetic_manipulation_context", "magnetic_manipulation_context_speed_3"))*exp;cooldown=enhanced?Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_cooldown_1"):(int)(Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_cooldown_2")+(Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_cooldown_3")-Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_cooldown_4"))*exp);
+        damage=enhanced?Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_damage_1")+Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_damage_2")*exp:Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_damage_3");
+        audience.add(player);for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=Balance.i("magnetic_manipulation_context", "magnetic_manipulation_context_threshold_2"))audience.add(viewer);
     }
     public boolean start() {
         var stack=player.getMainHandItem();
@@ -48,13 +50,13 @@ public final class MagneticManipulationContext {
         performed=true;
         if(entity==null)return false;
         entity.release();
-        if(player.distanceToSqr(entity)>=25 || !state.consumeRaw(skill,cp,overload,player.isCreative()))return false;
-        HitResult hit=ElectricAttackTrace.trace(player,20,false);
+        if(player.distanceToSqr(entity)>=Balance.i("magnetic_manipulation_context", "perform_threshold_1") || !state.consumeRaw(skill,cp,overload,player.isCreative()))return false;
+        HitResult hit=ElectricAttackTrace.trace(player,Balance.i("magnetic_manipulation_context", "perform_trace_1"),false);
         Vec3 point=hit.getLocation();
         if(hit instanceof EntityHitResult entityHit)point=point.add(0,entityHit.getEntity().getEyeHeight()*.6,0);
         Vec3 velocity=point.subtract(entity.position()).normalize().scale(speed);
         entity.setDeltaMovement(velocity);
-        state.finishContext(skill,cooldown,.005f);
+        state.finishContext(skill,cooldown,Balance.f("magnetic_manipulation_context", "perform_finish_context_1"));
         send(MagneticManipulationPayload.RELEASE,velocity);return true;
     }
     public void end() {

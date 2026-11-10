@@ -1,0 +1,11 @@
+{
+  "capacity": 6000,
+  "transfer": 50,
+  "generation": 50,
+  "connections": 0,
+  "range": 0.0,
+  "tank_capacity": 8000,
+  "fluid": "academy:imag_phase",
+  "fluid_per_tick": 100,
+  "energy_per_mb": 0.5
+}

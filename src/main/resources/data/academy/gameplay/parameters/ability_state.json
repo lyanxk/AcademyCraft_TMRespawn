@@ -1,0 +1,10 @@
+{
+  "level_experience_threshold_value_1": 4,
+  "level_experience_threshold_value_2": 1.333,
+  "level_experience_threshold_value_3": 0.666,
+  "recalculate_capacities_level_five_cp_capacity_1": 5,
+  "recalculate_capacities_level_five_cp_capacity_2": 5,
+  "finish_location_teleport_threshold_1": 200,
+  "finish_location_teleport_add_experience_1": 0.03,
+  "finish_location_teleport_add_experience_2": 0.015
+}

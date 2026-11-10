@@ -1,7 +1,10 @@
 package cn.academy.tutorial;
 
+import cn.academy.data.GameplayRules;
+
+import cn.academy.data.GameplayData;
+
 import cn.academy.ability.AbilityState;
-import cn.academy.config.ACConfig;
 import cn.academy.event.TutorialActivatedEvent;
 import cn.academy.network.ACNetwork;
 import cn.academy.network.TutorialActivatedPayload;
@@ -22,22 +25,25 @@ import java.util.Set;
 
 /** TutorialData's persistent event conditions and TickScheduler timeline, stored with the player's snapshot. */
 public final class TutorialData {
-    private BitSet savedConditions = new BitSet();
+    private final Set<String> savedConditions = new LinkedHashSet<>();
     private final Set<String> activated = new LinkedHashSet<>(), legacyUnlocked = new LinkedHashSet<>();
     private boolean tutorialAcquired, dirty;
     private int misakaId = -1;
     // Keep TickScheduler's float arithmetic, including its initial 0.15f rounding behavior.
-    private float conditionCounter = 3 / 20f, giftCounter = 10 / 20f;
+    private float conditionCounter = GameplayData.integer("tutorial_settings", "condition_interval_ticks") / 20f,
+            giftCounter = GameplayData.integer("tutorial_settings", "gift_interval_ticks") / 20f;
 
     public static TutorialData get(Player player) { return AbilityState.load(player).tutorialData(); }
     public int getMisakaID() { return misakaId; }
     public boolean tutorialAcquired() { return tutorialAcquired; }
-    public boolean isCondActivate(int index) { return index >= 0 && savedConditions.get(index); }
-    public boolean setCondActivate(int index) {
-        if (savedConditions.get(index)) return false;
-        savedConditions.set(index);
-        dirty = true;
-        return true;
+    public boolean recordCondition(String id) { boolean added = savedConditions.add(id); dirty |= added; return added; }
+    public void markDirty() { dirty = true; }
+    public boolean hasObtained(String item) {
+        for (String id : savedConditions) {
+            int split = id.indexOf('/'); if (split < 0) continue;
+            if (GameplayRules.itemMatches(new ItemStack(GameplayRules.item(id.substring(split + 1))), item)) return true;
+        }
+        return false;
     }
     public boolean legacyUnlocked(String id) { return legacyUnlocked.contains(id); }
     public boolean wasActivated(String id) { return activated.contains(id); }
@@ -64,7 +70,7 @@ public final class TutorialData {
         boolean sync = false;
         conditionCounter -= .05f;
         if (conditionCounter <= 0) {
-            conditionCounter += 3 / 20f;
+            conditionCounter += GameplayData.integer("tutorial_settings", "condition_interval_ticks") / 20f;
             if (dirty) {
                 dirty = false;
                 for (var tutorial : TutorialRegistry.enumeration()) {
@@ -79,10 +85,10 @@ public final class TutorialData {
         }
         giftCounter -= .05f;
         if (giftCounter <= 0) {
-            giftCounter += 10 / 20f;
-            if (ACConfig.GIVE_MISAKA_TERMINAL.get() && !tutorialAcquired) {
+            giftCounter += GameplayData.integer("tutorial_settings", "gift_interval_ticks") / 20f;
+            if (GameplayData.flag("tutorial_settings", "give_terminal") && !tutorialAcquired) {
                 player.serverLevel().addFreshEntity(new ItemEntity(player.serverLevel(), player.getX(),
-                        player.getY() + 1, player.getZ(), new ItemStack(ACItems.TUTORIAL.get())));
+                        player.getY() + 1, player.getZ(), new ItemStack(GameplayRules.item(GameplayData.string("tutorial_settings", "gift_item")), GameplayData.integer("tutorial_settings", "gift_count"))));
                 tutorialAcquired = true;
                 sync = true;
             }
@@ -98,14 +104,20 @@ public final class TutorialData {
         for (var value : tag.getList("Tutorials", Tag.TAG_STRING)) activated.add(value.getAsString());
         for (var value : tag.getList("LegacyTutorials", Tag.TAG_STRING)) legacyUnlocked.add(value.getAsString());
         if (!tag.contains("TutorialConditionVersion")) legacyUnlocked.addAll(activated);
-        savedConditions = BitSet.valueOf(tag.getLongArray("TutorialConditions"));
+        savedConditions.clear();
+        for (var value : tag.getList("TutorialConditionIds", Tag.TAG_STRING)) savedConditions.add(value.getAsString());
+        if (tag.getInt("TutorialConditionVersion") < 2) {
+            var legacy = BitSet.valueOf(tag.getLongArray("TutorialConditions"));
+            var ids = GameplayData.bundled("tutorials").getAsJsonArray("legacy_condition_ids");
+            for (int bit = legacy.nextSetBit(0); bit >= 0 && bit < ids.size(); bit = legacy.nextSetBit(bit + 1)) savedConditions.add(ids.get(bit).getAsString());
+        }
         dirty = tag.getBoolean("TutorialDirty");
     }
     public void write(CompoundTag tag) {
         tag.putBoolean("TutorialGiven", tutorialAcquired);
         tag.putInt("MisakaId", misakaId);
-        tag.putInt("TutorialConditionVersion", 1);
-        tag.putLongArray("TutorialConditions", savedConditions.toLongArray());
+        tag.putInt("TutorialConditionVersion", 2);
+        tag.put("TutorialConditionIds", strings(savedConditions));
         tag.putBoolean("TutorialDirty", dirty);
         tag.put("Tutorials", strings(activated));
         tag.put("LegacyTutorials", strings(legacyUnlocked));

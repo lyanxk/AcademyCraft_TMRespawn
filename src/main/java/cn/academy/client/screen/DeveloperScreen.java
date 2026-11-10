@@ -1,5 +1,9 @@
 package cn.academy.client.screen;
 
+import cn.academy.data.GameplayRules;
+
+import cn.academy.data.GameplayData;
+
 import cn.academy.AcademyCraft;
 import cn.academy.ability.AbilityCategory;
 import cn.academy.ability.AbilityRegistry;
@@ -110,14 +114,13 @@ public class DeveloperScreen extends Screen {
         }
     }
 
-    private int maximumSkillLevel() {
-        if (portable) return 2;
-        ACMachineBlockEntity machine = machine();
-        if (machine != null && machine.kind() == MachineKind.DEVELOPER_ADVANCED) return 5;
-        return 3;
+    private String developerProfile() {
+        if (portable) return "portable";
+        var machine = machine();
+        return machine != null && machine.kind() == MachineKind.DEVELOPER_ADVANCED ? "advanced" : "normal";
     }
-
-    private boolean advanced() { return !portable && maximumSkillLevel() == 5; }
+    private int maximumSkillLevel() { return GameplayData.integer("developers", developerProfile() + ".maximum_level"); }
+    private boolean advanced() { return !portable && developerProfile().equals("advanced"); }
 
     private ACMachineBlockEntity machine() {
         return minecraft != null && minecraft.level != null
@@ -280,7 +283,7 @@ public class DeveloperScreen extends Screen {
 
     private boolean resetMode() {
         return minecraft != null && minecraft.player != null
-                && minecraft.player.getMainHandItem().is(ACItems.MAGNETIC_COIL.get());
+                && minecraft.player.getMainHandItem().is(GameplayRules.item(GameplayData.string("developers", "reset.item")));
     }
 
     private List<AbilitySkill> visibleSkills(AbilityState state, AbilityCategory category) {
@@ -509,11 +512,11 @@ public class DeveloperScreen extends Screen {
         ACSkillTreeRenderer.action(gui, icon, cx, cy, progress, glow);
     }
 
-    private int energyPerStimulation() { return portable ? 750 : advanced() ? 600 : 700; }
+    private int energyPerStimulation() { return GameplayData.integer("developers", developerProfile() + ".energy_per_stimulation"); }
     private int skillEnergy(AbilitySkill skill) {
-        return (int) (3 + skill.level() * skill.level() * .5f) * energyPerStimulation();
+        return (int) (GameplayData.number("developers", "learning.base_stimulations") + skill.level() * skill.level() * GameplayData.number("developers", "learning.level_squared_multiplier")) * energyPerStimulation();
     }
-    private int levelEnergy(AbilityState state) { return 5 * (state.level() + 1) * energyPerStimulation(); }
+    private int levelEnergy(AbilityState state) { return GameplayData.integer("developers", "level_up.stimulations_per_level") * (state.level() + 1) * energyPerStimulation(); }
     private boolean hasDevelopmentEnergy(int amount) { return developerEnergy()[0] >= amount; }
 
     private void drawSmallButton(GuiGraphics gui, float x, float y, boolean hovered) {
@@ -547,8 +550,8 @@ public class DeveloperScreen extends Screen {
             beginDevelopment(DeveloperActionPayload.level(sourcePos, portable));
         } else if (!readOnly && resetMode() && command.equals("reset")) {
             if (!advanced()) console.outputLine(Component.translatable("ac.skill_tree.console.reset_fail_dev").getString());
-            else if (state.level() < 3 || minecraft.player.getInventory().items.stream().noneMatch(stack -> {
-                String factorCategory = stack.getOrDefault(cn.academy.registry.ACDataComponents.ABILITY_CATEGORY.get(), "");
+            else if (state.level() < GameplayData.integer("developers", "reset.minimum_level") || minecraft.player.getInventory().items.stream().noneMatch(stack -> {
+                String factorCategory = cn.academy.item.InductionFactorItem.category(stack);
                 return stack.is(ACItems.INDUCTION_FACTOR.get()) && AbilityRegistry.category(factorCategory) != null
                         && !factorCategory.equals(state.category());
             })) console.outputLine(Component.translatable("ac.skill_tree.console.reset_fail_other").getString());

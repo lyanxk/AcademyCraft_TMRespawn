@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.meltdowner.skill;
 
+import cn.academy.data.Balance;
+
 import cn.academy.ability.AbilityContext;
 import cn.academy.ability.AbilityState;
 import cn.academy.network.RadiationMarkPayload;
@@ -20,12 +22,15 @@ public final class MDDamageHelper {
     public static void mark(net.minecraft.server.level.ServerPlayer player,Entity target) {
         var state=AbilityState.load(player);
         if(!state.learned().contains(PASSIVE))return;
-        int ticks=Math.max(60,ticks(player));
+        int ticks=Math.max(Balance.i("m_d_damage_helper", "mark_ticks_1"),ticks(player));
         setTicks(target,ticks);
-        target.getPersistentData().putFloat(RATE,1.4f+state.experience(PASSIVE)*(1.8f-1.4f));
+        var skill=cn.academy.ability.AbilityRegistry.skill(PASSIVE);
+        target.getPersistentData().putFloat(RATE,MeltdownerSkillRules.upgraded(state,skill)
+                ?MeltdownerSkillRules.curve(skill,"upgraded_multiplier",state.experience(PASSIVE))
+                :1.4f+state.experience(PASSIVE)*(1.8f-1.4f));
         // The original writes target, but serializes player. Preserve that observable behavior.
         var message=new RadiationMarkPayload(player.getId(),ticks);
-        for(var viewer:player.serverLevel().players())if(viewer.distanceToSqr(player)<400)
+        for(var viewer:player.serverLevel().players())if(viewer.distanceToSqr(player)<Balance.i("m_d_damage_helper", "mark_threshold_1"))
             PacketDistributor.sendToPlayer(viewer,message);
     }
     public static int ticks(Entity entity) {

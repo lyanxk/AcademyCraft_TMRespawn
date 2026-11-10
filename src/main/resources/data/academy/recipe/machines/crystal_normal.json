@@ -1,0 +1,19 @@
+{
+  "type": "academy:machine",
+  "machine": "imag_fusor",
+  "mode": "plate",
+  "ingredient": {
+    "item": "academy:crystal_low"
+  },
+  "input_count": 1,
+  "duration": 120,
+  "energy_per_tick": 12.0,
+  "result": {
+    "id": "academy:crystal_normal",
+    "count": 1
+  },
+  "fluid": {
+    "id": "academy:imag_phase",
+    "amount": 3000
+  }
+}

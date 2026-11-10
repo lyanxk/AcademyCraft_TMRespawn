@@ -1,139 +1,57 @@
 package cn.academy.ability;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import cn.academy.data.GameplayData;
+import java.util.*;
 
-/**
- * Code registry for abilities. These are gameplay definitions rather than game registry entries,
- * allowing the original stable string ids to remain directly serializable.
- */
+/** Immutable definitions rebuilt from the active datapack snapshot. Stable saved skill IDs are preserved. */
 public final class AbilityRegistry {
-    private static final Map<String, AbilityCategory> CATEGORIES = new LinkedHashMap<>();
-    private static boolean bootstrapped;
-
-    public static synchronized void bootstrap() {
-        if (bootstrapped) return;
-        bootstrapped = true;
-
-        category("electromaster", 0x1471D0, b -> {
-            b.skill("arc_gen", 1, 120, 8, 8).enhancedAt(3);
-            b.skill("charging", 1, 80, 4, 10, req("arc_gen", .3f)).enhancedAt(2,3,4,5);
-            b.skill("mag_movement", 2, 180, 12, 16, req("arc_gen", 0), req("charging", .7f)).enhancedAt(3);
-            b.skill("mag_manip", 2, 220, 14, 20, req("mag_movement", .5f)).enhancedAt(4);
-            b.skill("mine_detect", 3, 300, 20, 80, req("mag_manip", 1));
-            b.skill("body_intensify", 3, 360, 25, 120, req("arc_gen", 1), req("charging", 1));
-            b.skill("thunder_bolt", 4, 520, 42, 50, req("arc_gen", 0), req("charging", .7f)).enhancedAt(5);
-            b.skill("railgun", 4, 650, 55, 70, req("thunder_bolt", .3f), req("mag_manip", 1)).enhancedAt(5);
-            b.skill("thunder_clap", 5, 1100, 100, 160, req("thunder_bolt", 1));
-        });
-
-        category("meltdowner", 0x7EFF84, b -> {
-            b.skill("electron_bomb", 1, 140, 10, 12);
-            b.passive("rad_intensify", 1, req("electron_bomb", .5f));
-            b.skill("scatter_bomb", 2, 240, 18, 28, req("electron_bomb", .8f));
-            b.skill("light_shield", 2, 260, 18, 100, req("electron_bomb", 1));
-            b.skill("meltdowner", 3, 420, 32, 35, req("scatter_bomb", .8f), req("light_shield", .8f));
-            b.skill("mine_ray_basic", 3, 380, 28, 45, req("meltdowner", .3f));
-            b.skill("ray_barrage", 4, 620, 55, 80, req("meltdowner", .5f));
-            b.skill("jet_engine", 4, 280, 22, 30, req("meltdowner", 1));
-            b.skill("mine_ray_expert", 4, 550, 45, 65, req("mine_ray_basic", .8f));
-            b.skill("mine_ray_luck", 5, 900, 80, 100, req("mine_ray_expert", 1));
-            b.skill("electron_missile", 5, 1000, 90, 140, req("jet_engine", .3f));
-        });
-
-        category("teleporter", 0xA4A4A4, b -> {
-            b.skill("threatening_teleport", 1, 100, 8, 12);
-            b.passive("dim_folding_theorem", 1, req("threatening_teleport", .2f));
-            b.skill("penetrate_teleport", 2, 210, 14, 20, req("threatening_teleport", .5f));
-            b.skill("mark_teleport", 2, 180, 12, 15, req("threatening_teleport", .4f));
-            b.skill("flesh_ripping", 3, 360, 28, 35, req("mark_teleport", .5f), req("penetrate_teleport", .5f));
-            b.skill("location_teleport", 3, 480, 35, 80, req("penetrate_teleport", .8f), req("mark_teleport", .8f));
-            b.skill("shift_tp", 4, 600, 50, 70, req("location_teleport", .5f));
-            b.passive("space_fluct", 4, req("shift_tp", 0));
-            b.skill("flashing", 5, 500, 45, 12, req("shift_tp", .8f));
-        });
-
-        category("vecmanip", 0x202020, b -> {
-            b.skill("dir_shock", 1, 110, 8, 10).enhancedAt(3,5);
-            b.skill("ground_shock", 1, 160, 12, 22, req("dir_shock", 0));
-            b.skill("vec_accel", 2, 360, 13, 50, req("dir_shock", 0)).enhancedAt(4);
-            b.skill("vec_deviation", 2, 220, 16, 35, req("vec_accel", 0));
-            b.skill("dir_blast", 3, 360, 28, 35, req("ground_shock", 0)).enhancedAt(5);
-            b.skill("storm_wing", 3, 300, 22, 45, req("vec_accel", 0));
-            b.skill("blood_retro", 4, 600, 50, 80, req("dir_blast", 0)).enhancedAt(5);
-            b.skill("vec_reflection", 4, 520, 44, 100, req("vec_deviation", 0)).enhancedAt(5);
-            b.skill("plasma_cannon", 5, 1100, 100, 160, req("storm_wing", 0));
+    private static Map<String, AbilityCategory> definitions() {
+        return GameplayData.current().cached("abilities", () -> {
+            Map<String, AbilityCategory> result = new LinkedHashMap<>();
+            for (var entry : GameplayData.value("abilities", "categories").getAsJsonArray()) {
+                var category = entry.getAsJsonObject(); String id = category.get("id").getAsString();
+                List<AbilitySkill> skills = new ArrayList<>();
+                for (var nameEntry : category.getAsJsonArray("skills")) {
+                    String name = nameEntry.getAsString(); var data = GameplayData.document("skills/" + id + "/" + name);
+                    List<AbilitySkill.Requirement> requirements = new ArrayList<>();
+                    for (var dependency : data.getAsJsonArray("requirements")) {
+                        var req = dependency.getAsJsonObject();
+                        requirements.add(new AbilitySkill.Requirement(req.get("skill").getAsString(), req.get("experience").getAsFloat()));
+                    }
+                    List<AbilitySkill.Enhancement> enhancements = new ArrayList<>();
+                    data.getAsJsonArray("enhancements").forEach(level -> enhancements.add(new AbilitySkill.Enhancement(level.getAsInt())));
+                    skills.add(new AbilitySkill(id, name, data.get("level").getAsInt(), data.get("cp_cost").getAsFloat(),
+                            data.get("overload").getAsFloat(), data.get("cooldown_ticks").getAsInt(),
+                            data.get("controllable").getAsBoolean(), requirements, enhancements));
+                }
+                result.put(id, new AbilityCategory(id, category.get("color").getAsInt(), skills, category.get("progression_scale").getAsFloat()));
+            }
+            return Collections.unmodifiableMap(result);
         });
     }
-
-    private static void category(String id, int color, java.util.function.Consumer<Builder> factory) {
-        Builder builder = new Builder(id);
-        factory.accept(builder);
-        builder.genericPassives();
-        CATEGORIES.put(id, new AbilityCategory(id, color, builder.skills));
-    }
-
-    private static AbilitySkill.Requirement req(String skill, float experience) {
-        return new AbilitySkill.Requirement(skill, experience);
-    }
-
-    public static AbilityCategory category(String id) {
-        bootstrap();
-        return CATEGORIES.get(id);
-    }
-
+    public static AbilityCategory category(String id) { return definitions().get(id); }
     public static AbilitySkill skill(String fullId) {
-        bootstrap();
-        int split = fullId.indexOf('.');
-        if (split < 1) return null;
-        AbilityCategory category = CATEGORIES.get(fullId.substring(0, split));
+        int split = fullId.indexOf('.'); if (split < 1) return null;
+        var category = category(fullId.substring(0, split));
         return category == null ? null : category.skill(fullId.substring(split + 1));
     }
-
-    public static Collection<AbilityCategory> categories() {
-        bootstrap();
-        return Collections.unmodifiableCollection(CATEGORIES.values());
+    public static float progressionScale(String id) {
+        var category = category(id); return category == null ? 1 : category.progressionScale();
     }
-
-    public static List<String> categoryIds() {
-        bootstrap();
-        return List.copyOf(CATEGORIES.keySet());
+    public static Collection<AbilityCategory> categories() { return definitions().values(); }
+    public static List<String> categoryIds() { return List.copyOf(definitions().keySet()); }
+    public static String randomCategory(net.minecraft.util.RandomSource random) {
+        var categories = GameplayData.value("abilities", "categories").getAsJsonArray();
+        double total = categories.asList().stream().mapToDouble(entry -> entry.getAsJsonObject().get("weight").getAsDouble()).sum();
+        double choice = random.nextDouble() * total;
+        String selected = "";
+        for (var entry : categories) {
+            var category = entry.getAsJsonObject(); double weight = category.get("weight").getAsDouble();
+            if (weight <= 0) continue;
+            selected = category.get("id").getAsString(); choice -= weight;
+            if (choice < 0) return selected;
+        }
+        return selected;
     }
-
-    private static final class Builder {
-        private final String category;
-        private final List<AbilitySkill> skills = new ArrayList<>();
-
-        private Builder(String category) {
-            this.category = category;
-        }
-
-        private Builder skill(String name, int level, float cp, float overload, int cooldown,
-                           AbilitySkill.Requirement... requirements) {
-            skills.add(new AbilitySkill(category, name, level, cp, overload, cooldown, true, List.of(requirements)));
-            return this;
-        }
-
-        private Builder enhancedAt(int... levels) {
-            int index=skills.size()-1;
-            skills.set(index,skills.get(index).withEnhancements(levels));
-            return this;
-        }
-
-        private void passive(String name, int level, AbilitySkill.Requirement... requirements) {
-            skills.add(new AbilitySkill(category, name, level, 0, 0, 0, false, List.of(requirements)));
-        }
-
-        private void genericPassives() {
-            passive("brain_course", 3);
-            passive("brain_course_advanced", 4, req("brain_course", 0));
-            passive("mind_course", 5, req("brain_course_advanced", 0));
-        }
-    }
-
-    private AbilityRegistry() {}
+    private AbilityRegistry() { }
 }

@@ -1,5 +1,9 @@
 package cn.academy.item;
 
+import cn.academy.data.GameplayRules;
+
+import cn.academy.data.GameplayData;
+
 import cn.academy.ability.vanilla.electromaster.skill.ElectricAttackTrace;
 import cn.academy.event.MatterUnitHarvestEvent;
 import cn.academy.registry.ACBlocks;
@@ -24,34 +28,39 @@ import net.neoforged.neoforge.common.NeoForge;
 
 /** Matter collection/placement with component-backed material and vanilla bucket inventory handling. */
 public final class MatterUnitItem extends Item {
-    public record MatterMaterial(String name, Supplier<? extends Block> block) {}
-    public static final MatterMaterial MAT_NONE = new MatterMaterial("none", () -> Blocks.AIR);
-    public static final MatterMaterial MAT_PHASE_LIQUID = new MatterMaterial("phase_liquid", ACBlocks.IMAG_PHASE);
-    public static final List<MatterMaterial> MATERIALS = List.of(MAT_NONE, MAT_PHASE_LIQUID);
-
+    public record MatterMaterial(String name, Supplier<? extends Block> block, Supplier<? extends net.minecraft.world.level.material.Fluid> fluid, int model) { }
+    public static final MatterMaterial MAT_NONE = new MatterMaterial("none", () -> Blocks.AIR, () -> net.minecraft.world.level.material.Fluids.EMPTY, 0);
+    public static List<MatterMaterial> materials() {
+        return GameplayData.current().cached("matter_materials", () -> {
+            var result = new java.util.ArrayList<MatterMaterial>(); result.add(MAT_NONE);
+            for (var entry : GameplayData.value("matter", "materials").getAsJsonArray()) {
+                var value = entry.getAsJsonObject();
+                result.add(new MatterMaterial(value.get("id").getAsString(),
+                        () -> GameplayRules.block(value.get("block").getAsString()),
+                        () -> GameplayRules.fluid(value.get("fluid").getAsString()), value.get("model").getAsInt()));
+            }
+            return List.copyOf(result);
+        });
+    }
     public MatterUnitItem(Properties properties) {
         super(properties.component(ACDataComponents.PHASE_FILLED.get(), false));
     }
-
-    public static boolean isFilled(ItemStack stack) {
-        return stack.getOrDefault(ACDataComponents.PHASE_FILLED.get(), false);
-    }
-
-    public static void setFilled(ItemStack stack, boolean filled) {
-        stack.set(ACDataComponents.PHASE_FILLED.get(), filled);
-        if (filled) stack.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(1));
+    public static boolean isFilled(ItemStack stack) { return getMaterial(stack) != null && getMaterial(stack) != MAT_NONE; }
+    public static void setMaterial(ItemStack stack, MatterMaterial material) {
+        stack.set(ACDataComponents.MATTER_MATERIAL.get(), material.name());
+        stack.set(ACDataComponents.PHASE_FILLED.get(), material != MAT_NONE);
+        if (material != MAT_NONE) stack.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(material.model()));
         else stack.remove(DataComponents.CUSTOM_MODEL_DATA);
     }
-
+    public static void setFilled(ItemStack stack, boolean filled) { setMaterial(stack, filled ? materials().get(1) : MAT_NONE); }
     public static MatterMaterial getMaterial(ItemStack stack) {
-        return stack.getItem() instanceof MatterUnitItem ? (isFilled(stack) ? MAT_PHASE_LIQUID : MAT_NONE) : null;
+        if (!(stack.getItem() instanceof MatterUnitItem)) return null;
+        String id = stack.getOrDefault(ACDataComponents.MATTER_MATERIAL.get(),
+                stack.getOrDefault(ACDataComponents.PHASE_FILLED.get(), false) ? "phase_liquid" : "none");
+        return materials().stream().filter(material -> material.name().equals(id)).findFirst().orElse(MAT_NONE);
     }
-
     public ItemStack create(MatterMaterial material) {
-        if (!MATERIALS.contains(material)) throw new IllegalArgumentException("Unknown matter material");
-        ItemStack stack = new ItemStack(this);
-        setFilled(stack, material == MAT_PHASE_LIQUID);
-        return stack;
+        ItemStack stack = new ItemStack(this); setMaterial(stack, material); return stack;
     }
 
     @Override
@@ -79,7 +88,7 @@ public final class MatterUnitItem extends Item {
 
         if (isNone) {
             Block block = world.getBlockState(pos).getBlock();
-            for (var material : MATERIALS) {
+            for (var material : materials()) {
                 if (material.block().get() != block) continue;
                 stack = ItemUtils.createFilledResult(stack, player, create(material));
                 // Level.removeBlock preserves a block's fluid: it would leave this source in place.

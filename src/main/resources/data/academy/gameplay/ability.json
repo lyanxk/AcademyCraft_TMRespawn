@@ -1,0 +1,49 @@
+{
+  "damage_scale": 1.0,
+  "progression_scale": 1.0,
+  "cp_recovery_scale": 1.0,
+  "overload_recovery_scale": 1.0,
+  "max_cp_increase_rate": 0.0025,
+  "max_overload_increase_rate": 0.0058,
+  "max_overload_gain_per_action": 10.0,
+  "initial_cp": [
+    1800,
+    1800,
+    2800,
+    4000,
+    5800,
+    8000
+  ],
+  "initial_overload": [
+    100,
+    100,
+    150,
+    240,
+    350,
+    500
+  ],
+  "additional_cp": [
+    0,
+    900,
+    1000,
+    1500,
+    1700,
+    12000
+  ],
+  "additional_overload": [
+    0,
+    40,
+    70,
+    80,
+    100,
+    500
+  ],
+  "cp_recovery_rate": 0.0015,
+  "overload_recovery_min": 0.002,
+  "overload_recovery_rate": 0.007,
+  "overload_recovery_divisor": 4.0,
+  "brain_course_cp": 1000.0,
+  "advanced_brain_course_cp": 1500.0,
+  "advanced_brain_course_overload": 100.0,
+  "mind_course_recovery": 1.2
+}

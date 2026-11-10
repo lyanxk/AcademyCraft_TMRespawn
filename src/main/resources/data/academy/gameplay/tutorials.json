@@ -1,0 +1,286 @@
+{
+  "tutorials": [
+    {
+      "id": "welcome",
+      "obtained_items": [],
+      "previews": []
+    },
+    {
+      "id": "ores",
+      "obtained_items": [
+        "academy:constraint_metal",
+        "academy:imagsil_ore",
+        "academy:crystal_ore",
+        "academy:reso_ore"
+      ],
+      "previews": [
+        {
+          "type": "block",
+          "item": "academy:constraint_metal"
+        },
+        {
+          "type": "block",
+          "item": "academy:imagsil_ore"
+        },
+        {
+          "type": "block",
+          "item": "academy:crystal_ore"
+        },
+        {
+          "type": "block",
+          "item": "academy:reso_ore"
+        },
+        {
+          "type": "icon",
+          "path": "item/phase_liquid_mat",
+          "dx": 0,
+          "dy": 0,
+          "scale": 1,
+          "color": -1
+        },
+        {
+          "type": "recipe",
+          "item": "academy:constraint_plate"
+        },
+        {
+          "type": "recipe",
+          "item": "academy:imag_silicon_ingot"
+        },
+        {
+          "type": "recipe",
+          "item": "academy:wafer"
+        },
+        {
+          "type": "recipe",
+          "item": "academy:imag_silicon_piece"
+        }
+      ]
+    },
+    {
+      "id": "phase_generator",
+      "obtained_items": [
+        "academy:phase_gen"
+      ],
+      "previews": [
+        {
+          "type": "recipe",
+          "item": "academy:phase_gen"
+        }
+      ]
+    },
+    {
+      "id": "solar_generator",
+      "obtained_items": [
+        "academy:solar_gen"
+      ],
+      "previews": [
+        {
+          "type": "recipe",
+          "item": "academy:solar_gen"
+        }
+      ]
+    },
+    {
+      "id": "wind_generator",
+      "obtained_items": [
+        "academy:windgen_base",
+        "academy:windgen_fan",
+        "academy:windgen_main",
+        "academy:windgen_pillar"
+      ],
+      "previews": [
+        {
+          "type": "recipe",
+          "item": "academy:windgen_base"
+        },
+        {
+          "type": "recipe",
+          "item": "academy:windgen_pillar"
+        },
+        {
+          "type": "recipe",
+          "item": "academy:windgen_main"
+        },
+        {
+          "type": "recipe",
+          "item": "academy:windgen_fan"
+        }
+      ]
+    },
+    {
+      "id": "metal_former",
+      "obtained_items": [
+        "academy:metal_former"
+      ],
+      "previews": [
+        {
+          "type": "recipe",
+          "item": "academy:metal_former"
+        }
+      ]
+    },
+    {
+      "id": "imag_fusor",
+      "obtained_items": [
+        "academy:imag_fusor"
+      ],
+      "previews": [
+        {
+          "type": "recipe",
+          "item": "academy:imag_fusor"
+        }
+      ]
+    },
+    {
+      "id": "terminal",
+      "obtained_items": [
+        "academy:terminal_installer",
+        "academy:app_skill_tree",
+        "academy:app_freq_transmitter",
+        "academy:app_media_player"
+      ],
+      "previews": [
+        {
+          "type": "recipe",
+          "item": "academy:terminal_installer"
+        },
+        {
+          "type": "recipe",
+          "item": "academy:app_skill_tree"
+        },
+        {
+          "type": "recipe",
+          "item": "academy:app_freq_transmitter"
+        },
+        {
+          "type": "recipe",
+          "item": "academy:app_media_player"
+        }
+      ]
+    },
+    {
+      "id": "ability_developer",
+      "obtained_items": [
+        "academy:developer_portable",
+        "academy:dev_normal",
+        "academy:dev_advanced"
+      ],
+      "previews": [
+        {
+          "type": "recipe",
+          "item": "academy:developer_portable"
+        },
+        {
+          "type": "recipe",
+          "item": "academy:dev_normal"
+        },
+        {
+          "type": "recipe",
+          "item": "academy:dev_advanced"
+        }
+      ]
+    },
+    {
+      "id": "ability_basis",
+      "obtained_items": [],
+      "previews": []
+    },
+    {
+      "id": "misc",
+      "obtained_items": [],
+      "previews": []
+    },
+    {
+      "id": "develop_ability",
+      "obtained_items": [],
+      "previews": []
+    },
+    {
+      "id": "wireless_network",
+      "obtained_items": [],
+      "previews": []
+    },
+    {
+      "id": "energy_bridge",
+      "obtained_items": [
+        "academy:ac_rf_input",
+        "academy:ac_rf_output"
+      ],
+      "previews": [
+        {
+          "type": "recipe",
+          "item": "academy:ac_rf_input"
+        },
+        {
+          "type": "recipe",
+          "item": "academy:ac_rf_output"
+        }
+      ]
+    }
+  ],
+  "legacy_condition_ids": [
+    "craft/academy:constraint_metal",
+    "pickup/academy:constraint_metal",
+    "smelt/academy:constraint_metal",
+    "craft/academy:imagsil_ore",
+    "pickup/academy:imagsil_ore",
+    "smelt/academy:imagsil_ore",
+    "craft/academy:crystal_ore",
+    "pickup/academy:crystal_ore",
+    "smelt/academy:crystal_ore",
+    "craft/academy:reso_ore",
+    "pickup/academy:reso_ore",
+    "smelt/academy:reso_ore",
+    "craft/academy:phase_gen",
+    "pickup/academy:phase_gen",
+    "smelt/academy:phase_gen",
+    "craft/academy:solar_gen",
+    "pickup/academy:solar_gen",
+    "smelt/academy:solar_gen",
+    "craft/academy:windgen_base",
+    "pickup/academy:windgen_base",
+    "smelt/academy:windgen_base",
+    "craft/academy:windgen_fan",
+    "pickup/academy:windgen_fan",
+    "smelt/academy:windgen_fan",
+    "craft/academy:windgen_main",
+    "pickup/academy:windgen_main",
+    "smelt/academy:windgen_main",
+    "craft/academy:windgen_pillar",
+    "pickup/academy:windgen_pillar",
+    "smelt/academy:windgen_pillar",
+    "craft/academy:metal_former",
+    "pickup/academy:metal_former",
+    "smelt/academy:metal_former",
+    "craft/academy:imag_fusor",
+    "pickup/academy:imag_fusor",
+    "smelt/academy:imag_fusor",
+    "craft/academy:terminal_installer",
+    "pickup/academy:terminal_installer",
+    "smelt/academy:terminal_installer",
+    "craft/academy:app_skill_tree",
+    "pickup/academy:app_skill_tree",
+    "smelt/academy:app_skill_tree",
+    "craft/academy:app_freq_transmitter",
+    "pickup/academy:app_freq_transmitter",
+    "smelt/academy:app_freq_transmitter",
+    "craft/academy:app_media_player",
+    "pickup/academy:app_media_player",
+    "smelt/academy:app_media_player",
+    "craft/academy:developer_portable",
+    "pickup/academy:developer_portable",
+    "smelt/academy:developer_portable",
+    "craft/academy:dev_normal",
+    "pickup/academy:dev_normal",
+    "smelt/academy:dev_normal",
+    "craft/academy:dev_advanced",
+    "pickup/academy:dev_advanced",
+    "smelt/academy:dev_advanced",
+    "craft/academy:ac_rf_input",
+    "pickup/academy:ac_rf_input",
+    "smelt/academy:ac_rf_input",
+    "craft/academy:ac_rf_output",
+    "pickup/academy:ac_rf_output",
+    "smelt/academy:ac_rf_output"
+  ]
+}

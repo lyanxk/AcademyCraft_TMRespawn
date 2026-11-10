@@ -1,6 +1,7 @@
 package cn.academy.ability;
 
-import cn.academy.config.ACConfig;
+import cn.academy.data.GameplayData;
+
 import cn.academy.event.ability.CalcEvent;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -56,12 +57,12 @@ public final class AbilityContext {
     private boolean attack(Entity target, float damage, boolean ignoreArmor) {
         damage = CalcEvent.calc(new CalcEvent.SkillAttack(player, skill, target, damage));
         if (!(damage > 0) || !Float.isFinite(damage)) return false;
-        if (target instanceof Player && !cn.academy.config.ACGeneralConfig.policy(player.level()).attackPlayers())
+        if (target instanceof Player && !GameplayData.flag("policy", "attack_players"))
             return false;
         if ((target instanceof net.minecraft.world.entity.decoration.Painting
                 || target instanceof net.minecraft.world.entity.decoration.ItemFrame)
                 && !canBreakBlock(player.level())) return false;
-        float scaled = damage * ACConfig.DAMAGE_SCALE.get().floatValue() * ACConfig.skillDamageScale(skill);
+        float scaled = damage * GameplayData.decimal("ability", "damage_scale") * skill.damageScale();
         return scaled > 0 && target.hurt(new SkillDamageSource(player, skill, ignoreArmor), scaled);
     }
 }

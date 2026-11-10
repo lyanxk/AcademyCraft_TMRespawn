@@ -1,0 +1,10 @@
+{
+  "range_value_1": 3,
+  "range_value_2": 25,
+  "range_value_3": 25,
+  "range_value_4": 25,
+  "speed_value_1": 3,
+  "speed_value_2": 2,
+  "reward_value_1": 0.005,
+  "reward_value_2": 0.0011
+}

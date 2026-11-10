@@ -1,0 +1,70 @@
+{
+  "learn": {
+    "meltdowner.rad_intensify": "academy:legacy/meltdowner/rad_intensify",
+    "meltdowner.light_shield": "academy:legacy/meltdowner/light_shield",
+    "meltdowner.meltdowner": "academy:legacy/meltdowner/meltdowner",
+    "meltdowner.mine_ray_basic": "academy:legacy/meltdowner/mine_ray",
+    "meltdowner.electron_missile": "academy:legacy/meltdowner/electron_missile"
+  },
+  "use": {
+    "electromaster.mag_movement": "academy:legacy/electromaster/mag_movement",
+    "electromaster.body_intensify": "academy:legacy/electromaster/body_intensify",
+    "electromaster.mine_detect": "academy:legacy/electromaster/mine_detect",
+    "electromaster.thunder_bolt": "academy:legacy/electromaster/thunder_bolt",
+    "electromaster.railgun": "academy:legacy/electromaster/railgun",
+    "electromaster.thunder_clap": "academy:legacy/electromaster/thunder_clap",
+    "meltdowner.jet_engine": "academy:legacy/meltdowner/jet_engine",
+    "teleporter.threatening_teleport": "academy:legacy/teleporter/threatening_teleport",
+    "teleporter.penetrate_teleport": "academy:legacy/teleporter/ignore_barrier",
+    "teleporter.flashing": "academy:legacy/teleporter/flashing",
+    "vecmanip.ground_shock": "academy:legacy/vecmanip/ground_shock",
+    "vecmanip.dir_blast": "academy:legacy/vecmanip/dir_blast",
+    "vecmanip.storm_wing": "academy:legacy/vecmanip/storm_wing",
+    "vecmanip.blood_retro": "academy:legacy/vecmanip/blood_retro",
+    "vecmanip.vec_reflection": "academy:legacy/vecmanip/vec_reflection"
+  },
+  "crafted": {
+    "academy:phase_gen": "phase_generator",
+    "academy:node_basic": "ac_node",
+    "academy:matrix": "ac_matrix",
+    "academy:developer_portable": "ac_developer"
+  },
+  "pickup": {
+    "academy:induction_factor": "getting_factor"
+  },
+  "levels": {
+    "1": "dev_category",
+    "3": "ac_level_3",
+    "5": "ac_level_5"
+  },
+  "level_advancements": {
+    "electromaster": {
+      "1": "academy:legacy/electromaster/lv1",
+      "2": "academy:legacy/electromaster/lv2",
+      "3": "academy:legacy/electromaster/lv3",
+      "4": "academy:legacy/electromaster/lv4",
+      "5": "academy:legacy/electromaster/lv5"
+    },
+    "meltdowner": {
+      "1": "academy:legacy/meltdowner/lv1",
+      "2": "academy:legacy/meltdowner/lv2",
+      "3": "academy:legacy/meltdowner/lv3",
+      "4": "academy:legacy/meltdowner/lv4",
+      "5": "academy:legacy/meltdowner/lv5"
+    },
+    "teleporter": {
+      "1": "academy:legacy/teleporter/lv1",
+      "2": "academy:legacy/teleporter/lv2",
+      "3": "academy:legacy/teleporter/lv3",
+      "4": "academy:legacy/teleporter/lv4",
+      "5": "academy:legacy/teleporter/lv5"
+    },
+    "vecmanip": {
+      "1": "academy:legacy/vecmanip/lv1",
+      "2": "academy:legacy/vecmanip/lv2",
+      "3": "academy:legacy/vecmanip/lv3",
+      "4": "academy:legacy/vecmanip/lv4",
+      "5": "academy:legacy/vecmanip/lv5"
+    }
+  }
+}

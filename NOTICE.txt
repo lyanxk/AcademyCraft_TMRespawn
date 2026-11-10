@@ -1,5 +1,10 @@
 AcademyCraft TMRespawn
 
+TMRespawn 1.0.3 release modifications, 2026-11-10, by lyanxk and TMRespawn contributors:
+Extensively revised Meltdowner skills and migrated legacy 1.12.2 gameplay
+configuration, skill balance, machine recipes, world generation and related
+gameplay definitions to reloadable datapack resources with client synchronization.
+
 TMRespawn 1.0.2 release modifications, 2026-11-10, by lyanxk and TMRespawn contributors:
 Extensively revised Electromaster skills, including level enhancements, charging,
 magnetic movement and manipulation, ore detection, body intensification, electric

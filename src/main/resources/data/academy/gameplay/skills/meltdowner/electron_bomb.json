@@ -1,0 +1,38 @@
+{
+  "level": 1,
+  "cp_cost": 140.0,
+  "overload": 10.0,
+  "cooldown_ticks": 12,
+  "controllable": true,
+  "requirements": [],
+  "enhancements": [
+    3
+  ],
+  "required_any_skill_level": 0,
+  "enabled": true,
+  "destroy_blocks": true,
+  "damage_scale": 1.0,
+  "cp_consume_speed": 1.0,
+  "overload_consume_speed": 1.0,
+  "exp_increase_speed": 1.0,
+  "cooldown_curve": [
+    20,
+    10
+  ],
+  "cooldown_enhanced_level": 3,
+  "cooldown_enhanced_curve": [
+    10,
+    10
+  ],
+  "cooldown_tiers": 0,
+  "experience_per_use": 0.003,
+  "upgrade_level": 3,
+  "upgraded_range": [
+    15,
+    25
+  ],
+  "upgraded_damage": [
+    12,
+    24
+  ]
+}

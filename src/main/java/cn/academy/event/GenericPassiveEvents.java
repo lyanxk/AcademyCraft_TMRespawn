@@ -1,5 +1,7 @@
 package cn.academy.event;
 
+import cn.academy.data.GameplayData;
+
 import cn.academy.AcademyCraft;
 import cn.academy.ability.AbilityState;
 import cn.academy.event.ability.CalcEvent;
@@ -17,18 +19,18 @@ public final class GenericPassiveEvents {
 
     @SubscribeEvent
     public static void maxCp(CalcEvent.MaxCP event) {
-        if (learned(event.player, "brain_course")) event.value += 1000;
-        if (learned(event.player, "brain_course_advanced")) event.value += 1500;
+        if (learned(event.player, "brain_course")) event.value += GameplayData.decimal("ability", "brain_course_cp");
+        if (learned(event.player, "brain_course_advanced")) event.value += GameplayData.decimal("ability", "advanced_brain_course_cp");
     }
 
     @SubscribeEvent
     public static void maxOverload(CalcEvent.MaxOverload event) {
-        if (learned(event.player, "brain_course_advanced")) event.value += 100;
+        if (learned(event.player, "brain_course_advanced")) event.value += GameplayData.decimal("ability", "advanced_brain_course_overload");
     }
 
     @SubscribeEvent
     public static void cpRecovery(CalcEvent.CPRecoverSpeed event) {
-        if (learned(event.player, "mind_course")) event.value *= 1.2f;
+        if (learned(event.player, "mind_course")) event.value *= GameplayData.decimal("ability", "mind_course_recovery");
     }
 
     private GenericPassiveEvents() {}

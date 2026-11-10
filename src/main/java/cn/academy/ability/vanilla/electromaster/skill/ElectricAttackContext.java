@@ -1,5 +1,11 @@
 package cn.academy.ability.vanilla.electromaster.skill;
 
+import cn.academy.data.GameplayRules;
+
+import cn.academy.data.GameplayData;
+
+import cn.academy.data.Balance;
+
 import cn.academy.ability.AbilityContext;
 import cn.academy.ability.AbilitySkill;
 import cn.academy.ability.AbilityState;
@@ -40,69 +46,69 @@ public final class ElectricAttackContext {
         this.player = player; this.state = state; this.skill = skill;
         experience = state.experience(skill.id());
         arc = skill.name().equals("arc_gen");
-        enhancedArc = arc && state.level()>=3;
-        enhancedBolt = !arc && state.level()>=5;
+        enhancedArc = arc && state.level()>=Balance.i("electric_attack_context", "electric_attack_context_threshold_1");
+        enhancedBolt = !arc && state.level()>=Balance.i("electric_attack_context", "electric_attack_context_threshold_2");
         // ContextManager captures its targets before SkillPerform/consume callbacks run.
         var viewers = new ArrayList<ServerPlayer>();
         viewers.add(player);
         for (var viewer : player.serverLevel().players())
-            if (viewer != player && viewer.distanceToSqr(player) <= 625) viewers.add(viewer);
+            if (viewer != player && viewer.distanceToSqr(player) <= Balance.i("electric_attack_context", "electric_attack_context_threshold_3")) viewers.add(viewer);
         audience = List.copyOf(viewers);
     }
 
     public static boolean handles(AbilitySkill skill) {
         return skill.name().equals("arc_gen") || skill.name().equals("thunder_bolt");
     }
-    public float cpCost() { return enhancedArc ? 70 : enhancedBolt ? lerp(420,2100,experience) : arc ? lerp(30, 70, experience) : (int) (280 + 140.0 * experience); }
-    public float overloadCost() { return enhancedArc ? 11 : enhancedBolt ? 27 : arc ? lerp(18, 11, state.experience(skill.id())) : lerp(50, 27, experience); }
+    public float cpCost() { return enhancedArc ? Balance.i("electric_attack_context", "cp_cost_value_1") : enhancedBolt ? lerp(Balance.i("electric_attack_context", "cp_cost_lerp_1"),Balance.i("electric_attack_context", "cp_cost_lerp_2"),experience) : arc ? lerp(Balance.i("electric_attack_context", "cp_cost_lerp_3"), Balance.i("electric_attack_context", "cp_cost_lerp_4"), experience) : (int) (Balance.i("electric_attack_context", "cp_cost_value_2") + Balance.d("electric_attack_context", "cp_cost_value_3") * experience); }
+    public float overloadCost() { return enhancedArc ? Balance.i("electric_attack_context", "overload_cost_value_1") : enhancedBolt ? Balance.i("electric_attack_context", "overload_cost_value_2") : arc ? lerp(Balance.i("electric_attack_context", "overload_cost_lerp_1"), Balance.i("electric_attack_context", "overload_cost_lerp_2"), state.experience(skill.id())) : lerp(Balance.i("electric_attack_context", "overload_cost_lerp_3"), Balance.i("electric_attack_context", "overload_cost_lerp_4"), experience); }
 
     public int perform() {
         var level = player.serverLevel();
-        double range = arc ? lerp(enhancedArc?15:6, enhancedArc?30:15, experience) : 40;
+        double range = arc ? lerp(enhancedArc?Balance.i("electric_attack_context", "perform_lerp_1"):Balance.i("electric_attack_context", "perform_lerp_2"), enhancedArc?Balance.i("electric_attack_context", "perform_lerp_3"):Balance.i("electric_attack_context", "perform_lerp_4"), experience) : Balance.i("electric_attack_context", "perform_range_1");
         var hit = ElectricAttackTrace.trace(player, range, arc);
         if (arc) {
             sendEffects(range, hit.getLocation(), List.of());
             boolean entityHit = hit instanceof EntityHitResult;
             if (hit instanceof EntityHitResult entity) {
-                attack(player, skill, entity.getEntity(), lerp(enhancedArc?9:5, enhancedArc?15:9, experience));
+                attack(player, skill, entity.getEntity(), lerp(enhancedArc?Balance.i("electric_attack_context", "perform_lerp_5"):Balance.i("electric_attack_context", "perform_lerp_6"), enhancedArc?Balance.i("electric_attack_context", "perform_lerp_7"):Balance.i("electric_attack_context", "perform_lerp_8"), experience));
                 if (entity.getEntity() instanceof Creeper) ACAdvancements.grant(player, "legacy/electromaster/attack_creeper");
             } else {
                 // LambdaLib2 returns a non-null MISS. ArcGen also runs this branch on a miss.
                 BlockHitResult block = (BlockHitResult) hit;
                 var pos = block.getBlockPos();
                 if (level.getBlockState(pos).is(Blocks.WATER) && level.getFluidState(pos).isSource()) {
-                    if (level.random.nextDouble() < (enhancedArc || experience > .5f ? .1 : 0)) {
+                    if (level.random.nextDouble() < (enhancedArc || experience > Balance.f("electric_attack_context", "perform_threshold_1") ? Balance.d("electric_attack_context", "perform_threshold_2") : 0)) {
                         Vec3 point = hit.getLocation();
-                        level.addFreshEntity(new ItemEntity(level, point.x, point.y, point.z, new ItemStack(Items.COOKED_COD)));
+                        GameplayRules.dropLoot(level, point, GameplayData.string("parameters/electric_attack_context", "fishing_loot_table"));
                         ACAdvancements.grant(player, "legacy/electromaster/arc_gen");
                     }
-                } else if (level.random.nextDouble() < lerp(enhancedArc?.6f:0, enhancedArc?1f:.6f, experience)) {
+                } else if (level.random.nextDouble() < lerp(enhancedArc?Balance.f("electric_attack_context", "perform_lerp_9"):Balance.i("electric_attack_context", "perform_lerp_10"), enhancedArc?Balance.f("electric_attack_context", "perform_lerp_11"):Balance.f("electric_attack_context", "perform_lerp_12"), experience)) {
                     // Original ArcGen does not run the skill's block-destruction filter here.
                     var above = pos.above();
                     if (level.isEmptyBlock(above)) level.setBlockAndUpdate(above, Blocks.FIRE.defaultBlockState());
                 }
             }
-            state.addExperience(skill, entityHit ? lerp(.0048f, .0072f, state.experience(skill.id()))
-                    : lerp(.0018f, .0027f, state.experience(skill.id())));
+            state.addExperience(skill, entityHit ? lerp(Balance.f("electric_attack_context", "perform_lerp_13"), Balance.f("electric_attack_context", "perform_lerp_14"), state.experience(skill.id()))
+                    : lerp(Balance.f("electric_attack_context", "perform_lerp_15"), Balance.f("electric_attack_context", "perform_lerp_16"), state.experience(skill.id())));
         } else {
             Entity primary = hit instanceof EntityHitResult entity ? entity.getEntity() : null;
             Vec3 center = primary == null ? hit.getLocation() : hit.getLocation().add(0, primary.getEyeHeight(), 0);
-            var targets = level.getEntitiesOfClass(LivingEntity.class, new AABB(center, center).inflate(8),
-                    entity -> entity != player && entity != primary && entity.distanceToSqr(center) <= 64);
+            var targets = level.getEntitiesOfClass(LivingEntity.class, new AABB(center, center).inflate(Balance.i("electric_attack_context", "perform_inflate_1")),
+                    entity -> entity != player && entity != primary && entity.distanceToSqr(center) <= Balance.i("electric_attack_context", "perform_threshold_3"));
             // MSG_PERFORM sends the selected targets before attack callbacks can move/remove them.
             sendEffects(range, center, targets);
             if (primary != null) {
-                attack(player, skill, primary, enhancedBolt?lerp(50,150,experience):lerp(25, 50, experience));
+                attack(player, skill, primary, enhancedBolt?lerp(Balance.i("electric_attack_context", "perform_lerp_17"),Balance.i("electric_attack_context", "perform_lerp_18"),experience):lerp(Balance.i("electric_attack_context", "perform_lerp_19"), Balance.i("electric_attack_context", "perform_lerp_20"), experience));
                 slowPrimary(primary, 40);
             }
             for (Entity secondary : targets) {
-                attack(player, skill, secondary, enhancedBolt?lerp(30,90,experience):lerp(15, 30, experience));
+                attack(player, skill, secondary, enhancedBolt?lerp(Balance.i("electric_attack_context", "perform_lerp_21"),Balance.i("electric_attack_context", "perform_lerp_22"),experience):lerp(Balance.i("electric_attack_context", "perform_lerp_23"), Balance.i("electric_attack_context", "perform_lerp_24"), experience));
                 // Preserve the original ad.target reference in the AOE loop; do not slow each secondary.
                 slowPrimary(primary, 20);
             }
-            state.addExperience(skill, primary != null || !targets.isEmpty() ? .005f : .003f);
+            state.addExperience(skill, primary != null || !targets.isEmpty() ? Balance.f("electric_attack_context", "perform_add_experience_1") : Balance.f("electric_attack_context", "perform_add_experience_2"));
         }
-        return enhancedArc ? 5 : enhancedBolt ? (int) lerp(50, 40, experience) : arc ? (int) lerp(15, 5, state.experience(skill.id())) : (int) lerp(120, 50, experience);
+        return enhancedArc ? 5 : enhancedBolt ? (int) lerp(Balance.i("electric_attack_context", "perform_lerp_25"), Balance.i("electric_attack_context", "perform_lerp_26"), experience) : arc ? (int) lerp(Balance.i("electric_attack_context", "perform_lerp_27"), Balance.i("electric_attack_context", "perform_lerp_28"), state.experience(skill.id())) : (int) lerp(Balance.i("electric_attack_context", "perform_lerp_29"), Balance.i("electric_attack_context", "perform_lerp_30"), experience);
     }
 
     private void sendEffects(double range, Vec3 aoeCenter, List<LivingEntity> aoeTargets) {
@@ -120,8 +126,8 @@ public final class ElectricAttackContext {
     }
 
     private void slowPrimary(Entity primary, int ticks) {
-        if (experience > .2f && player.serverLevel().random.nextDouble() < .8 && primary instanceof LivingEntity living)
-            living.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, ticks, 3));
+        if (experience > Balance.f("electric_attack_context", "slow_primary_threshold_1") && player.serverLevel().random.nextDouble() < Balance.d("electric_attack_context", "slow_primary_threshold_2") && primary instanceof LivingEntity living)
+            living.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, ticks, Balance.i("electric_attack_context", "slow_primary_add_effect_1")));
     }
 
     public static void attack(ServerPlayer player, AbilitySkill skill, Entity target, float damage) {

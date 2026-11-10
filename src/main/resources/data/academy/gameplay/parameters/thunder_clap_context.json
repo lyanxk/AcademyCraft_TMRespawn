@@ -1,0 +1,28 @@
+{
+  "thunder_clap_context_threshold_1": 625,
+  "tick_threshold_1": 40,
+  "tick_consume_raw_1": 18,
+  "tick_consume_raw_2": 7,
+  "tick_threshold_2": 60,
+  "discharge_inflate_1": 6,
+  "discharge_threshold_1": 36,
+  "discharge_attack_1": 25,
+  "discharge_attack_2": 25,
+  "can_perform_threshold_1": 40,
+  "perform_threshold_1": 512,
+  "perform_threshold_2": 512,
+  "perform_threshold_3": 512,
+  "perform_threshold_4": 512,
+  "perform_damage_1": 300,
+  "perform_damage_2": 300,
+  "perform_damage_3": 40.0,
+  "perform_damage_4": 60.0,
+  "perform_damage_5": 1.2,
+  "perform_finish_context_1": 10,
+  "perform_finish_context_2": 6,
+  "perform_finish_context_3": 10,
+  "perform_finish_context_4": 0.003,
+  "_constraints": {
+    "perform_damage_4": "nonzero"
+  }
+}

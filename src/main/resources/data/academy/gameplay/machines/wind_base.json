@@ -1,0 +1,11 @@
+{
+  "capacity": 20000,
+  "transfer": 300,
+  "generation": 15,
+  "connections": 0,
+  "range": 0.0,
+  "minimum_height": 70.0,
+  "height_span": 90.0,
+  "minimum_output_multiplier": 0.5,
+  "required_pillars": 8
+}

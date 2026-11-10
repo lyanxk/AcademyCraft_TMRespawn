@@ -5,10 +5,8 @@ import cn.academy.client.SkillKeyBindings;
 import cn.academy.ability.AbilityRegistry;
 import cn.academy.client.render.ACGuiTextures;
 import cn.academy.client.render.ACLegacyFont;
-import cn.academy.config.ACConfig;
 import cn.academy.config.ACHudConfig;
 import cn.academy.event.ConfigModifyEvent;
-import cn.academy.network.AbilityActionPayload;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -17,7 +15,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.network.PacketDistributor;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -33,7 +30,7 @@ public final class SettingsScreen extends Screen {
     private static final ResourceLocation CHECK_FALSE = texture("check_false");
     private static final ResourceLocation SCROLL = texture("life_record/rollbar");
     private enum Kind { HEADER, CHECKBOX, KEY, CALLBACK, GAP }
-    private record Row(Kind kind, String id, int slot, ModConfigSpec.BooleanValue property, String serverSetting) {
+    private record Row(Kind kind, String id, int slot, ModConfigSpec.BooleanValue property) {
         float height() { return kind == Kind.GAP ? 20 : 60; }
     }
     private final List<Row> rows = new ArrayList<>();
@@ -60,21 +57,17 @@ public final class SettingsScreen extends Screen {
         // The old registry is a HashMap: keys, generic, misc for these three category IDs.
         Map<String, List<Row>> categories = new HashMap<>();
         List<Row> generic = new ArrayList<>();
-        if (minecraft != null && minecraft.isLocalServer()) {
-            generic.add(new Row(Kind.CHECKBOX, "attackPlayer", -1, ACConfig.ATTACK_PLAYERS, "attack_players"));
-            generic.add(new Row(Kind.CHECKBOX, "destroyBlocks", -1, ACConfig.DESTROY_BLOCKS, "destroy_blocks"));
-        }
-        generic.add(new Row(Kind.CHECKBOX, "headsOrTails", -1, ACHudConfig.HEADS_OR_TAILS, null));
-        generic.add(new Row(Kind.CHECKBOX, "useMouseWheel", -1, ACHudConfig.USE_MOUSE_WHEEL, null));
+        generic.add(new Row(Kind.CHECKBOX, "headsOrTails", -1, ACHudConfig.HEADS_OR_TAILS));
+        generic.add(new Row(Kind.CHECKBOX, "useMouseWheel", -1, ACHudConfig.USE_MOUSE_WHEEL));
         categories.put("generic", generic);
         List<Row> keys = new ArrayList<>();
-        for (int i = 0; i < skillIds.size(); i++) keys.add(new Row(Kind.KEY, skillIds.get(i), i, null, null));
+        for (int i = 0; i < skillIds.size(); i++) keys.add(new Row(Kind.KEY, skillIds.get(i), i, null));
         categories.put("keys", keys);
-        categories.put("misc", List.of(new Row(Kind.CALLBACK, "edit_ui", -1, null, null)));
+        categories.put("misc", List.of(new Row(Kind.CALLBACK, "edit_ui", -1, null)));
         categories.forEach((category, entries) -> {
-            rows.add(new Row(Kind.HEADER, category, -1, null, null));
+            rows.add(new Row(Kind.HEADER, category, -1, null));
             rows.addAll(entries);
-            rows.add(new Row(Kind.GAP, "", -1, null, null));
+            rows.add(new Row(Kind.GAP, "", -1, null));
         });
         for (Row row : rows) if (row.kind == Kind.CHECKBOX) checkboxValues.put(row.id, row.property.get());
     }
@@ -154,8 +147,7 @@ public final class SettingsScreen extends Screen {
         boolean value = !checkboxValues.get(row.id);
         checkboxValues.put(row.id, value);
         row.property.set(value);
-        if (row.serverSetting != null) PacketDistributor.sendToServer(AbilityActionPayload.setting(row.serverSetting, value));
-        else configDirty = true;
+        configDirty = true;
         NeoForge.EVENT_BUS.post(new ConfigModifyEvent("generic", row.id, row.property));
     }
     private void finishKey(List<InputConstants.Key> keys) {

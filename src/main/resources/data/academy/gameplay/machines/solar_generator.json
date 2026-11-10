@@ -1,0 +1,10 @@
+{
+  "capacity": 1000,
+  "transfer": 100,
+  "generation": 3,
+  "connections": 0,
+  "range": 0.0,
+  "day_start": 0,
+  "day_end": 12500,
+  "rain_multiplier": 0.2
+}

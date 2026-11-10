@@ -1,115 +1,108 @@
 package cn.academy.crafting;
 
 import cn.academy.AcademyCraft;
-import cn.academy.registry.ACItems;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagKey;
-import net.minecraft.world.item.Item;
+import cn.academy.registry.ACRecipes;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.NonNullList;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.RecipeType;
-import net.minecraft.world.item.crafting.SingleRecipeInput;
+import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
+import net.neoforged.neoforge.fluids.FluidStack;
 import java.util.*;
 
-/** MFIFRecipes + VanillaCategories recipes, shared by processing and tutorial previews. */
+/** Standard RecipeManager recipes: overrides, tag ingredients and automatic network synchronization. */
 @EventBusSubscriber(modid = AcademyCraft.MOD_ID)
 public final class MachineRecipes {
     public enum Kind { METAL_FORMER, IMAG_FUSOR }
     public enum Mode { PLATE, INCISE, ETCH, REFINE }
-    public record Recipe(Kind kind, Mode mode, ItemStack input, ItemStack output, int liquid) {
+    public record Recipe(Kind kind, Mode mode, Ingredient ingredient, int inputCount, ItemStack output,
+                         FluidStack fluid, int duration, double energy, int priority, String resultTag, int resultCount)
+            implements net.minecraft.world.item.crafting.Recipe<SingleRecipeInput> {
         public Recipe {
-            input = input.copy();
-            output = output.copy();
+            output = output.copy(); fluid = fluid.copy();
+            if (output.isEmpty() && resultTag.isBlank()) throw new IllegalArgumentException("A machine recipe needs result or result_tag");
+            if (!resultTag.isEmpty()) net.minecraft.resources.ResourceLocation.parse(resultTag);
         }
-        public boolean accepts(ItemStack stack) {
-            return matchesItem(stack) && stack.getCount() >= input.getCount();
+        public boolean accepts(ItemStack stack) { return matchesItem(stack) && stack.getCount() >= inputCount; }
+        public boolean matchesItem(ItemStack stack) { return ingredient.test(stack); }
+        public ItemStack input() { return inputs().stream().findFirst().orElse(ItemStack.EMPTY); }
+        public List<ItemStack> inputs() {
+            return Arrays.stream(ingredient.getItems()).map(stack -> stack.copyWithCount(inputCount)).toList();
         }
-        public boolean matchesItem(ItemStack stack) {
-            return !stack.isEmpty() && ItemStack.isSameItem(stack, input) && stack.getDamageValue() == input.getDamageValue();
+        public int liquid() { return fluid.getAmount(); }
+        @Override public ItemStack output() { return result(); }
+        @Override public FluidStack fluid() { return fluid.copy(); }
+        public ItemStack result() {
+            if (resultTag.isEmpty()) return output.copy();
+            return net.minecraft.core.registries.BuiltInRegistries.ITEM.getTag(net.minecraft.tags.TagKey.create(
+                    net.minecraft.core.registries.Registries.ITEM, net.minecraft.resources.ResourceLocation.parse(resultTag)))
+                    .flatMap(values -> values.stream().findFirst()).map(item -> new ItemStack(item, resultCount)).orElse(ItemStack.EMPTY);
         }
-        public ItemStack result() { return output.copy(); }
+        @Override public boolean matches(SingleRecipeInput input, Level level) { return accepts(input.item()); }
+        @Override public ItemStack assemble(SingleRecipeInput input, HolderLookup.Provider registries) { return result(); }
+        @Override public boolean canCraftInDimensions(int width, int height) { return true; }
+        @Override public ItemStack getResultItem(HolderLookup.Provider registries) { return result(); }
+        @Override public NonNullList<Ingredient> getIngredients() { return NonNullList.of(Ingredient.EMPTY, ingredient); }
+        @Override public boolean isSpecial() { return true; }
+        @Override public RecipeSerializer<?> getSerializer() { return ACRecipes.MACHINE_SERIALIZER.get(); }
+        @Override public RecipeType<?> getType() { return ACRecipes.MACHINE_TYPE.get(); }
     }
-    private static final Map<Level, List<Recipe>> CACHE = new WeakHashMap<>();
+    public static final class Serializer implements RecipeSerializer<Recipe> {
+        public static final MapCodec<Recipe> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                Codec.STRING.xmap(value -> Kind.valueOf(value.toUpperCase(Locale.ROOT)), value -> value.name().toLowerCase(Locale.ROOT)).fieldOf("machine").forGetter(Recipe::kind),
+                Codec.STRING.xmap(value -> Mode.valueOf(value.toUpperCase(Locale.ROOT)), value -> value.name().toLowerCase(Locale.ROOT)).optionalFieldOf("mode", Mode.PLATE).forGetter(Recipe::mode),
+                Ingredient.CODEC_NONEMPTY.fieldOf("ingredient").forGetter(Recipe::ingredient),
+                Codec.intRange(1, 64).optionalFieldOf("input_count", 1).forGetter(Recipe::inputCount),
+                ItemStack.CODEC.optionalFieldOf("result", ItemStack.EMPTY).forGetter(recipe -> recipe.output),
+                FluidStack.CODEC.optionalFieldOf("fluid", FluidStack.EMPTY).forGetter(Recipe::fluid),
+                Codec.intRange(1, 1_000_000).fieldOf("duration").forGetter(Recipe::duration),
+                Codec.doubleRange(0, 1_000_000_000).fieldOf("energy_per_tick").forGetter(Recipe::energy),
+                Codec.INT.optionalFieldOf("priority", 0).forGetter(Recipe::priority),
+                Codec.STRING.optionalFieldOf("result_tag", "").forGetter(Recipe::resultTag),
+                Codec.intRange(1, 64).optionalFieldOf("result_count", 1).forGetter(Recipe::resultCount)
+        ).apply(instance, Recipe::new));
+        private static final StreamCodec<RegistryFriendlyByteBuf, Recipe> STREAM = new StreamCodec<>() {
+            @Override public Recipe decode(RegistryFriendlyByteBuf buffer) {
+                return new Recipe(buffer.readEnum(Kind.class), buffer.readEnum(Mode.class), Ingredient.CONTENTS_STREAM_CODEC.decode(buffer),
+                        buffer.readVarInt(), ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer), FluidStack.OPTIONAL_STREAM_CODEC.decode(buffer),
+                        buffer.readVarInt(), buffer.readDouble(), buffer.readInt(), buffer.readUtf(), buffer.readVarInt());
+            }
+            @Override public void encode(RegistryFriendlyByteBuf buffer, Recipe recipe) {
+                buffer.writeEnum(recipe.kind()); buffer.writeEnum(recipe.mode()); Ingredient.CONTENTS_STREAM_CODEC.encode(buffer, recipe.ingredient());
+                buffer.writeVarInt(recipe.inputCount()); ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, recipe.output);
+                FluidStack.OPTIONAL_STREAM_CODEC.encode(buffer, recipe.fluid()); buffer.writeVarInt(recipe.duration());
+                buffer.writeDouble(recipe.energy()); buffer.writeInt(recipe.priority()); buffer.writeUtf(recipe.resultTag()); buffer.writeVarInt(recipe.resultCount());
+            }
+        };
+        @Override public MapCodec<Recipe> codec() { return CODEC; }
+        @Override public StreamCodec<RegistryFriendlyByteBuf, Recipe> streamCodec() { return STREAM; }
+    }
     private static final java.util.concurrent.atomic.AtomicLong REVISION = new java.util.concurrent.atomic.AtomicLong();
-    @SubscribeEvent
-    public static void serverStopped(net.neoforged.neoforge.event.server.ServerStoppedEvent event) {
-        invalidate();
-    }
-
-    public static synchronized void invalidate() { CACHE.clear(); REVISION.incrementAndGet(); }
+    public static void invalidate() { REVISION.incrementAndGet(); }
     public static long revision() { return REVISION.get(); }
     @SubscribeEvent public static void tagsUpdated(TagsUpdatedEvent event) { invalidate(); }
-
-    public static synchronized List<Recipe> all(Level level) {
-        return CACHE.computeIfAbsent(level, MachineRecipes::create);
+    public static List<Recipe> all(Level level) {
+        return level.getRecipeManager().getAllRecipesFor(ACRecipes.MACHINE_TYPE.get()).stream()
+                .sorted(Comparator.<RecipeHolder<Recipe>>comparingInt(holder -> holder.value().priority()).reversed().thenComparing(holder -> holder.id().toString()))
+                .map(RecipeHolder::value).filter(recipe -> recipe.ingredient().getItems().length > 0 && !recipe.result().isEmpty()
+                        && cn.academy.data.GameplayRules.recipeFluid(recipe, recipe.kind() == Kind.IMAG_FUSOR
+                        ? cn.academy.block.MachineKind.IMAG_FUSOR : cn.academy.block.MachineKind.METAL_FORMER)).toList();
     }
     public static Recipe find(Level level, Kind kind, int mode, ItemStack input) {
         if (level == null || input.isEmpty()) return null;
-        return all(level).stream().filter(recipe -> recipe.kind == kind
-                && (kind == Kind.IMAG_FUSOR ? recipe.matchesItem(input) : recipe.mode.ordinal() == mode && recipe.accepts(input)))
-                .findFirst().orElse(null);
+        return all(level).stream().filter(recipe -> recipe.kind() == kind && recipe.accepts(input)
+                && (kind == Kind.IMAG_FUSOR || recipe.mode().ordinal() == mode)).findFirst().orElse(null);
     }
     public static boolean acceptsInput(Level level, Kind kind, ItemStack input) {
-        if (level == null || input.isEmpty()) return false;
-        // SlotMFItem / SlotCrystal check only the item, across every mode.
-        // Damage and input count are checked when selecting the actual recipe.
-        return all(level).stream().anyMatch(recipe -> recipe.kind == kind && ItemStack.isSameItem(recipe.input, input));
+        return level != null && !input.isEmpty() && all(level).stream().anyMatch(recipe -> recipe.kind() == kind && recipe.matchesItem(input));
     }
-    private static List<Recipe> create(Level level) {
-        List<Recipe> recipes = new ArrayList<>();
-        recipes.add(new Recipe(Kind.IMAG_FUSOR, null, ACItems.CRYSTAL_LOW.toStack(), ACItems.CRYSTAL_NORMAL.toStack(), 3000));
-        recipes.add(new Recipe(Kind.IMAG_FUSOR, null, ACItems.CRYSTAL_NORMAL.toStack(), ACItems.CRYSTAL_PURE.toStack(), 8000));
-        metal(recipes, ACItems.IMAG_SILICON_INGOT.get(), 1, ACItems.WAFER.get(), 2, Mode.INCISE);
-        metal(recipes, ACItems.WAFER.get(), 1, ACItems.IMAG_SILICON_PIECE.get(), 4, Mode.INCISE);
-        metal(recipes, ACItems.DATA_CHIP.get(), 1, ACItems.CALC_CHIP.get(), 1, Mode.ETCH);
-        metal(recipes, Items.IRON_INGOT, 1, ACItems.REINFORCED_IRON_PLATE.get(), 1, Mode.PLATE);
-        metal(recipes, ACItems.CONSTRAINT_INGOT.get(), 1, ACItems.CONSTRAINT_PLATE.get(), 1, Mode.PLATE);
-        metal(recipes, ACItems.IMAGSIL_ORE.get(), 1, ACItems.IMAG_SILICON_INGOT.get(), 4, Mode.REFINE);
-        metal(recipes, ACItems.CONSTRAINT_METAL.get(), 1, ACItems.CONSTRAINT_INGOT.get(), 2, Mode.REFINE);
-        metal(recipes, ACItems.RESO_ORE.get(), 1, ACItems.RESO_CRYSTAL.get(), 3, Mode.REFINE);
-        metal(recipes, ACItems.CRYSTAL_ORE.get(), 1, ACItems.CRYSTAL_LOW.get(), 4, Mode.REFINE);
-        refine(level, recipes, "gold", Items.GOLD_INGOT, 2);
-        refine(level, recipes, "iron", Items.IRON_INGOT, 2);
-        refine(level, recipes, "emerald", Items.EMERALD, 2);
-        refine(level, recipes, "quartz", Items.QUARTZ, 2);
-        refine(level, recipes, "diamond", Items.DIAMOND, 2);
-        refine(level, recipes, "redstone", Items.REDSTONE_BLOCK, 1);
-        refine(level, recipes, "lapis", Items.LAPIS_LAZULI, 12);
-        refine(level, recipes, "coal", Items.COAL, 2);
-        for (String metal : List.of("copper", "tin", "silver", "lead", "aluminum", "nickel", "platinum", "iridium", "mithril")) {
-            var ores = tagged(level, "ores/" + metal);
-            var ingots = tagged(level, "ingots/" + metal);
-            if (ores.isEmpty() || ingots.isEmpty()) continue;
-            var smelting = level.getRecipeManager().getRecipeFor(RecipeType.SMELTING,
-                    new SingleRecipeInput(new ItemStack(ores.getFirst())), level);
-            if (smelting.isEmpty()) continue;
-            int count = smelting.get().value().getResultItem(level.registryAccess()).getCount();
-            if (count <= 0) continue;
-            int output = count < 32 ? count * 2 : 64;
-            for (Item ore : ores) metal(recipes, ore, 1, ingots.getFirst(), output, Mode.REFINE);
-        }
-        // Original VanillaCategories additions; notably the coin recipe consumes TWO plates.
-        metal(recipes, ACItems.REINFORCED_IRON_PLATE.get(), 1, ACItems.NEEDLE.get(), 6, Mode.INCISE);
-        metal(recipes, Items.RAIL, 1, ACItems.NEEDLE.get(), 2, Mode.INCISE);
-        metal(recipes, ACItems.REINFORCED_IRON_PLATE.get(), 2, ACItems.COIN.get(), 3, Mode.PLATE);
-        metal(recipes, ACItems.WAFER.get(), 1, ACItems.SILBARN.get(), 1, Mode.ETCH);
-        return List.copyOf(recipes);
-    }
-    private static List<Item> tagged(Level level, String path) {
-        var tag = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("c", path));
-        return level.registryAccess().registryOrThrow(Registries.ITEM).getTag(tag)
-                .map(set -> set.stream().map(net.minecraft.core.Holder::value).toList()).orElse(List.of());
-    }
-    private static void refine(Level level, List<Recipe> recipes, String ore, Item output, int count) {
-        for (Item input : tagged(level, "ores/" + ore)) metal(recipes, input, 1, output, count, Mode.REFINE);
-    }
-    private static void metal(List<Recipe> recipes, Item input, int amount, Item output, int count, Mode mode) {
-        recipes.add(new Recipe(Kind.METAL_FORMER, mode, new ItemStack(input, amount), new ItemStack(output, count), 0));
-    }
-    private MachineRecipes() {}
+    private MachineRecipes() { }
 }

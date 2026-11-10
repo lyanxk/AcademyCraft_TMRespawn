@@ -1,0 +1,32 @@
+{
+  "level": 4,
+  "cp_cost": 280.0,
+  "overload": 22.0,
+  "cooldown_ticks": 30,
+  "controllable": true,
+  "requirements": [
+    {
+      "skill": "meltdowner",
+      "experience": 1.0
+    }
+  ],
+  "enhancements": [],
+  "required_any_skill_level": 0,
+  "enabled": true,
+  "destroy_blocks": true,
+  "damage_scale": 1.0,
+  "cp_consume_speed": 1.0,
+  "overload_consume_speed": 1.0,
+  "exp_increase_speed": 1.0,
+  "cooldown_curve": [
+    60,
+    30
+  ],
+  "cooldown_enhanced_level": 6,
+  "cooldown_enhanced_curve": [
+    60,
+    30
+  ],
+  "cooldown_tiers": 0,
+  "experience_per_use": 0.003
+}

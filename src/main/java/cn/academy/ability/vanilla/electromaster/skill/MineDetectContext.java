@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.electromaster.skill;
 
+import cn.academy.data.Balance;
+
 import cn.academy.ability.AbilitySkill;
 import cn.academy.ability.AbilityState;
 import cn.academy.network.MineDetectEffectPayload;
@@ -15,16 +17,16 @@ public final class MineDetectContext {
     private final boolean advanced;
     public MineDetectContext(ServerPlayer player, AbilityState state, AbilitySkill skill) {
         this.player = player; this.state = state; this.skill = skill;
-        range = 15 + state.experience(skill.id()) * 15;
-        advanced = state.experience(skill.id()) > .5f && state.level() >= 4;
+        range = Balance.i("mine_detect_context", "mine_detect_context_range_1") + state.experience(skill.id()) * Balance.i("mine_detect_context", "mine_detect_context_range_2");
+        advanced = state.experience(skill.id()) > Balance.f("mine_detect_context", "mine_detect_context_threshold_1") && state.level() >= Balance.i("mine_detect_context", "mine_detect_context_threshold_2");
     }
     public boolean perform() {
         float exp = state.experience(skill.id());
-        if (!state.consumeRaw(skill, 1500 + exp * (1000 - 1500), 200 + exp * (180 - 200), player.isCreative())) return false;
-        state.addExperience(skill, .008f);
+        if (!state.consumeRaw(skill, Balance.i("mine_detect_context", "perform_consume_raw_1") + exp * (Balance.i("mine_detect_context", "perform_consume_raw_2") - Balance.i("mine_detect_context", "perform_consume_raw_3")), Balance.i("mine_detect_context", "perform_consume_raw_4") + exp * (Balance.i("mine_detect_context", "perform_consume_raw_5") - Balance.i("mine_detect_context", "perform_consume_raw_6")), player.isCreative())) return false;
+        state.addExperience(skill, Balance.f("mine_detect_context", "perform_add_experience_1"));
         // The original broadcasts MSG_EFFECT, but all non-local clients intentionally do nothing.
         PacketDistributor.sendToPlayer(player, new MineDetectEffectPayload(range, advanced));
-        state.finishContext(skill, (int) (900 + state.experience(skill.id()) * (400 - 900)), 0);
+        state.finishContext(skill, (int) (Balance.i("mine_detect_context", "perform_finish_context_1") + state.experience(skill.id()) * (Balance.i("mine_detect_context", "perform_finish_context_2") - Balance.i("mine_detect_context", "perform_finish_context_3"))), 0);
         return true;
     }
 }

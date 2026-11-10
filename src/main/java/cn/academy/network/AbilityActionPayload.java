@@ -13,7 +13,6 @@ public record AbilityActionPayload(int action, int value, String argument) imple
     public static final int SELECT_PRESET = 2;
     public static final int REQUEST_SYNC = 3;
     public static final int LEARN_SKILL = 4;
-    public static final int SET_SETTING = 5;
     public static final int SWITCH_PRESET = 6;
     public static final int KEY_DOWN = 7;
     public static final int KEY_UP = 8;
@@ -36,7 +35,6 @@ public record AbilityActionPayload(int action, int value, String argument) imple
     public static AbilityActionPayload select(int slot, String skill) { return new AbilityActionPayload(SELECT_PRESET, slot, skill); }
     public static AbilityActionPayload requestSync() { return new AbilityActionPayload(REQUEST_SYNC, 0, ""); }
     public static AbilityActionPayload learn(String skill) { return new AbilityActionPayload(LEARN_SKILL, 0, skill); }
-    public static AbilityActionPayload setting(String name, boolean value) { return new AbilityActionPayload(SET_SETTING, value ? 1 : 0, name); }
     public static AbilityActionPayload switchPreset(int preset) { return new AbilityActionPayload(SWITCH_PRESET, preset, ""); }
     public static AbilityActionPayload keyDown(int slot) { return new AbilityActionPayload(KEY_DOWN, slot, ""); }
     public static AbilityActionPayload keyDown(int slot, int requestId) {

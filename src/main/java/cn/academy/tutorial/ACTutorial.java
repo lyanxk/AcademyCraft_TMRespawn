@@ -9,7 +9,7 @@ public final class ACTutorial {
     public enum Tag { CRAFT, SMELT, VIEW }
     public static final boolean SHOW_ALL = false;
     public final String id;
-    private Condition condition = Conditions.alwaysTrue();
+    private Condition condition = player -> true;
     private boolean defaultInstalled = true;
     private final java.util.List<ViewGroup> previews = new java.util.ArrayList<>();
 

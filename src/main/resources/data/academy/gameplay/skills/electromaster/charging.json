@@ -1,0 +1,37 @@
+{
+  "level": 1,
+  "cp_cost": 80.0,
+  "overload": 4.0,
+  "cooldown_ticks": 10,
+  "controllable": true,
+  "requirements": [
+    {
+      "skill": "arc_gen",
+      "experience": 0.3
+    }
+  ],
+  "enhancements": [
+    2,
+    3,
+    4,
+    5
+  ],
+  "required_any_skill_level": 0,
+  "enabled": true,
+  "destroy_blocks": true,
+  "damage_scale": 1.0,
+  "cp_consume_speed": 1.0,
+  "overload_consume_speed": 1.0,
+  "exp_increase_speed": 1.0,
+  "cooldown_curve": [
+    10,
+    10
+  ],
+  "cooldown_enhanced_level": 6,
+  "cooldown_enhanced_curve": [
+    10,
+    10
+  ],
+  "cooldown_tiers": 0,
+  "experience_per_use": 0.003
+}

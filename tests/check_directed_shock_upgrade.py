@@ -1,14 +1,13 @@
 """Run production level-transition and strike methods against recording adapters."""
 from pathlib import Path
 import json
-import re
 import subprocess
+from gameplay_defaults import document, resolve_parameters
 
 root = Path(__file__).resolve().parent.parent
 base = root / 'src/main/java/cn/academy'
 strike = (base / 'ability/vanilla/vecmanip/skill/VectorStrikeContext.java').read_text(encoding='utf-8')
 state = (base / 'ability/AbilityState.java').read_text(encoding='utf-8')
-registry = (base / 'ability/AbilityRegistry.java').read_text(encoding='utf-8')
 skill_source = (base / 'ability/AbilitySkill.java').read_text(encoding='utf-8')
 
 def method(source, signature):
@@ -18,7 +17,7 @@ def method(source, signature):
     while depth:
         depth += (source[end] == '{') - (source[end] == '}')
         end += 1
-    return source[start:end]
+    return resolve_parameters(source[start:end])
 
 strike_methods = '\n'.join(method(strike, signature) for signature in (
     'public static int kind(AbilitySkill skill)',
@@ -36,13 +35,11 @@ for full, short in (
 category_cases = []
 for category in ('vecmanip', 'electromaster'):
     skills = []
-    for line in method(registry, f'category("{category}",').splitlines():
-        name = re.search(r'b\.skill\("([^"]+)"', line)
-        if not name:
-            continue
-        levels = re.search(r'\.enhancedAt\(([^)]*)\)', line)
-        tags = ','.join(f'new Enhancement({level.strip()})' for level in levels[1].split(',')) if levels else ''
-        skills.append(f'new AbilitySkill("{category}","{name[1]}",List.of({tags}))')
+    definition = next(item for item in document('abilities')['categories'] if item['id'] == category)
+    for name in definition['skills']:
+        levels = document(f'skills/{category}/{name}')['enhancements']
+        tags = ','.join(f'new Enhancement({level})' for level in levels)
+        skills.append(f'new AbilitySkill("{category}","{name}",List.of({tags}))')
     assert skills, category
     category_cases.append(f'case "{category}" -> new Category(List.of({",".join(skills)}));')
 

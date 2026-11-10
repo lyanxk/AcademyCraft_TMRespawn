@@ -11,9 +11,9 @@ public final class RailgunDelegate {
     }
     public Press down(boolean acceptedItem) {
         if (coin == null) {
-            if (acceptedItem) { chargeTicks = 20; return Press.CHARGE; }
+            if (acceptedItem) { chargeTicks = cn.academy.data.Balance.i("railgun", "item_charge_ticks"); return Press.CHARGE; }
         } else {
-            boolean success = coin.progress() > .7;
+            boolean success = coin.progress() > cn.academy.data.Balance.d("railgun", "coin_success_progress");
             coin = null; // Early and successful judgments both consume the one opportunity.
             if (success) return Press.FIRE_COIN;
         }
@@ -25,7 +25,7 @@ public final class RailgunDelegate {
     }
     public void abort() { chargeTicks = -1; }
     public int state() {
-        if (coin != null && coin.alive()) return coin.progress() < .6 ? 1 : 2;
+        if (coin != null && coin.alive()) return coin.progress() < cn.academy.data.Balance.d("railgun", "coin_hint_progress") ? 1 : 2;
         return chargeTicks == -1 ? 0 : 1;
     }
 }

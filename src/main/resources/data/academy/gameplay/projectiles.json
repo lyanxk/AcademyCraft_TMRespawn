@@ -1,0 +1,8 @@
+{
+  "coin_lifetime": 120,
+  "hook_damage": 4.0,
+  "silbarn_gravity_delay": 50,
+  "silbarn_gravity": 0.12,
+  "silbarn_drag": 0.8,
+  "silbarn_hit_lifetime": 10
+}

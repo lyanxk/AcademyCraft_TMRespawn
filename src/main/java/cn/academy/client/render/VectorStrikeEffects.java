@@ -1,5 +1,7 @@
 package cn.academy.client.render;
 
+import cn.academy.data.SharedSkillCosts;
+
 import cn.academy.ability.*;
 import cn.academy.ability.vanilla.vecmanip.skill.VectorStrikeContext;
 import cn.academy.client.render.util.*;
@@ -113,7 +115,7 @@ public final class VectorStrikeEffects {
         } else if(packet.phase()==GROUND_EFFECT) {
             if(owner==local) {
                 var state=AbilityState.load(local);var skill=AbilityRegistry.skill("vecmanip.ground_shock");float exp=packet.experience();
-                state.consumeRaw(skill,80+(150-80)*exp,15+(10-15)*exp,local.isCreative());
+                state.consumeRaw(skill,SharedSkillCosts.groundCp(exp),SharedSkillCosts.groundOverload(exp),local.isCreative());
             }
             play(owner.position(),"vecmanip.groundshock",2);groundParticles(packet.blocks());
         }

@@ -5,7 +5,7 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
 
-public record AbilityCategory(String id, int color, List<AbilitySkill> skills) {
+public record AbilityCategory(String id, int color, List<AbilitySkill> skills, float progressionScale) {
     public AbilityCategory {
         skills = List.copyOf(skills);
     }

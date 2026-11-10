@@ -1,0 +1,31 @@
+{
+  "portable": {
+    "maximum_level": 2,
+    "ticks_per_stimulation": 25,
+    "energy_per_stimulation": 750
+  },
+  "normal": {
+    "maximum_level": 3,
+    "ticks_per_stimulation": 20,
+    "energy_per_stimulation": 700
+  },
+  "advanced": {
+    "maximum_level": 5,
+    "ticks_per_stimulation": 15,
+    "energy_per_stimulation": 600
+  },
+  "learning": {
+    "base_stimulations": 3,
+    "level_squared_multiplier": 0.5
+  },
+  "level_up": {
+    "stimulations_per_level": 5
+  },
+  "reset": {
+    "minimum_level": 3,
+    "developer_level": 5,
+    "stimulations_per_level": 10,
+    "levels_lost": 1,
+    "item": "academy:magnetic_coil"
+  }
+}

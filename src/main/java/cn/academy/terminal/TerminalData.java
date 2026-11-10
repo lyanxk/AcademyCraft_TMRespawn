@@ -19,7 +19,7 @@ public final class TerminalData {
 
     public boolean isTerminalInstalled() { return AbilityState.load(player).terminalInstalled(); }
     public boolean isInstalled(App app) {
-        return app.isPreInstalled() || AbilityState.load(player).apps().contains(app.getName());
+        return AppRegistry.enumeration().contains(app) && (app.isPreInstalled() || AbilityState.load(player).apps().contains(app.getName()));
     }
     public List<App> getInstalledApps() {
         var state = AbilityState.load(player);

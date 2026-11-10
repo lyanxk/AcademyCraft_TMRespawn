@@ -1,42 +1,37 @@
 package cn.academy.block;
 
+import cn.academy.data.GameplayRules;
+
+import cn.academy.data.GameplayData;
+
 public enum MachineKind {
-    NODE_BASIC(15_000, 150, 0),
-    NODE_STANDARD(50_000, 300, 0),
-    NODE_ADVANCED(200_000, 900, 0),
-    MATRIX(0, 0, 0),
-    CAT_ENGINE(2_000, 200, 500),
-    SOLAR_GENERATOR(1_000, 100, 3),
-    PHASE_GENERATOR(6_000, 50, 50),
-    WIND_BASE(20_000, 300, 15),
-    WIND_PILLAR(0, 0, 0),
-    WIND_GENERATOR(0, 0, 0),
-    IMAG_FUSOR(2_000, 50, 0),
-    METAL_FORMER(3_000, 50, 0),
-    DEVELOPER_NORMAL(50_000, 100, 0),
-    DEVELOPER_ADVANCED(200_000, 300, 0),
-    ABILITY_INTERFERER(10_000, 50, 0),
-    FE_INPUT(2_000, 100, 0),
-    FE_OUTPUT(2_000, 100, 0),
-    EU_INPUT(2_000, 100, 0),
-    EU_OUTPUT(2_000, 100, 0);
+    NODE_BASIC,
+    NODE_STANDARD,
+    NODE_ADVANCED,
+    MATRIX,
+    CAT_ENGINE,
+    SOLAR_GENERATOR,
+    PHASE_GENERATOR,
+    WIND_BASE,
+    WIND_PILLAR,
+    WIND_GENERATOR,
+    IMAG_FUSOR,
+    METAL_FORMER,
+    DEVELOPER_NORMAL,
+    DEVELOPER_ADVANCED,
+    ABILITY_INTERFERER,
+    FE_INPUT,
+    FE_OUTPUT,
+    EU_INPUT,
+    EU_OUTPUT;
 
-    private final int capacity;
-    private final int transfer;
-    private final int generation;
-
-    MachineKind(int capacity, int transfer, int generation) {
-        this.capacity = capacity;
-        this.transfer = transfer;
-        this.generation = generation;
-    }
-
-    public int capacity() { return capacity; }
-    public int transfer() { return transfer; }
-    public int generation() { return generation; }
+    private String path() { return GameplayRules.machine(this); }
+    public int capacity() { return GameplayData.integer(path(), "capacity"); }
+    public int transfer() { return GameplayData.integer(path(), "transfer"); }
+    public int generation() { return GameplayData.integer(path(), "generation"); }
 
     public boolean isGenerator() {
-        return generation > 0;
+        return this == CAT_ENGINE || this == SOLAR_GENERATOR || this == PHASE_GENERATOR || this == WIND_BASE;
     }
 
     public boolean isProcessor() {

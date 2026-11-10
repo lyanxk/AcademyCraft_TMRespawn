@@ -1,0 +1,16 @@
+{
+  "mine_detect_context_range_1": 15,
+  "mine_detect_context_range_2": 15,
+  "mine_detect_context_threshold_1": 0.5,
+  "mine_detect_context_threshold_2": 4,
+  "perform_consume_raw_1": 1500,
+  "perform_consume_raw_2": 1000,
+  "perform_consume_raw_3": 1500,
+  "perform_consume_raw_4": 200,
+  "perform_consume_raw_5": 180,
+  "perform_consume_raw_6": 200,
+  "perform_add_experience_1": 0.008,
+  "perform_finish_context_1": 900,
+  "perform_finish_context_2": 400,
+  "perform_finish_context_3": 900
+}

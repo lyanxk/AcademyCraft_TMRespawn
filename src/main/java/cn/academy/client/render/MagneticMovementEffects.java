@@ -101,7 +101,7 @@ public final class MagneticMovementEffects {
                 MOTIONS.remove(id); var effect = EFFECTS.remove(id); if (effect != null) effect.stop();
             } else if (phase == LINK && owner == local && REQUESTS.accepts(slot, tag.getInt("Request"))) {
                 var state=AbilityState.load(local);float exp=state.experience("electromaster.mag_movement");
-                var target = MagneticTarget.trace(local,MagneticMovementMotion.range(state.level(),exp),state.level()>=3?1:exp);
+                var target = MagneticTarget.trace(local,MagneticMovementMotion.range(state.level(),exp),state.level()>=cn.academy.data.Balance.i("magnetic_movement_context", "start_threshold_1")?1:exp);
                 if (target == null) PacketDistributor.sendToServer(new MagneticMovementUpdatePayload(id, END, Vec3.ZERO));
                 else MOTIONS.putIfAbsent(id, new Motion(slot, id, target,MagneticMovementMotion.speed(state.level(),exp)));
             } else if (phase == START && owner instanceof Player player && !EFFECTS.containsKey(id)) {

@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.electromaster.skill;
 
+import cn.academy.data.Balance;
+
 import cn.academy.ability.AbilitySkill;
 import cn.academy.ability.AbilityState;
 import cn.academy.support.EnergyBlockHelper;
@@ -9,10 +11,7 @@ import net.minecraft.world.phys.HitResult;
 
 /** Server tick ordering and constructor snapshots from 1.12.2 CurrentCharging.scala. */
 public final class ChargingContext {
-    private static final double[] CHARGE={15,35,200,1000,10_000,1_000_000};
-    private static final float[] CP_PER_SECOND={60,140,240,300,340,440};
-    private static final float[] OL_START={20,40,80,100,120};
-    private static final float[] OL_END={10,20,40,50,80};
+
     private final ServerPlayer player;
     private final AbilitySkill skill;
     private final float experience;
@@ -28,7 +27,7 @@ public final class ChargingContext {
         // ContextManager captures targets before MADEALIVE invokes SkillPerform listeners.
         audience.add(player);
         for (var viewer : player.serverLevel().players())
-            if (viewer != player && viewer.distanceToSqr(player) <= 625) audience.add(viewer);
+            if (viewer != player && viewer.distanceToSqr(player) <= Balance.i("charging_context", "charging_context_threshold_1")) audience.add(viewer);
     }
     public void onStarted(AbilityState state) {
         send(true);
@@ -40,9 +39,9 @@ public final class ChargingContext {
     }
     public boolean isItemMode() { return itemMode; }
     public boolean tick(AbilityState state) {
-        float consumption = (CP_PER_SECOND[level-1]+(CP_PER_SECOND[level]-CP_PER_SECOND[level-1])*experience)/20;
-        float overload = (OL_START[level-1]+(OL_END[level-1]-OL_START[level-1])*experience)/20;
-        double charge = Math.floor(CHARGE[level-1]+(CHARGE[level]-CHARGE[level-1])*experience);
+        float consumption = (Balance.af("charging_context", "cp_per_second", level-1)+(Balance.af("charging_context", "cp_per_second", level)-Balance.af("charging_context", "cp_per_second", level-1))*experience)/Balance.i("charging_context", "tick_consumption_1");
+        float overload = (Balance.af("charging_context", "ol_start", level-1)+(Balance.af("charging_context", "ol_end", level-1)-Balance.af("charging_context", "ol_start", level-1))*experience)/Balance.i("charging_context", "tick_overload_1");
+        double charge = Math.floor(Balance.ad("charging_context", "charge", level-1)+(Balance.ad("charging_context", "charge", level)-Balance.ad("charging_context", "charge", level-1))*experience);
         if (itemMode) {
             // Main hand is the target even if the off hand originally selected item mode.
             // Payment precedes charging/experience in this branch.
@@ -50,10 +49,10 @@ public final class ChargingContext {
             var stack = player.getMainHandItem();
             boolean good = EnergyItemHelper.isSupported(stack);
             if (good) EnergyItemHelper.charge(stack, charge, false);
-            state.addExperience(skill, good ? .0001f : .00003f);
+            state.addExperience(skill, good ? Balance.f("charging_context", "tick_add_experience_1") : Balance.f("charging_context", "tick_add_experience_2"));
             return true;
         }
-        var hit = ElectricAttackTrace.trace(player, 15, false);
+        var hit = ElectricAttackTrace.trace(player, Balance.i("charging_context", "tick_trace_1"), false);
         boolean good = false;
         if (hit instanceof net.minecraft.world.phys.BlockHitResult block && hit.getType() == HitResult.Type.BLOCK) {
             var tile = player.serverLevel().getBlockEntity(block.getBlockPos());
@@ -62,7 +61,7 @@ public final class ChargingContext {
         }
         // The original block branch charges and rewards before attempting CP payment,
         // including the last tick that terminates for insufficient CP.
-        state.addExperience(skill, good ? .0001f : .00003f);
+        state.addExperience(skill, good ? Balance.f("charging_context", "tick_add_experience_3") : Balance.f("charging_context", "tick_add_experience_4"));
         return state.consumeRaw(skill, consumption, overload, player.isCreative());
     }
 }

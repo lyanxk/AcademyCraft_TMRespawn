@@ -1,5 +1,9 @@
 package cn.academy.client.screen;
 
+import cn.academy.data.GameplayRules;
+
+import cn.academy.data.GameplayData;
+
 import cn.academy.client.render.ACGuiTextures;
 import cn.academy.client.render.ACLegacyFont;
 
@@ -408,7 +412,7 @@ public final class ACMachineScreen extends AbstractContainerScreen<ACMachineMenu
                     menu.energy() / (double)Math.max(1, menu.maxEnergy()), menu.energy() + " IF"));
             if (hasFluidTank()) hist.add(new Hist(kind() == MachineKind.PHASE_GENERATOR ? "IF" : "liquid",
                     kind() == MachineKind.PHASE_GENERATOR ? 0xb983fb : 0x7680de,
-                    menu.phaseLiquid() / 8000.0, menu.phaseLiquid() + " mB"));
+                    menu.phaseLiquid() / (double) GameplayRules.tankCapacity(kind()), menu.phaseLiquid() + " mB"));
             else if (isNode()) hist.add(capacityHist());
         }
         if (matrix) {
@@ -613,10 +617,10 @@ public final class ACMachineScreen extends AbstractContainerScreen<ACMachineMenu
             sendInterferer(InterfererConfigPayload.ENABLED, !interfererEnabled, interfererRange, interfererWhitelist); return true;
         }
         if (inside(mouseX, mouseY, x + 48, y + 41, 16, 16)) {
-            sendInterferer(InterfererConfigPayload.RANGE, interfererEnabled, Math.max(10, interfererRange - 10), interfererWhitelist); return true;
+            sendInterferer(InterfererConfigPayload.RANGE, interfererEnabled, Math.max(GameplayData.number("machines/ability_interferer", "minimum_range"), interfererRange - GameplayData.number("machines/ability_interferer", "range_step")), interfererWhitelist); return true;
         }
         if (inside(mouseX, mouseY, x + 108, y + 41, 16, 16)) {
-            sendInterferer(InterfererConfigPayload.RANGE, interfererEnabled, Math.min(100, interfererRange + 10), interfererWhitelist); return true;
+            sendInterferer(InterfererConfigPayload.RANGE, interfererEnabled, Math.min(GameplayData.number("machines/ability_interferer", "maximum_range"), interfererRange + GameplayData.number("machines/ability_interferer", "range_step")), interfererWhitelist); return true;
         }
         if (inside(mouseX, mouseY, x + 12, y + 81.5, 12, 12)) {
             whitelistInput.setValue(""); whitelistInput.visible = true;

@@ -1,5 +1,9 @@
 package cn.academy.ability;
 
+import cn.academy.data.GameplayRules;
+
+import cn.academy.data.GameplayData;
+
 import cn.academy.advancement.ACAdvancements;
 import cn.academy.block.entity.ACMachineBlockEntity;
 import cn.academy.network.ACNetwork;
@@ -128,17 +132,17 @@ public final class DevelopmentManager {
             case DeveloperActionPayload.LEARN_SKILL -> {
                 AbilitySkill skill = AbilityRegistry.skill(payload.skill());
                 if (skill == null || skill.level() > developer.maximumLevel || !state.canLearn(skill)) return null;
-                stimulations = (int) (3 + skill.level() * skill.level() * .5f);
+                stimulations = (int) (GameplayData.number("developers", "learning.base_stimulations") + skill.level() * skill.level() * GameplayData.number("developers", "learning.level_squared_multiplier"));
             }
             case DeveloperActionPayload.LEVEL_UP -> {
                 if (state.hasCategory() && (state.level() >= 5 || state.levelProgress() < 1)) return null;
-                stimulations = 5 * (state.level() + 1);
+                stimulations = GameplayData.integer("developers", "level_up.stimulations_per_level") * (state.level() + 1);
             }
             case DeveloperActionPayload.RESET_CATEGORY -> {
-                if (developer.maximumLevel != 5 || state.level() < 3
-                        || !player.getMainHandItem().is(ACItems.MAGNETIC_COIL.get())
+                if (developer.maximumLevel < GameplayData.integer("developers", "reset.developer_level") || state.level() < GameplayData.integer("developers", "reset.minimum_level")
+                        || !player.getMainHandItem().is(GameplayRules.item(GameplayData.string("developers", "reset.item")))
                         || differentFactor(player, state.category()) == null) return null;
-                stimulations = state.level() * 10;
+                stimulations = state.level() * GameplayData.integer("developers", "reset.stimulations_per_level");
             }
             default -> { return null; }
         }
@@ -171,9 +175,8 @@ public final class DevelopmentManager {
                 state.setLevel(state.level() + 1);
             } else {
                 ItemStack factor = anyFactor(player, "");
-                String category = factor == null ? AbilityRegistry.categoryIds().get(
-                        player.getRandom().nextInt(AbilityRegistry.categoryIds().size()))
-                        : factor.getOrDefault(ACDataComponents.ABILITY_CATEGORY.get(), "");
+                String category = factor == null ? AbilityRegistry.randomCategory(player.getRandom())
+                        : cn.academy.item.InductionFactorItem.category(factor);
                 if (AbilityRegistry.category(category) == null) return false;
                 state.setCategory(category);
                 if (factor != null) clearFactor(player, factor);
@@ -183,15 +186,15 @@ public final class DevelopmentManager {
             ACAdvancements.grantLegacyLevels(player, state.category(), state.level());
         } else if (session.action == DeveloperActionPayload.RESET_CATEGORY) {
             ItemStack factor = differentFactor(player, state.category());
-            if (developer.maximumLevel != 5 || state.level() < 3 || factor == null
-                    || !player.getMainHandItem().is(ACItems.MAGNETIC_COIL.get())) return false;
-            String category = factor.getOrDefault(ACDataComponents.ABILITY_CATEGORY.get(), "");
+            if (developer.maximumLevel < GameplayData.integer("developers", "reset.developer_level") || state.level() < GameplayData.integer("developers", "reset.minimum_level") || factor == null
+                    || !player.getMainHandItem().is(GameplayRules.item(GameplayData.string("developers", "reset.item")))) return false;
+            String category = cn.academy.item.InductionFactorItem.category(factor);
             int previousLevel = state.level();
             var event = new cn.academy.event.ability.TransformCategoryEvent(player,
-                    AbilityRegistry.category(category), previousLevel - 1);
+                    AbilityRegistry.category(category), Math.max(1, previousLevel - GameplayData.integer("developers", "reset.levels_lost")));
             if (!net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event).isCanceled()) {
                 state.setCategory(category);
-                state.setLevel(previousLevel - 1);
+                state.setLevel(Math.max(1, previousLevel - GameplayData.integer("developers", "reset.levels_lost")));
                 player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemStack.EMPTY);
                 clearFactor(player, factor);
             }
@@ -205,13 +208,13 @@ public final class DevelopmentManager {
         if (portable) {
             ItemStack stack = portableStack(player);
             if (stack.isEmpty()) return null;
-            return new Developer(null, stack, false, 2, 25, 750);
+            return new Developer(null, stack, false, GameplayData.integer("developers", "portable.maximum_level"), GameplayData.integer("developers", "portable.ticks_per_stimulation"), GameplayData.integer("developers", "portable.energy_per_stimulation"));
         }
         if (player.distanceToSqr(pos.getCenter()) > 64
                 || !(player.serverLevel().getBlockEntity(pos) instanceof ACMachineBlockEntity machine)) return null;
         return switch (machine.kind()) {
-            case DEVELOPER_NORMAL -> new Developer(machine, ItemStack.EMPTY, false, 3, 20, 700);
-            case DEVELOPER_ADVANCED -> new Developer(machine, ItemStack.EMPTY, false, 5, 15, 600);
+            case DEVELOPER_NORMAL -> new Developer(machine, ItemStack.EMPTY, false, GameplayData.integer("developers", "normal.maximum_level"), GameplayData.integer("developers", "normal.ticks_per_stimulation"), GameplayData.integer("developers", "normal.energy_per_stimulation"));
+            case DEVELOPER_ADVANCED -> new Developer(machine, ItemStack.EMPTY, false, GameplayData.integer("developers", "advanced.maximum_level"), GameplayData.integer("developers", "advanced.ticks_per_stimulation"), GameplayData.integer("developers", "advanced.energy_per_stimulation"));
             default -> null;
         };
     }
@@ -228,7 +231,7 @@ public final class DevelopmentManager {
 
     private static ItemStack anyFactor(ServerPlayer player, String excludedCategory) {
         for (ItemStack candidate : player.getInventory().items) {
-            String value = candidate.getOrDefault(ACDataComponents.ABILITY_CATEGORY.get(), "");
+            String value = cn.academy.item.InductionFactorItem.category(candidate);
             if (candidate.is(ACItems.INDUCTION_FACTOR.get()) && AbilityRegistry.category(value) != null
                     && (excludedCategory.isEmpty() || !excludedCategory.equals(value))) return candidate;
         }

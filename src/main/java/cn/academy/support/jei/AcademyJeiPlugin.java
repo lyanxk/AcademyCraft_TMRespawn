@@ -104,7 +104,8 @@ public final class AcademyJeiPlugin implements IModPlugin {
         return source.stream().filter(recipe -> (recipe.kind() == MachineRecipes.Kind.IMAG_FUSOR) == fusor).toList();
     }
     private static boolean same(Recipe left, Recipe right) {
-        return left.kind() == right.kind() && left.mode() == right.mode() && left.liquid() == right.liquid()
+        return left.kind() == right.kind() && left.mode() == right.mode() && left.liquid() == right.liquid() && left.duration() == right.duration() && left.energy() == right.energy()
+                && left.ingredient().equals(right.ingredient())
                 && ItemStack.matches(left.input(), right.input()) && ItemStack.matches(left.output(), right.output());
     }
     private static boolean sameList(List<Recipe> left, List<Recipe> right) {
@@ -134,7 +135,7 @@ public final class AcademyJeiPlugin implements IModPlugin {
             // JEI 4's init(x,y) used an 18px slot with 1px ingredient padding.
             // Modern slots position the 16px ingredient itself; retain the original hover bounds too.
             builder.addSlot(RecipeIngredientRole.INPUT, 6, fusor ? 37 : 24)
-                    .setHoverPadding(1, 1, 1, 1).addItemStack(recipe.input());
+                    .setHoverPadding(1, 1, 1, 1).addItemStacks(recipe.inputs());
             builder.addSlot(RecipeIngredientRole.OUTPUT, fusor ? 94 : 72, fusor ? 37 : 24)
                     .setHoverPadding(1, 1, 1, 1).addItemStack(recipe.output());
         }

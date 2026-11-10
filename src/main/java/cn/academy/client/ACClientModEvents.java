@@ -59,10 +59,10 @@ public final class ACClientModEvents {
             ItemProperties.register(ACItems.INDUCTION_FACTOR.get(),
                     ResourceLocation.fromNamespaceAndPath(AcademyCraft.MOD_ID, "category"),
                     (stack, level, entity, seed) -> Math.max(0, cn.academy.ability.AbilityRegistry.categoryIds().indexOf(
-                            stack.getOrDefault(cn.academy.registry.ACDataComponents.ABILITY_CATEGORY.get(), "electromaster"))));
+                            cn.academy.item.InductionFactorItem.category(stack))));
             ItemProperties.register(ACItems.MEDIA_ITEM.get(),
                     ResourceLocation.fromNamespaceAndPath(AcademyCraft.MOD_ID, "media"),
-                    (stack, level, entity, seed) -> cn.academy.item.MediaItem.TRACKS.indexOf(cn.academy.item.MediaItem.media(stack)));
+                    (stack, level, entity, seed) -> cn.academy.item.MediaItem.model(cn.academy.item.MediaItem.media(stack)));
         });
     }
 

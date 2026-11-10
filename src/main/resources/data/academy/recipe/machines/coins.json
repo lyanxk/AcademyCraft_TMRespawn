@@ -1,0 +1,15 @@
+{
+  "type": "academy:machine",
+  "machine": "metal_former",
+  "mode": "plate",
+  "ingredient": {
+    "item": "academy:reinforced_iron_plate"
+  },
+  "input_count": 2,
+  "duration": 60,
+  "energy_per_tick": 13.3,
+  "result": {
+    "id": "academy:coin",
+    "count": 3
+  }
+}

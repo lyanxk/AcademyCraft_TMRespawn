@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.electromaster.skill;
 
+import cn.academy.data.Balance;
+
 import cn.academy.ability.*;
 import cn.academy.entity.ACThrownItemEntity;
 import cn.academy.network.RailgunEffectPayload;
@@ -17,7 +19,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 public final class Railgun {
     // Preserved from the original singleton: a reflected entity hit latches the larger XP reward.
     private static boolean hitEntity;
-    public static boolean isAccepted(ItemStack stack) { return stack.is(Items.IRON_INGOT) || stack.is(Items.IRON_BLOCK); }
+    public static boolean isAccepted(ItemStack stack) { return stack.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ITEM, net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("academy", "railgun_ammunition"))); }
     private static AbilitySkill skill() { return AbilityRegistry.skill("electromaster.railgun"); }
 
     public static void onThrow(ServerPlayer player, ACThrownItemEntity coin) {
@@ -25,7 +27,7 @@ public final class Railgun {
         if (!state.canUse() || !state.learned().contains(skill().id())) return;
         var payload = new cn.academy.network.RailgunChargePayload(player.getId());
         for (ServerPlayer viewer : player.serverLevel().players())
-            if (viewer.distanceToSqr(player) <= 900) PacketDistributor.sendToPlayer(viewer, payload);
+            if (viewer.distanceToSqr(player) <= Balance.i("railgun", "on_throw_threshold_1")) PacketDistributor.sendToPlayer(viewer, payload);
     }
 
     /** Original client QTE/charge completion. Never reinterpret the local QTE using delayed server progress. */
@@ -56,25 +58,25 @@ public final class Railgun {
     private static boolean performServer(ServerPlayer player, AbilityState state) {
         AbilitySkill skill = skill();
         float exp = state.experience(skill.id());
-        boolean enhanced = state.level() >= 5;
+        boolean enhanced = state.level() >= Balance.i("railgun", "perform_server_threshold_1");
         float baseExp = enhanced ? 1 : exp;
-        double radiusScale = enhanced ? 2 : 1;
-        if (!state.consumeRaw(skill, enhanced ? 450 + exp * 550 : 200 + exp * 250,
-                enhanced ? 120 + exp * 180 : 180 + exp * -60, player.isCreative())) return false;
+        double radiusScale = enhanced ? Balance.i("railgun", "perform_server_radius_scale_1") : 1;
+        if (!state.consumeRaw(skill, enhanced ? Balance.i("railgun", "perform_server_consume_raw_1") + exp * Balance.i("railgun", "perform_server_consume_raw_2") : Balance.i("railgun", "perform_server_consume_raw_3") + exp * Balance.i("railgun", "perform_server_consume_raw_4"),
+                enhanced ? Balance.i("railgun", "perform_server_consume_raw_5") + exp * Balance.i("railgun", "perform_server_consume_raw_6") : Balance.i("railgun", "perform_server_consume_raw_7") + exp * -Balance.i("railgun", "perform_server_consume_raw_8"), player.isCreative())) return false;
         AbilityContext context = AbilityContext.of(player, skill);
         double[] length = {90};
-        var damage = new RangedRayDamage.Reflectible(context, 2 * radiusScale, 900 + baseExp * 1100, reflector -> {
-            var result = ElectricAttackTrace.trace(reflector, 15, false);
-            if (result instanceof EntityHitResult entity) { context.attack(entity.getEntity(), 14); hitEntity = true; }
+        var damage = new RangedRayDamage.Reflectible(context, Balance.i("railgun", "perform_server_damage_1") * radiusScale, Balance.i("railgun", "perform_server_damage_2") + baseExp * Balance.i("railgun", "perform_server_damage_3"), reflector -> {
+            var result = ElectricAttackTrace.trace(reflector, Balance.i("railgun", "perform_server_trace_1"), false);
+            if (result instanceof EntityHitResult entity) { context.attack(entity.getEntity(), Balance.i("railgun", "perform_server_attack_1")); hitEntity = true; }
             double distance = reflector.distanceTo(player);
             length[0] = Math.min(length[0], distance);
-            visual(player, reflector.getId(), 15, radiusScale);
+            visual(player, reflector.getId(), Balance.i("railgun", "perform_server_damage_4"), radiusScale);
         });
-        damage.maxIncrement = 100;
-        damage.startDamage = enhanced ? 220 + exp * 280 : 100 + exp * 120;
+        damage.maxIncrement = Balance.i("railgun", "perform_server_damage_max_increment_1");
+        damage.startDamage = enhanced ? Balance.i("railgun", "perform_server_damage_start_damage_1") + exp * Balance.i("railgun", "perform_server_damage_start_damage_2") : Balance.i("railgun", "perform_server_damage_start_damage_3") + exp * Balance.i("railgun", "perform_server_damage_start_damage_4");
         damage.perform();
-        state.addExperience(skill, hitEntity ? .01f : .005f);
-        state.finishContext(skill, enhanced ? (int) (160 - exp * 80) : (int) (300 + exp * -140), 0);
+        state.addExperience(skill, hitEntity ? Balance.f("railgun", "perform_server_add_experience_1") : Balance.f("railgun", "perform_server_add_experience_2"));
+        state.finishContext(skill, enhanced ? (int) (Balance.i("railgun", "perform_server_finish_context_1") - exp * Balance.i("railgun", "perform_server_finish_context_2")) : (int) (Balance.i("railgun", "perform_server_finish_context_3") + exp * -Balance.i("railgun", "perform_server_finish_context_4")), 0);
         visual(player, -1, length[0], radiusScale);
         AbilityManager.completeUse(player, state, skill);
         return true;

@@ -1,0 +1,6 @@
+{
+  "create_entity_damage_1": 10,
+  "follow_scale_1": 2,
+  "tick_threshold_1": 5,
+  "tick_velocity_1": 0.04
+}

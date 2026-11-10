@@ -1,0 +1,15 @@
+{
+  "type": "academy:machine",
+  "machine": "metal_former",
+  "mode": "etch",
+  "ingredient": {
+    "item": "academy:wafer"
+  },
+  "input_count": 1,
+  "duration": 60,
+  "energy_per_tick": 13.3,
+  "result": {
+    "id": "academy:silbarn",
+    "count": 1
+  }
+}

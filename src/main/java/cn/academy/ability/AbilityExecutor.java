@@ -1,6 +1,11 @@
 package cn.academy.ability;
 
-import cn.academy.config.ACConfig;
+import cn.academy.data.GameplayData;
+
+import cn.academy.data.GameplayRules;
+
+import cn.academy.data.Balance;
+
 import cn.academy.ability.vanilla.teleporter.TeleporterGeometry;
 import net.minecraft.world.level.portal.DimensionTransition;
 import cn.academy.advancement.ACAdvancements;
@@ -91,24 +96,24 @@ public final class AbilityExecutor {
     private static void tickJetDash(ServerPlayer player, AbilityState state, JetDash dash) {
         JetDash nextDash = dash.next();
         int tick = nextDash.ticks();
-        if (tick > 15 || !player.isAlive()) {
+        if (tick > Balance.i("ability_executor", "tick_jet_dash_threshold_1") || !player.isAlive()) {
             stopJetDash(player);
             return;
         }
         if (player.isPassenger()) player.stopRiding();
         Vec3 from = player.position();
-        Vec3 to = dash.start().add(dash.target().subtract(dash.start()).scale(tick / 8f));
-        AABB swept = new AABB(from, to).inflate(.8);
+        Vec3 to = dash.start().add(dash.target().subtract(dash.start()).scale(tick / Balance.f("ability_executor", "tick_jet_dash_scale_1")));
+        AABB swept = new AABB(from, to).inflate(Balance.d("ability_executor", "tick_jet_dash_inflate_1"));
         AbilitySkill skill = AbilityRegistry.skill("meltdowner.jet_engine");
         for (LivingEntity target : player.serverLevel().getEntitiesOfClass(LivingEntity.class, swept,
-                entity -> validTarget(player, entity) && entity.getBoundingBox().inflate(.4).clip(from, to).isPresent())) {
-            if (skill != null) meltdownerDamage(player, state, skill, target, lerp(7, 20, dash.exp()));
+                entity -> validTarget(player, entity) && entity.getBoundingBox().inflate(Balance.d("ability_executor", "tick_jet_dash_inflate_2")).clip(from, to).isPresent())) {
+            if (skill != null) meltdownerDamage(player, state, skill, target, lerp(Balance.i("ability_executor", "tick_jet_dash_lerp_1"), Balance.i("ability_executor", "tick_jet_dash_lerp_2"), dash.exp()));
         }
         player.setPos(to.x, to.y, to.z);
         player.setDeltaMovement(dash.velocity());
         player.hurtMarked = true;
         player.resetFallDistance();
-        player.getAbilities().setWalkingSpeed(.07f);
+        player.getAbilities().setWalkingSpeed(Balance.f("ability_executor", "tick_jet_dash_set_walking_speed_1"));
         if (tick % 3 == 0) player.onUpdateAbilities();
         player.serverLevel().sendParticles(ACParticles.MELTDOWNER.get(), player.getX(), player.getY() + .8,
                 player.getZ(), 10, .3, .4, .3, .025);
@@ -128,8 +133,8 @@ public final class AbilityExecutor {
         VisualEffectPayload visual = new VisualEffectPayload("plasma", next.x, next.y, next.z,
                 next.x, next.y, next.z, 1.2f, 0xE0C8E8FF, 3);
         broadcastVisual(player.serverLevel(), player, visual);
-        if (collision.getType() == HitResult.Type.BLOCK || ticks >= 240
-                || next.distanceTo(flight.destination()) < 1.5) {
+        if (collision.getType() == HitResult.Type.BLOCK || ticks >= Balance.i("ability_executor", "tick_plasma_flight_threshold_1")
+                || next.distanceTo(flight.destination()) < Balance.d("ability_executor", "tick_plasma_flight_threshold_2")) {
             explodePlasma(player, flight.destination(), flight.exp());
             PLASMA_FLIGHTS.remove(player.getUUID());
         } else {
@@ -154,7 +159,7 @@ public final class AbilityExecutor {
         AbilitySkill skill = AbilityRegistry.skill("vecmanip.plasma_cannon");
         ServerLevel level = player.serverLevel();
         for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class,
-                new AABB(destination, destination).inflate(10), entity -> entity == player || validTarget(player, entity))) {
+                new AABB(destination, destination).inflate(Balance.i("ability_executor", "explode_plasma_inflate_1")), entity -> entity == player || validTarget(player, entity))) {
             AbilityContext.of(player, AbilityRegistry.skill("vecmanip.plasma_cannon"))
                     .attack(target, cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext.damage(target, exp));
             target.invulnerableTime = 0;
@@ -170,8 +175,8 @@ public final class AbilityExecutor {
         Vec3 start = player.position();
         BlockHitResult hit = blockTrace(player.serverLevel(), player, 12);
         Vec3 target = hit.getType() == HitResult.Type.BLOCK ? hit.getLocation()
-                : player.getEyePosition().add(player.getLookAngle().scale(12));
-        Vec3 velocity = target.subtract(start).scale(1d / 8d);
+                : player.getEyePosition().add(player.getLookAngle().scale(Balance.i("ability_executor", "start_jet_dash_scale_1")));
+        Vec3 velocity = target.subtract(start).scale(1d / Balance.i("ability_executor", "start_jet_dash_scale_2"));
         JET_DASHES.put(player.getUUID(), new JetDash(start, target, velocity, exp,
                 player.getAbilities().getWalkingSpeed(), 0));
     }
@@ -229,7 +234,7 @@ public final class AbilityExecutor {
         if (skill.name().equals("railgun")) return hasRailgunChargeItem(player);
         if (skill.name().equals("threatening_teleport")) return !player.getMainHandItem().isEmpty();
         if (skill.name().equals("shift_tp")) return cn.academy.ability.vanilla.teleporter.skill.ShiftTeleportContext.validHand(player);
-        if (skill.name().equals("mag_movement")) return cn.academy.ability.vanilla.electromaster.skill.MagneticTarget.trace(player, 25, AbilityState.load(player).experience(skill.id())) != null;
+        if (skill.name().equals("mag_movement")) return cn.academy.ability.vanilla.electromaster.skill.MagneticTarget.trace(player, Balance.i("ability_executor", "validate_trace_1"), AbilityState.load(player).experience(skill.id())) != null;
         return true;
     }
 
@@ -250,7 +255,7 @@ public final class AbilityExecutor {
         AABB search = player.getBoundingBox().expandTowards(player.getLookAngle().scale(range)).inflate(1);
         for (Entity entity : level.getEntities(player, search, value -> value.isPickable()
                 || value instanceof ACThrownItemEntity)) {
-            Optional<Vec3> clipped = entity.getBoundingBox().inflate(.45).clip(start, end);
+            Optional<Vec3> clipped = entity.getBoundingBox().inflate(Balance.d("ability_executor", "targeted_thrown_item_inflate_1")).clip(start, end);
             if (clipped.isEmpty()) continue;
             double distance = start.distanceToSqr(clipped.get());
             if (distance < nearestDistance) {
@@ -306,21 +311,21 @@ public final class AbilityExecutor {
         float exp = state.experience(skill.id());
         switch (skill.name()) {
             case "scatter_bomb" -> {
-                if (ticks >= 20 && ticks <= 80 && ticks % 10 == 0) {
+                if (ticks >= Balance.i("ability_executor", "tick_context_threshold_1") && ticks <= Balance.i("ability_executor", "tick_context_threshold_2") && ticks % 10 == 0) {
                     level.addFreshEntity(ACElectronBallEntity.createHeld(player, 1));
                     sendSkillVisual(player, skill, player.getEyePosition());
                 }
             }
             case "light_shield" -> {
                 player.getPersistentData().putLong("academy:light_shield_until", level.getGameTime() + 3);
-                state.addExperience(skill, 1.0e-6f);
+                state.addExperience(skill, Balance.f("ability_executor", "tick_context_add_experience_1"));
                 for (LivingEntity entity : level.getEntitiesOfClass(LivingEntity.class,
-                        player.getBoundingBox().inflate(3), e -> validTarget(player, e) && e.invulnerableTime <= 0)) {
+                        player.getBoundingBox().inflate(Balance.i("ability_executor", "tick_context_inflate_1")), e -> validTarget(player, e) && e.invulnerableTime <= 0)) {
                     Vec3 direction = entity.position().subtract(player.position()).normalize();
                     if (direction.dot(player.getLookAngle()) > .5
-                            && state.consumeRaw(skill, lerp(50, 30, exp), lerp(5, 3, exp), player.isCreative())) {
-                        meltdownerDamage(player, state, skill, entity, lerp(2, 6, exp));
-                        state.addExperience(skill, .001f);
+                            && state.consumeRaw(skill, lerp(Balance.i("ability_executor", "tick_context_lerp_1"), Balance.i("ability_executor", "tick_context_lerp_2"), exp), lerp(Balance.i("ability_executor", "tick_context_lerp_3"), Balance.i("ability_executor", "tick_context_lerp_4"), exp), player.isCreative())) {
+                        meltdownerDamage(player, state, skill, entity, lerp(Balance.i("ability_executor", "tick_context_lerp_5"), Balance.i("ability_executor", "tick_context_lerp_6"), exp));
+                        state.addExperience(skill, Balance.f("ability_executor", "tick_context_add_experience_2"));
                     }
                 }
                 if (ticks % 6 == 0) sendSkillVisual(player, skill, player.getEyePosition());
@@ -332,11 +337,11 @@ public final class AbilityExecutor {
                     balls = missileBalls(player);
                 }
                 if (ticks % 8 == 0 && !balls.isEmpty()) {
-                    LivingEntity target = nearestLivingAround(level, player, lerp(5, 13, exp));
-                    if (target != null && state.consumeRaw(skill, lerp(60, 25, exp), lerp(9, 4, exp), player.isCreative())) {
+                    LivingEntity target = nearestLivingAround(level, player, lerp(Balance.i("ability_executor", "tick_context_lerp_7"), Balance.i("ability_executor", "tick_context_lerp_8"), exp));
+                    if (target != null && state.consumeRaw(skill, lerp(Balance.i("ability_executor", "tick_context_lerp_9"), Balance.i("ability_executor", "tick_context_lerp_10"), exp), lerp(Balance.i("ability_executor", "tick_context_lerp_11"), Balance.i("ability_executor", "tick_context_lerp_12"), exp), player.isCreative())) {
                         ACElectronBallEntity ball = balls.get(level.random.nextInt(balls.size()));
-                        ball.fireAt(player, target.getEyePosition(), lerp(10, 18, exp));
-                        state.addExperience(skill, .001f);
+                        ball.fireAt(player, target.getEyePosition(), lerp(Balance.i("ability_executor", "tick_context_lerp_13"), Balance.i("ability_executor", "tick_context_lerp_14"), exp));
+                        state.addExperience(skill, Balance.f("ability_executor", "tick_context_add_experience_3"));
                     }
                 }
                 if (ticks % 2 == 0) level.sendParticles(ACParticles.MELTDOWNER.get(), player.getX(),
@@ -353,9 +358,9 @@ public final class AbilityExecutor {
                 if (ticks % 6 == 0) sendSkillVisual(player, skill, player.getEyePosition());
             }
             case "storm_wing" -> {
-                int charge = Math.round(lerp(70, 30, exp));
+                int charge = Math.round(lerp(Balance.i("ability_executor", "tick_context_lerp_15"), Balance.i("ability_executor", "tick_context_lerp_16"), exp));
                 if (ticks % 5 == 0) sendSkillVisual(player, skill, player.getEyePosition());
-                if (exp < .15f) breakSoftBlocksAround(level, player, skill);
+                if (exp < Balance.f("ability_executor", "tick_context_threshold_3")) breakSoftBlocksAround(level, player, skill);
                 if (ticks > charge) {
                     Vec3 forward = player.getLookAngle().normalize();
                     Vec3 flat = Vec3.directionFromRotation(0, player.getYRot());
@@ -370,23 +375,23 @@ public final class AbilityExecutor {
                     Vec3 old = player.getDeltaMovement();
                     if (input.lengthSqr() > .01) {
                         if (player.isPassenger()) player.stopRiding();
-                        double speed = (exp < .45f ? .7 : 1.2) * lerp(2, 3, exp);
+                        double speed = (exp < Balance.f("ability_executor", "tick_context_speed_1") ? Balance.d("ability_executor", "tick_context_speed_2") : Balance.d("ability_executor", "tick_context_speed_3")) * lerp(Balance.i("ability_executor", "tick_context_lerp_17"), Balance.i("ability_executor", "tick_context_lerp_18"), exp);
                         Vec3 desired = input.normalize().scale(speed);
-                        player.setDeltaMovement(approach(old.x, desired.x, .16), approach(old.y, desired.y, .16),
-                                approach(old.z, desired.z, .16));
+                        player.setDeltaMovement(approach(old.x, desired.x, Balance.d("ability_executor", "tick_context_set_delta_movement_1")), approach(old.y, desired.y, Balance.d("ability_executor", "tick_context_set_delta_movement_2")),
+                                approach(old.z, desired.z, Balance.d("ability_executor", "tick_context_set_delta_movement_3")));
                     } else {
                         BlockHitResult ground = level.clip(new ClipContext(player.position().add(0, .5, 0),
                                 player.position().add(0, -.3, 0), ClipContext.Block.COLLIDER,
                                 ClipContext.Fluid.NONE, player));
                         player.setDeltaMovement(old.x,
-                                ground.getType() == HitResult.Type.MISS ? old.y + .078 : .1, old.z);
+                                ground.getType() == HitResult.Type.MISS ? old.y + Balance.d("ability_executor", "tick_context_set_delta_movement_4") : Balance.d("ability_executor", "tick_context_set_delta_movement_5"), old.z);
                     }
                     player.hurtMarked = true;
                     player.resetFallDistance();
-                    if (ticks == charge + 1 && exp >= .999f) {
-                        for (Entity entity : level.getEntities(player, player.getBoundingBox().inflate(6), e -> e != player)) {
+                    if (ticks == charge + 1 && exp >= Balance.f("ability_executor", "tick_context_threshold_4")) {
+                        for (Entity entity : level.getEntities(player, player.getBoundingBox().inflate(Balance.i("ability_executor", "tick_context_inflate_2")), e -> e != player)) {
                             Vec3 push = entity.getEyePosition().subtract(player.position()).normalize()
-                                    .scale(.5 + level.random.nextDouble() * .5);
+                                    .scale(Balance.d("ability_executor", "tick_context_scale_1") + level.random.nextDouble() * Balance.d("ability_executor", "tick_context_scale_2"));
                             entity.setDeltaMovement(push);
                             entity.hurtMarked = true;
                         }
@@ -402,14 +407,14 @@ public final class AbilityExecutor {
                     } else sendSkillVisual(player, skill, player.getEyePosition());
                 }
                 if (skill.name().equals("meltdowner")) {
-                    player.getAbilities().setWalkingSpeed(Math.max(.001f, .1f - ticks * .001f));
+                    player.getAbilities().setWalkingSpeed(Math.max(Balance.f("ability_executor", "tick_context_set_walking_speed_1"), Balance.f("ability_executor", "tick_context_set_walking_speed_2") - ticks * Balance.f("ability_executor", "tick_context_set_walking_speed_3")));
                     if (ticks % 5 == 0) player.onUpdateAbilities();
                 }
                 if (skill.name().equals("plasma_cannon") && ticks == Math.ceil(cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext.chargeTime(exp)))
                     sound(level, player, ACSounds.get("vecmanip.plasma_cannon_t"));
             }
             case "blood_retro" -> {
-                player.getAbilities().setWalkingSpeed(lerp(.1f, .007f, Math.min(1, ticks / 20f)));
+                player.getAbilities().setWalkingSpeed(lerp(Balance.f("ability_executor", "tick_context_lerp_19"), Balance.f("ability_executor", "tick_context_lerp_20"), Math.min(Balance.i("ability_executor", "tick_context_lerp_21"), ticks / Balance.f("ability_executor", "tick_context_lerp_22"))));
                 if (ticks % 5 == 0) player.onUpdateAbilities();
             }
             case "penetrate_teleport" -> {
@@ -426,21 +431,21 @@ public final class AbilityExecutor {
             }
             case "threatening_teleport" -> {
                 if (ticks % 3 == 0) {
-                    LivingEntity target = TeleporterGeometry.threateningTarget(player, lerp(8, 15, exp));
-                    sendContextMarker(player, target == null ? traceLocation(level, player, lerp(8, 15, exp))
+                    LivingEntity target = TeleporterGeometry.threateningTarget(player, lerp(Balance.i("ability_executor", "tick_context_lerp_23"), Balance.i("ability_executor", "tick_context_lerp_24"), exp));
+                    sendContextMarker(player, target == null ? traceLocation(level, player, lerp(Balance.i("ability_executor", "tick_context_lerp_25"), Balance.i("ability_executor", "tick_context_lerp_26"), exp))
                             : target.position(), target == null ? 0xBABABABA : 0xBAB2232A);
                 }
             }
             case "flesh_ripping" -> {
                 if (ticks % 3 == 0) {
-                    LivingEntity target = targetLiving(level, player, lerp(6, 14, exp));
-                    sendContextMarker(player, target == null ? traceLocation(level, player, lerp(6, 14, exp))
+                    LivingEntity target = targetLiving(level, player, lerp(Balance.i("ability_executor", "tick_context_lerp_27"), Balance.i("ability_executor", "tick_context_lerp_28"), exp));
+                    sendContextMarker(player, target == null ? traceLocation(level, player, lerp(Balance.i("ability_executor", "tick_context_lerp_29"), Balance.i("ability_executor", "tick_context_lerp_30"), exp))
                             : target.getEyePosition(), target == null ? 0xC8888888 : 0xC8C83A3A);
                 }
             }
             case "shift_tp", "jet_engine" -> {
                 if (ticks % 3 == 0) sendContextMarker(player, traceLocation(level, player,
-                        skill.name().equals("jet_engine") ? 12 : lerp(25, 35, exp)),
+                        skill.name().equals("jet_engine") ? 12 : lerp(Balance.i("ability_executor", "tick_context_lerp_31"), Balance.i("ability_executor", "tick_context_lerp_32"), exp)),
                         0xC878FF9A);
             }
             default -> { }
@@ -458,18 +463,18 @@ public final class AbilityExecutor {
             case "light_shield" -> {
                 player.getPersistentData().remove("academy:light_shield_until");
                 player.getPersistentData().remove("academy:light_shield_absorb");
-                player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 100, 1));
+                player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, Balance.i("ability_executor", "end_context_add_effect_1"), 1));
             }
             case "vec_deviation" -> player.getPersistentData().remove("academy:vec_deviation_until");
             case "meltdowner" -> {
                 player.getAbilities().setWalkingSpeed(player.getPersistentData().contains("academy:meltdowner_walk_speed")
-                        ? player.getPersistentData().getFloat("academy:meltdowner_walk_speed") : .1f);
+                        ? player.getPersistentData().getFloat("academy:meltdowner_walk_speed") : Balance.f("ability_executor", "end_context_set_walking_speed_1"));
                 player.getPersistentData().remove("academy:meltdowner_walk_speed");
                 player.onUpdateAbilities();
             }
             case "blood_retro" -> {
                 player.getAbilities().setWalkingSpeed(player.getPersistentData().contains("academy:blood_walk_speed")
-                        ? player.getPersistentData().getFloat("academy:blood_walk_speed") : .1f);
+                        ? player.getPersistentData().getFloat("academy:blood_walk_speed") : Balance.f("ability_executor", "end_context_set_walking_speed_2"));
                 player.getPersistentData().remove("academy:blood_walk_speed");
                 player.onUpdateAbilities();
             }
@@ -500,13 +505,13 @@ public final class AbilityExecutor {
             return AbilityContextManager.magneticAlive(player);
         if (skill.name().equals("jet_engine")) {
             AbilityState state = AbilityState.load(player);
-            return player.isCreative() || state.cp() >= lerp(170, 140, state.experience(skill.id()));
+            return player.isCreative() || state.cp() >= lerp(Balance.i("ability_executor", "context_alive_lerp_1"), Balance.i("ability_executor", "context_alive_lerp_2"), state.experience(skill.id()));
         }
         if (skill.name().equals("threatening_teleport")) return !player.getMainHandItem().isEmpty();
         if (skill.name().equals("shift_tp")) return cn.academy.ability.vanilla.teleporter.skill.ShiftTeleportContext.validHand(player);
         if (skill.name().equals("flesh_ripping")) {
             AbilityState state = AbilityState.load(player);
-            return player.isCreative() || state.cp() >= lerp(130, 270, state.experience(skill.id()));
+            return player.isCreative() || state.cp() >= lerp(Balance.i("ability_executor", "context_alive_lerp_3"), Balance.i("ability_executor", "context_alive_lerp_4"), state.experience(skill.id()));
         }
         return true;
     }
@@ -546,7 +551,7 @@ public final class AbilityExecutor {
         }
         if (skill.name().equals("mark_teleport")) {
             Vec3 destination = markDestination(player.serverLevel(), player, markAllowedRange(state, skill, heldTicks));
-            if (destination.distanceTo(player.position()) >= 3) executeSelectedTeleport(player, state, skill, destination);
+            if (destination.distanceTo(player.position()) >= Balance.i("ability_executor", "execute_context_threshold_1")) executeSelectedTeleport(player, state, skill, destination);
             return;
         }
         ServerLevel level = player.serverLevel();
@@ -574,8 +579,8 @@ public final class AbilityExecutor {
                 player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, buffs.duration(), 0, false, true));
                 player.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, buffs.duration(), 0, false, true));
                 player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, buffs.duration(), 0, false, true));
-                player.addEffect(new MobEffectInstance(MobEffects.HUNGER, buffs.hungerDuration(), 2));
-                state.addExperience(skill, .01f);
+                player.addEffect(new MobEffectInstance(MobEffects.HUNGER, buffs.hungerDuration(), Balance.i("ability_executor", "electromaster_add_effect_1")));
+                state.addExperience(skill, Balance.f("ability_executor", "electromaster_add_experience_1"));
                 state.finishContext(skill, cn.academy.ability.vanilla.electromaster.skill.BodyIntensifyRules.cooldown(
                         state.experience(skill.id())), 0);
             }
@@ -589,9 +594,9 @@ public final class AbilityExecutor {
             case "scatter_bomb" -> {
                 float exp = state.experience(skill.id());
                 List<ACElectronBallEntity> balls = scatterBalls(player);
-                List<Mob> targets = exp > .5f ? level.getEntitiesOfClass(Mob.class,
-                        player.getBoundingBox().inflate(5), Entity::isAlive) : List.of();
-                int autoCount = exp > .5f ? (int) (balls.size() * exp) : 0;
+                List<Mob> targets = exp > Balance.f("ability_executor", "meltdowner_threshold_1") ? level.getEntitiesOfClass(Mob.class,
+                        player.getBoundingBox().inflate(Balance.i("ability_executor", "meltdowner_inflate_1")), Entity::isAlive) : List.of();
+                int autoCount = exp > Balance.f("ability_executor", "meltdowner_threshold_2") ? (int) (balls.size() * exp) : 0;
                 for (ACElectronBallEntity ball : balls) {
                     Vec3 destination;
                     if (autoCount > 0 && !targets.isEmpty()) {
@@ -602,23 +607,23 @@ public final class AbilityExecutor {
                         Vec3 look = player.getLookAngle();
                         float pitch = (level.random.nextFloat() - .5f) * (float) Math.toRadians(25);
                         float yaw = (level.random.nextFloat() - .5f) * (float) Math.toRadians(25);
-                        destination = player.getEyePosition().add(look.scale(15))
-                                .add(look.xRot(pitch).yRot(yaw).scale(15));
+                        destination = player.getEyePosition().add(look.scale(Balance.i("ability_executor", "meltdowner_scale_1")))
+                                .add(look.xRot(pitch).yRot(yaw).scale(Balance.i("ability_executor", "meltdowner_scale_2")));
                     }
-                    ball.fireAt(player, destination, lerp(5, 9, exp));
+                    ball.fireAt(player, destination, lerp(Balance.i("ability_executor", "meltdowner_lerp_1"), Balance.i("ability_executor", "meltdowner_lerp_2"), exp));
                 }
-                state.addExperience(skill, .001f * balls.size());
+                state.addExperience(skill, Balance.f("ability_executor", "meltdowner_add_experience_1") * balls.size());
                 sound(level, player, ACSounds.MD_BALL.get());
             }
             case "light_shield" -> {
                 player.getPersistentData().putLong("academy:light_shield_until", level.getGameTime() + 400);
-                player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 400, 2));
-                player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 400, 1));
+                player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, Balance.i("ability_executor", "meltdowner_add_effect_1"), Balance.i("ability_executor", "meltdowner_add_effect_2")));
+                player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, Balance.i("ability_executor", "meltdowner_add_effect_3"), 1));
                 sound(level, player, ACSounds.MD_SHIELD.get());
                 sound(level, player, ACSounds.get("md.shield_loop"));
             }
             case "meltdowner" -> {
-                int charged = heldTicks <= 0 ? 40 : Math.min(40, heldTicks);
+                int charged = heldTicks <= 0 ? Balance.i("ability_executor", "meltdowner_charged_1") : Math.min(Balance.i("ability_executor", "meltdowner_charged_2"), heldTicks);
                 performMeltdownerRay(level, player, state, skill, charged);
                 rayParticles(level, player, 30, ParticleTypes.GLOW);
                 sound(level, player, ACSounds.MD_MELTDOWNER.get());
@@ -631,20 +636,20 @@ public final class AbilityExecutor {
                     Vec3 origin = silbarn.position();
                     silbarn.breakSilbarn();
                     for (LivingEntity entity : level.getEntitiesOfClass(LivingEntity.class,
-                            player.getBoundingBox().inflate(20), value -> validTarget(player, value))) {
+                            player.getBoundingBox().inflate(Balance.i("ability_executor", "meltdowner_inflate_2")), value -> validTarget(player, value))) {
                         Vec3 delta = entity.getEyePosition().subtract(start);
                         double horizontal = Math.sqrt(delta.x * delta.x + delta.z * delta.z);
                         float yaw = (float) -Math.toDegrees(Math.atan2(delta.x, delta.z));
                         float pitch = (float) -Math.toDegrees(Math.atan2(delta.y, Math.max(.001, horizontal)));
                         if (Math.abs(Mth.wrapDegrees(yaw - player.getYRot())) <= 27.5f
                                 && Math.abs(Mth.wrapDegrees(pitch - player.getXRot())) <= 55)
-                            meltdownerDamage(player, state, skill, entity, lerp(10, 18, exp));
+                            meltdownerDamage(player, state, skill, entity, lerp(Balance.i("ability_executor", "meltdowner_lerp_3"), Balance.i("ability_executor", "meltdowner_lerp_4"), exp));
                     }
                     broadcastVisual(level, player, new VisualEffectPayload("meltdowner", start.x, start.y, start.z,
                             origin.x, origin.y, origin.z, .055f, 0xD86EFF87, 10));
                     for (float yawOffset : new float[]{-27.5f, 0, 27.5f}) for (float pitchOffset : new float[]{-40, 0, 40}) {
                         Vec3 end = origin.add(Vec3.directionFromRotation(player.getXRot() + pitchOffset,
-                                player.getYRot() + yawOffset).scale(20));
+                                player.getYRot() + yawOffset).scale(Balance.i("ability_executor", "meltdowner_scale_3")));
                         broadcastVisual(level, player, new VisualEffectPayload("meltdowner", origin.x, origin.y, origin.z,
                                 end.x, end.y, end.z, .045f, 0xC86EFF87, 12));
                     }
@@ -652,7 +657,7 @@ public final class AbilityExecutor {
                 } else {
                     LivingEntity target = targetLiving(level, player, 20);
                     Vec3 end = target == null ? traceLocation(level, player, 20) : target.getEyePosition();
-                    if (target != null) meltdownerDamage(player, state, skill, target, lerp(25, 60, exp));
+                    if (target != null) meltdownerDamage(player, state, skill, target, lerp(Balance.i("ability_executor", "meltdowner_lerp_5"), Balance.i("ability_executor", "meltdowner_lerp_6"), exp));
                     broadcastVisual(level, player, new VisualEffectPayload("meltdowner", start.x, start.y, start.z,
                             end.x, end.y, end.z, .06f, 0xD86EFF87, 10));
                 }
@@ -682,20 +687,20 @@ public final class AbilityExecutor {
                 ItemStack held = player.getMainHandItem();
                 if (!held.isEmpty()) {
                     float exp = state.experience(skill.id());
-                    double range = lerp(8, 15, exp);
+                    double range = lerp(Balance.i("ability_executor", "teleporter_lerp_1"), Balance.i("ability_executor", "teleporter_lerp_2"), exp);
                     LivingEntity target = TeleporterGeometry.threateningTarget(player, range);
                     Vec3 destination = target != null ? target.position().add(0, target.getBbHeight(), 0)
                             : traceLocation(level, player, range);
                     ItemStack transported = held.copyWithCount(1);
                     if (!player.isCreative()) held.shrink(1);
                     if (target != null) {
-                        float itemDamage = lerp(3, 6, exp) * (transported.is(ACItems.NEEDLE.get()) ? 1.5f : 1);
+                        float itemDamage = lerp(Balance.i("ability_executor", "teleporter_lerp_3"), Balance.i("ability_executor", "teleporter_lerp_4"), exp) * (transported.is(GameplayRules.itemTag("threatening_teleport_damage_boost")) ? Balance.f("ability_executor", "teleporter_item_damage_1") : 1);
                         teleporterDamage(player, state, skill, target, itemDamage, true);
                     }
-                    if (target == null || level.random.nextFloat() < .3f) {
+                    if (target == null || level.random.nextFloat() < Balance.f("ability_executor", "teleporter_threshold_1")) {
                         level.addFreshEntity(new ItemEntity(level, destination.x, destination.y, destination.z, transported));
                     }
-                    state.addExperience(skill, target == null ? .0006f : .003f);
+                    state.addExperience(skill, target == null ? Balance.f("ability_executor", "teleporter_add_experience_1") : Balance.f("ability_executor", "teleporter_add_experience_2"));
                     particles(level, destination, ParticleTypes.PORTAL, 24, .45);
                 }
                 sound(level, player, ACSounds.TP.get());
@@ -704,11 +709,11 @@ public final class AbilityExecutor {
             case "penetrate_teleport", "mark_teleport" -> { }
             case "flesh_ripping" -> {
                 float exp = state.experience(skill.id());
-                LivingEntity target = targetLiving(level, player, lerp(6, 14, exp));
+                LivingEntity target = targetLiving(level, player, lerp(Balance.i("ability_executor", "teleporter_lerp_5"), Balance.i("ability_executor", "teleporter_lerp_6"), exp));
                 if (target != null) {
-                    teleporterDamage(player, state, skill, target, lerp(5, 12, exp), true);
-                    if (level.random.nextFloat() < .05f)
-                        player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 100));
+                    teleporterDamage(player, state, skill, target, lerp(Balance.i("ability_executor", "teleporter_lerp_7"), Balance.i("ability_executor", "teleporter_lerp_8"), exp), true);
+                    if (level.random.nextFloat() < Balance.f("ability_executor", "teleporter_threshold_2"))
+                        player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, Balance.i("ability_executor", "teleporter_add_effect_1")));
                     particles(level, target.position(), ParticleTypes.DAMAGE_INDICATOR, 30, .8);
                     sound(level, player, ACSounds.TP_GUTS.get());
                 }
@@ -729,7 +734,7 @@ public final class AbilityExecutor {
                 ItemStack held = player.getMainHandItem();
                 if (held.getItem() instanceof BlockItem blockItem) {
                     float exp = state.experience(skill.id());
-                    double range = lerp(25, 35, exp);
+                    double range = lerp(Balance.i("ability_executor", "teleporter_lerp_9"), Balance.i("ability_executor", "teleporter_lerp_10"), exp);
                     BlockHitResult hit = blockTrace(level, player, range);
                     if (hit.getType() == HitResult.Type.MISS) {
                         Vec3 end = player.getEyePosition().add(player.getLookAngle().scale(range));
@@ -749,10 +754,10 @@ public final class AbilityExecutor {
                     Vec3 end = Vec3.atCenterOf(destination);
                     int attacked = 0;
                     for (LivingEntity target : TeleporterGeometry.shiftTargets(player, end)) {
-                        teleporterDamage(player, state, skill, target, lerp(15, 35, exp), false);
+                        teleporterDamage(player, state, skill, target, lerp(Balance.i("ability_executor", "teleporter_lerp_11"), Balance.i("ability_executor", "teleporter_lerp_12"), exp), false);
                         attacked++;
                     }
-                    state.addExperience(skill, (1 + attacked) * .002f);
+                    state.addExperience(skill, (Balance.i("ability_executor", "teleporter_add_experience_3") + attacked) * Balance.f("ability_executor", "teleporter_add_experience_4"));
                     particles(level, end, ParticleTypes.PORTAL, 32, .6);
                 }
                 sound(level, player, ACSounds.TP_SHIFT.get());
@@ -768,25 +773,25 @@ public final class AbilityExecutor {
                 float exp = state.experience(skill.id());
                 LivingEntity target = targetLiving(level, player, 3);
                 if (target != null) {
-                    damage(player, skill, target, lerp(7, 15, exp));
-                    Vec3 away = target.position().subtract(player.position()).normalize().scale(.24);
+                    damage(player, skill, target, lerp(Balance.i("ability_executor", "vector_manipulation_lerp_1"), Balance.i("ability_executor", "vector_manipulation_lerp_2"), exp));
+                    Vec3 away = target.position().subtract(player.position()).normalize().scale(Balance.d("ability_executor", "vector_manipulation_scale_1"));
                     target.setDeltaMovement(target.getDeltaMovement().add(away));
-                    if (exp >= .25f) {
+                    if (exp >= Balance.f("ability_executor", "vector_manipulation_threshold_1")) {
                         Vec3 delta = player.getEyePosition().subtract(target.getEyePosition());
                         delta = new Vec3(delta.x, delta.y - .6, delta.z).normalize();
                         target.setPos(target.getX(), target.getY() + .1, target.getZ());
-                        target.setDeltaMovement(-delta.x * .7, -delta.y * .7, -delta.y * .7);
+                        target.setDeltaMovement(-delta.x * Balance.d("ability_executor", "vector_manipulation_set_delta_movement_1"), -delta.y * Balance.d("ability_executor", "vector_manipulation_set_delta_movement_2"), -delta.y * Balance.d("ability_executor", "vector_manipulation_set_delta_movement_3"));
                     }
                     target.hurtMarked = true;
-                    state.addExperience(skill, .0035f);
+                    state.addExperience(skill, Balance.f("ability_executor", "vector_manipulation_add_experience_1"));
                     sound(level, player, ACSounds.VEC_SHOCK.get());
-                } else state.addExperience(skill, .001f);
+                } else state.addExperience(skill, Balance.f("ability_executor", "vector_manipulation_add_experience_2"));
             }
             case "ground_shock" -> performGroundShock(level, player, state, skill);
             case "vec_accel" -> {
                 Vec3 look = Vec3.directionFromRotation(player.getXRot() - 10, player.getYRot());
                 player.setDeltaMovement(look.scale(cn.academy.ability.vanilla.vecmanip.skill.VectorImpulseContext
-                        .accelerationSpeed(state.level()>=4,state.experience(skill.id()))));
+                        .accelerationSpeed(state.level()>=Balance.i("ability_executor", "vector_manipulation_threshold_2"),state.experience(skill.id()))));
                 player.hurtMarked = true;
                 player.resetFallDistance();
                 sound(level, player, ACSounds.VEC_ACCEL.get());
@@ -794,16 +799,16 @@ public final class AbilityExecutor {
             case "vec_deviation" -> {
                 player.getPersistentData().putLong("academy:vec_deviation_until", level.getGameTime() + 160);
                 repelProjectiles(level, player, 10, false);
-                player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 160, 0));
+                player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, Balance.i("ability_executor", "vector_manipulation_add_effect_1"), 0));
                 sound(level, player, ACSounds.VEC_DEVIATION.get());
             }
             case "dir_blast" -> performDirectedBlast(level, player, state, skill);
             case "storm_wing" -> {
-                player.setDeltaMovement(player.getDeltaMovement().add(player.getLookAngle().scale(1.2)).add(0, 1.0, 0));
+                player.setDeltaMovement(player.getDeltaMovement().add(player.getLookAngle().scale(Balance.d("ability_executor", "vector_manipulation_scale_2"))).add(0, 1.0, 0));
                 player.hurtMarked = true;
                 player.resetFallDistance();
-                for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, player.getBoundingBox().inflate(6),
-                        entity -> validTarget(player, entity))) target.setDeltaMovement(target.getDeltaMovement().add(0, 1.2, 0));
+                for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, player.getBoundingBox().inflate(Balance.i("ability_executor", "vector_manipulation_inflate_1")),
+                        entity -> validTarget(player, entity))) target.setDeltaMovement(target.getDeltaMovement().add(0, Balance.d("ability_executor", "vector_manipulation_set_delta_movement_4"), 0));
                 particles(level, player.position(), ParticleTypes.CLOUD, 80, 3);
                 sound(level, player, ACSounds.VEC_STORM.get());
             }
@@ -812,7 +817,7 @@ public final class AbilityExecutor {
                 LivingEntity target = targetLiving(level, player, 2);
                 if (target != null && target.getHealth() < target.getMaxHealth()) {
                     cn.academy.ability.vanilla.vecmanip.skill.VectorImpulseContext.attackBloodRetrograde(
-                            AbilityContext.of(player, skill), target, exp, state.level()>=5);
+                            AbilityContext.of(player, skill), target, exp, state.level()>=Balance.i("ability_executor", "vector_manipulation_threshold_3"));
                     particles(level, target.getEyePosition(), ParticleTypes.DAMAGE_INDICATOR, 25, .8);
                     sound(level, player, ACSounds.get("vecmanip.blood_retro"));
                 }
@@ -820,7 +825,7 @@ public final class AbilityExecutor {
             case "vec_reflection" -> {
                 player.getPersistentData().putLong("academy:vec_reflection_until", level.getGameTime() + 260);
                 repelProjectiles(level, player, 14, true);
-                player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 260, 2));
+                player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, Balance.i("ability_executor", "vector_manipulation_add_effect_2"), Balance.i("ability_executor", "vector_manipulation_add_effect_3")));
                 sound(level, player, ACSounds.VEC_REFLECTION.get());
             }
             case "plasma_cannon" -> {
@@ -907,7 +912,7 @@ public final class AbilityExecutor {
 
     private static List<ACElectronBallEntity> scatterBalls(ServerPlayer player) {
         return player.serverLevel().getEntitiesOfClass(ACElectronBallEntity.class,
-                player.getBoundingBox().inflate(4), ball -> ball.isHeldScatterBall() && ball.belongsTo(player));
+                player.getBoundingBox().inflate(Balance.i("ability_executor", "scatter_balls_inflate_1")), ball -> ball.isHeldScatterBall() && ball.belongsTo(player));
     }
 
     private static void clearScatterBalls(ServerPlayer player) {
@@ -916,7 +921,7 @@ public final class AbilityExecutor {
 
     private static List<ACElectronBallEntity> missileBalls(ServerPlayer player) {
         return player.serverLevel().getEntitiesOfClass(ACElectronBallEntity.class,
-                player.getBoundingBox().inflate(4), ball -> ball.isHeldMissileBall() && ball.belongsTo(player));
+                player.getBoundingBox().inflate(Balance.i("ability_executor", "missile_balls_inflate_1")), ball -> ball.isHeldMissileBall() && ball.belongsTo(player));
     }
 
     private static void clearMissileBalls(ServerPlayer player) {
@@ -937,11 +942,11 @@ public final class AbilityExecutor {
 
     private static void deviateProjectiles(ServerLevel level, ServerPlayer player, AbilityState state,
                                            AbilitySkill skill, float exp) {
-        for (Entity entity : level.getEntities(player, player.getBoundingBox().inflate(5),
+        for (Entity entity : level.getEntities(player, player.getBoundingBox().inflate(Balance.i("ability_executor", "deviate_projectiles_inflate_1")),
                 value -> !vectorExcluded(value)
                         && !value.getPersistentData().getBoolean("academy:vector_affected"))) {
             float difficulty = vectorDifficulty(entity);
-            if (!state.consumeForce(skill, lerp(15, 12, exp), 0, player.isCreative())) continue;
+            if (!state.consumeForce(skill, lerp(Balance.i("ability_executor", "deviate_projectiles_lerp_1"), Balance.i("ability_executor", "deviate_projectiles_lerp_2"), exp), 0, player.isCreative())) continue;
             if (entity instanceof net.minecraft.world.entity.projectile.LargeFireball) {
                 Vec3 position = entity.position();
                 net.minecraft.nbt.CompoundTag saved = new net.minecraft.nbt.CompoundTag();
@@ -959,7 +964,7 @@ public final class AbilityExecutor {
                 entity.hurtMarked = true;
                 entity.getPersistentData().putBoolean("academy:vector_affected", true);
             }
-            state.addExperience(skill, .001f * difficulty);
+            state.addExperience(skill, Balance.f("ability_executor", "deviate_projectiles_add_experience_1") * difficulty);
             sound(level, player, ACSounds.VEC_DEVIATION.get());
         }
     }
@@ -967,18 +972,18 @@ public final class AbilityExecutor {
     private static void reflectProjectiles(ServerLevel level, ServerPlayer player, AbilityState state,
                                             AbilitySkill skill, float exp) {
         Vec3 lookPosition = traceLocation(level, player, 20);
-        for (Entity entity : level.getEntities(player, player.getBoundingBox().inflate(4),
+        for (Entity entity : level.getEntities(player, player.getBoundingBox().inflate(Balance.i("ability_executor", "reflect_projectiles_inflate_1")),
                 value -> !vectorExcluded(value)
                         && !value.getPersistentData().getBoolean("academy:vector_affected"))) {
             float difficulty = vectorDifficulty(entity);
-            if (!state.consumeRaw(skill, difficulty * lerp(300, 160, exp), 0, player.isCreative())) continue;
+            if (!state.consumeRaw(skill, difficulty * lerp(Balance.i("ability_executor", "reflect_projectiles_lerp_1"), Balance.i("ability_executor", "reflect_projectiles_lerp_2"), exp), 0, player.isCreative())) continue;
             double speed = entity.getDeltaMovement().length();
             Vec3 direction = lookPosition.subtract(entity.position()).normalize();
             if (entity instanceof Projectile projectile) projectile.setOwner(player);
             entity.setDeltaMovement(direction.scale(speed));
             entity.hurtMarked = true;
             entity.getPersistentData().putBoolean("academy:vector_affected", true);
-            state.addExperience(skill, .0008f * difficulty);
+            state.addExperience(skill, Balance.f("ability_executor", "reflect_projectiles_add_experience_1") * difficulty);
             sound(level, player, ACSounds.VEC_REFLECTION.get());
         }
     }
@@ -986,7 +991,7 @@ public final class AbilityExecutor {
     private static void repelProjectiles(ServerLevel level, ServerPlayer player, double radius, boolean reflect) {
         for (Projectile projectile : level.getEntitiesOfClass(Projectile.class, player.getBoundingBox().inflate(radius))) {
             Vec3 away = projectile.position().subtract(player.position()).normalize();
-            Vec3 velocity = reflect ? projectile.getDeltaMovement().scale(-1.25) : away.scale(Math.max(.8, projectile.getDeltaMovement().length()));
+            Vec3 velocity = reflect ? projectile.getDeltaMovement().scale(-Balance.d("ability_executor", "repel_projectiles_scale_1")) : away.scale(Math.max(Balance.d("ability_executor", "repel_projectiles_scale_2"), projectile.getDeltaMovement().length()));
             projectile.setDeltaMovement(velocity);
             projectile.hurtMarked = true;
             if (reflect) projectile.setOwner(player);
@@ -1003,7 +1008,7 @@ public final class AbilityExecutor {
     }
 
     public static boolean hasFleshTarget(ServerPlayer player, AbilityState state, AbilitySkill skill) {
-        return targetLiving(player.serverLevel(), player, lerp(6, 14, state.experience(skill.id()))) != null;
+        return targetLiving(player.serverLevel(), player, lerp(Balance.i("ability_executor", "has_flesh_target_lerp_1"), Balance.i("ability_executor", "has_flesh_target_lerp_2"), state.experience(skill.id()))) != null;
     }
 
     private static LivingEntity nearestLivingAround(ServerLevel level, ServerPlayer player, double range) {
@@ -1015,12 +1020,12 @@ public final class AbilityExecutor {
     private static LivingEntity targetLiving(ServerLevel level, ServerPlayer player, double range) {
         Vec3 start = player.getEyePosition();
         Vec3 end = start.add(player.getLookAngle().scale(range));
-        AABB search = player.getBoundingBox().expandTowards(player.getLookAngle().scale(range)).inflate(2);
+        AABB search = player.getBoundingBox().expandTowards(player.getLookAngle().scale(range)).inflate(Balance.i("ability_executor", "target_living_inflate_1"));
         LivingEntity best = null;
         double bestDistance = range * range;
         for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, search,
                 entity -> validTarget(player, entity) && player.hasLineOfSight(entity))) {
-            Optional<Vec3> clipped = target.getBoundingBox().inflate(.4).clip(start, end);
+            Optional<Vec3> clipped = target.getBoundingBox().inflate(Balance.d("ability_executor", "target_living_inflate_2")).clip(start, end);
             if (clipped.isPresent()) {
                 double distance = start.distanceToSqr(clipped.get());
                 if (distance < bestDistance) {
@@ -1034,7 +1039,7 @@ public final class AbilityExecutor {
 
     private static boolean validTarget(ServerPlayer player, LivingEntity entity) {
         return entity.isAlive() && entity != player && (!(entity instanceof ServerPlayer)
-                || ACConfig.ATTACK_PLAYERS.get());
+                || GameplayData.flag("policy", "attack_players"));
     }
 
     private static void breakSoftBlocksAround(ServerLevel level, ServerPlayer player, AbilitySkill skill) {
@@ -1043,7 +1048,7 @@ public final class AbilityExecutor {
                     level.random.nextInt(21) - 10, level.random.nextInt(21) - 10);
             BlockState state = level.getBlockState(pos);
             float hardness = state.getDestroySpeed(level, pos);
-            if (state.isAir() || hardness < 0 || hardness > .3f || !canDestroyBlock(player, skill, pos)) continue;
+            if (state.isAir() || hardness < 0 || hardness > Balance.f("ability_executor", "break_soft_blocks_around_threshold_1") || !canDestroyBlock(player, skill, pos)) continue;
             level.playSound(null, pos, state.getSoundType(level, pos, player).getBreakSound(),
                     SoundSource.BLOCKS, .5f, 1);
             level.removeBlock(pos, false);
@@ -1082,8 +1087,8 @@ public final class AbilityExecutor {
 
     public static double markAllowedRange(AbilityState state, AbilitySkill skill, int ticks) {
         float exp = state.experience(skill.id());
-        float cpPerBlock = lerp(12, 4, exp);
-        return Math.min((ticks + 1) * 2d, Math.min(lerp(25, 60, exp), state.cp() / cpPerBlock));
+        float cpPerBlock = lerp(Balance.i("ability_executor", "mark_allowed_range_lerp_1"), Balance.i("ability_executor", "mark_allowed_range_lerp_2"), exp);
+        return Math.min((ticks + 1) * Balance.i("ability_executor", "mark_allowed_range_value_1"), Math.min(lerp(Balance.i("ability_executor", "mark_allowed_range_lerp_3"), Balance.i("ability_executor", "mark_allowed_range_lerp_4"), exp), state.cp() / cpPerBlock));
     }
 
     public static Vec3 markDestination(ServerLevel level, ServerPlayer player, double range) {
@@ -1096,7 +1101,7 @@ public final class AbilityExecutor {
 
     public static double penetrateAllowedRange(AbilityState state, AbilitySkill skill, double selected) {
         float exp = state.experience(skill.id());
-        return Math.max(0, Math.min(selected, state.cp() / Math.max(.001f, lerp(14, 9, exp))));
+        return Math.max(0, Math.min(selected, state.cp() / Math.max(Balance.f("ability_executor", "penetrate_allowed_range_value_1"), lerp(Balance.i("ability_executor", "penetrate_allowed_range_lerp_1"), Balance.i("ability_executor", "penetrate_allowed_range_lerp_2"), exp))));
     }
 
     public static double penetratingTravelDistance(ServerPlayer player, double range) {
@@ -1123,7 +1128,7 @@ public final class AbilityExecutor {
         player.stopRiding();
         teleport(player, destination);
         recordTeleport(player, state);
-        state.addExperience(skill, (float) ((skill.name().equals("penetrate_teleport") ? .00014 : .00018) * distance));
+        state.addExperience(skill, (float) ((skill.name().equals("penetrate_teleport") ? Balance.d("ability_executor", "execute_selected_teleport_add_experience_1") : Balance.d("ability_executor", "execute_selected_teleport_add_experience_2")) * distance));
         sound(player.serverLevel(), player, ACSounds.TP.get());
         sendSkillVisual(player, skill, start);
     }
@@ -1138,7 +1143,7 @@ public final class AbilityExecutor {
         BlockHitResult hit = level.clip(new ClipContext(start, start.add(normalized.scale(range)),
                 ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
         Vec3 destination = hit.getType() == HitResult.Type.BLOCK
-                ? hit.getLocation().subtract(normalized.scale(1.2))
+                ? hit.getLocation().subtract(normalized.scale(Balance.d("ability_executor", "teleport_along_scale_1")))
                 : player.position().add(normalized.scale(range));
         teleport(player, destination);
     }
@@ -1181,16 +1186,16 @@ public final class AbilityExecutor {
                                                AbilitySkill skill) {
         float exp = state.experience(skill.id());
         Vec3 center = blockTrace(level, player, 4).getLocation();
-        if(state.level()>=5) {
+        if(state.level()>=Balance.i("ability_executor", "perform_directed_blast_threshold_1")) {
             cn.academy.ability.vanilla.vecmanip.skill.DirectedBlastUpgrade.perform(player,AbilityContext.of(player,skill),
                     BlockPos.containing(Math.round(center.x),Math.round(center.y),Math.round(center.z)),player.getLookAngle(),exp);
-            state.addExperience(skill,.0012f);
+            state.addExperience(skill,Balance.f("ability_executor", "perform_directed_blast_add_experience_1"));
             return;
         }
-        float breakHardness = exp < .25f ? 2.9f : exp < .5f ? 25 : 55;
+        float breakHardness = exp < Balance.f("ability_executor", "perform_directed_blast_break_hardness_1") ? Balance.f("ability_executor", "perform_directed_blast_break_hardness_2") : exp < Balance.f("ability_executor", "perform_directed_blast_break_hardness_3") ? Balance.i("ability_executor", "perform_directed_blast_break_hardness_4") : Balance.i("ability_executor", "perform_directed_blast_break_hardness_5");
         BlockPos origin = BlockPos.containing(Math.round(center.x), Math.round(center.y), Math.round(center.z));
-        double radius = Math.sqrt(6) + 2 * exp;
-        double radiusSquared = 6 + 4 * exp * (Math.sqrt(6) + exp);
+        double radius = Math.sqrt(Balance.i("ability_executor", "perform_directed_blast_radius_1")) + Balance.i("ability_executor", "perform_directed_blast_radius_2") * exp;
+        double radiusSquared = Balance.i("ability_executor", "perform_directed_blast_radius_squared_1") + Balance.i("ability_executor", "perform_directed_blast_radius_squared_2") * exp * (Math.sqrt(Balance.i("ability_executor", "perform_directed_blast_radius_squared_3")) + exp);
         int reach = (int) Math.ceil(radius);
         for (int x = -reach; x <= reach; x++) for (int y = -reach; y <= reach; y++) for (int z = -reach; z <= reach; z++) {
             int distanceSquared = x * x + y * y + z * z;
@@ -1201,7 +1206,7 @@ public final class AbilityExecutor {
             if (blockState.isAir() || hardness < 0 || hardness > breakHardness || !canDestroyBlock(player, skill, pos)) continue;
             level.removeBlock(pos, false);
         }
-        state.addExperience(skill, .0012f);
+        state.addExperience(skill, Balance.f("ability_executor", "perform_directed_blast_add_experience_2"));
         particles(level, center, ParticleTypes.CLOUD, 45, 2.2);
         level.playSound(null, BlockPos.containing(center), ACSounds.VEC_GROUNDSHOCK.get(),
                 SoundSource.PLAYERS, 2f, 1);
@@ -1210,12 +1215,12 @@ public final class AbilityExecutor {
     private static void performGroundShock(ServerLevel level, ServerPlayer player, AbilityState state,
                                              AbilitySkill skill) {
         float exp = state.experience(skill.id());
-        double energy = lerp(60, 120, exp);
-        int iterations = Math.round(lerp(10, 25, exp));
+        double energy = lerp(Balance.i("ability_executor", "perform_ground_shock_lerp_1"), Balance.i("ability_executor", "perform_ground_shock_lerp_2"), exp);
+        int iterations = Math.round(lerp(Balance.i("ability_executor", "perform_ground_shock_lerp_3"), Balance.i("ability_executor", "perform_ground_shock_lerp_4"), exp));
         Vec3 direction = new Vec3(player.getLookAngle().x, 0, player.getLookAngle().z).normalize();
         if (direction.lengthSqr() < .001) direction = new Vec3(0, 0, 1);
         Vec3 side = new Vec3(-direction.z, 0, direction.x);
-        Vec3[] offsets = {Vec3.ZERO, side, side.scale(-1), side.scale(2), side.scale(-2)};
+        Vec3[] offsets = {Vec3.ZERO, side, side.scale(-1), side.scale(Balance.i("ability_executor", "perform_ground_shock_scale_1")), side.scale(-Balance.i("ability_executor", "perform_ground_shock_scale_2"))};
         double[] probabilities = {1, .7, .7, .3, .3};
         Set<BlockPos> affected = new java.util.HashSet<>();
         Set<UUID> struck = new java.util.HashSet<>();
@@ -1231,24 +1236,24 @@ public final class AbilityExecutor {
                 if (blockState.isAir() || affected.contains(pos)) continue;
                 affected.add(pos);
                 if (blockState.is(Blocks.STONE)) {
-                    energy -= .4;
+                    energy -= Balance.d("ability_executor", "perform_ground_shock_energy_1");
                 } else if (blockState.is(Blocks.GRASS_BLOCK)) {
-                    energy -= .2;
-                } else energy -= blockState.is(Blocks.FARMLAND) ? .1 : .5;
+                    energy -= Balance.d("ability_executor", "perform_ground_shock_energy_2");
+                } else energy -= blockState.is(Blocks.FARMLAND) ? Balance.d("ability_executor", "perform_ground_shock_energy_3") : Balance.d("ability_executor", "perform_ground_shock_energy_4");
 
-                AABB hitArea = new AABB(pos).inflate(.25, .2, .25).expandTowards(0, 2, 0);
+                AABB hitArea = new AABB(pos).inflate(Balance.d("ability_executor", "perform_ground_shock_inflate_1"), Balance.d("ability_executor", "perform_ground_shock_inflate_2"), Balance.d("ability_executor", "perform_ground_shock_inflate_3")).expandTowards(0, 2, 0);
                 for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, hitArea,
                         entity -> validTarget(player, entity) && struck.add(entity.getUUID()))) {
                     energy -= 1;
-                    damage(player, skill, target, lerp(4, 6, exp));
+                    damage(player, skill, target, lerp(Balance.i("ability_executor", "perform_ground_shock_lerp_5"), Balance.i("ability_executor", "perform_ground_shock_lerp_6"), exp));
                     target.setDeltaMovement(0,
                             cn.academy.ability.vanilla.vecmanip.skill.GroundShockLaunch.speed(exp), 0);
                     target.hurtMarked = true;
-                    state.addExperience(skill, .002f);
+                    state.addExperience(skill, Balance.f("ability_executor", "perform_ground_shock_add_experience_1"));
                 }
             }
         }
-        state.addExperience(skill, .001f);
+        state.addExperience(skill, Balance.f("ability_executor", "perform_ground_shock_add_experience_2"));
         for (BlockPos pos : affected) level.sendParticles(ParticleTypes.CLOUD,
                 pos.getX() + .5, pos.getY() + 1, pos.getZ() + .5, 4, .35, .25, .35, .05);
         sound(level, player, ACSounds.VEC_GROUNDSHOCK.get());
@@ -1276,7 +1281,7 @@ public final class AbilityExecutor {
             double distance = Math.max(0, target.position().distanceTo(center));
             meltdownerDamage(player, state, skill, target,
                     (float) (amount * Math.max(.2, 1 - distance / radius)));
-            Vec3 push = target.position().subtract(center).normalize().scale(1.2);
+            Vec3 push = target.position().subtract(center).normalize().scale(Balance.d("ability_executor", "area_meltdowner_damage_scale_1"));
             target.setDeltaMovement(target.getDeltaMovement().add(push));
             target.hurtMarked = true;
         }
@@ -1289,35 +1294,35 @@ public final class AbilityExecutor {
     private static void performMeltdownerRay(ServerLevel level, ServerPlayer player, AbilityState state,
                                               AbilitySkill skill, int heldTicks) {
         float exp = state.experience(skill.id());
-        int charge = Math.min(40, Math.max(20, heldTicks));
-        float timeRate = lerp(.8f, 1.2f, (charge - 20) / 20f);
-        float radius = lerp(2, 3, exp);
-        float startDamage = timeRate * lerp(18, 50, exp);
+        int charge = Math.min(Balance.i("ability_executor", "perform_meltdowner_ray_charge_1"), Math.max(Balance.i("ability_executor", "perform_meltdowner_ray_charge_2"), heldTicks));
+        float timeRate = lerp(Balance.f("ability_executor", "perform_meltdowner_ray_lerp_1"), Balance.f("ability_executor", "perform_meltdowner_ray_lerp_2"), (charge - Balance.i("ability_executor", "perform_meltdowner_ray_lerp_3")) / Balance.f("ability_executor", "perform_meltdowner_ray_lerp_4"));
+        float radius = lerp(Balance.i("ability_executor", "perform_meltdowner_ray_lerp_5"), Balance.i("ability_executor", "perform_meltdowner_ray_lerp_6"), exp);
+        float startDamage = timeRate * lerp(Balance.i("ability_executor", "perform_meltdowner_ray_lerp_7"), Balance.i("ability_executor", "perform_meltdowner_ray_lerp_8"), exp);
         Vec3 start = player.position();
         Vec3 direction = player.getLookAngle().normalize();
-        AABB search = new AABB(start, start.add(direction.scale(50))).inflate(radius * 1.25);
+        AABB search = new AABB(start, start.add(direction.scale(Balance.i("ability_executor", "perform_meltdowner_ray_scale_1")))).inflate(radius * Balance.d("ability_executor", "perform_meltdowner_ray_inflate_1"));
         List<LivingEntity> targets = new java.util.ArrayList<>(level.getEntitiesOfClass(LivingEntity.class, search,
                 entity -> validTarget(player, entity)));
         targets.sort(java.util.Comparator.comparingDouble(entity ->
                 entity.getBoundingBox().getCenter().subtract(start).dot(direction)));
-        double beamDistance = 50;
+        double beamDistance = Balance.i("ability_executor", "perform_meltdowner_ray_beam_distance_1");
         for (LivingEntity target : targets) {
             Vec3 relative = target.getBoundingBox().getCenter().subtract(start);
             double along = relative.dot(direction);
             if (along < 0 || along > beamDistance) continue;
             double perpendicular = relative.subtract(direction.scale(along)).length();
             if (perpendicular > radius * 1.2) continue;
-            float applied = startDamage * lerp(1, .2f, (float) Math.min(50, perpendicular) / 50f);
+            float applied = startDamage * lerp(Balance.i("ability_executor", "perform_meltdowner_ray_lerp_9"), Balance.f("ability_executor", "perform_meltdowner_ray_lerp_10"), (float) Math.min(Balance.i("ability_executor", "perform_meltdowner_ray_lerp_11"), perpendicular) / Balance.f("ability_executor", "perform_meltdowner_ray_lerp_12"));
             if (target instanceof ServerPlayer reflector
                     && AbilityContextManager.hasContext(reflector, "vec_reflection")) {
-                reflectBeam(player, skill, reflector, 10, .5f * lerp(20, 50, exp));
+                reflectBeam(player, skill, reflector, 10, .5f * lerp(Balance.i("ability_executor", "perform_meltdowner_ray_lerp_13"), Balance.i("ability_executor", "perform_meltdowner_ray_lerp_14"), exp));
                 beamDistance = along;
                 break;
             }
             meltdownerDamage(player, state, skill, target, applied);
         }
         destroyBeamBlocks(level, player, skill, start, direction, radius,
-                timeRate * lerp(300, 700, exp), beamDistance);
+                timeRate * lerp(Balance.i("ability_executor", "perform_meltdowner_ray_lerp_15"), Balance.i("ability_executor", "perform_meltdowner_ray_lerp_16"), exp), beamDistance);
     }
 
     private static void reflectBeam(ServerPlayer original, AbilitySkill skill, ServerPlayer reflector, double range, float damage) {
@@ -1341,7 +1346,7 @@ public final class AbilityExecutor {
             if (a * a + b * b <= radius * radius * 1.05) offsets.add(side.scale(a).add(up.scale(b)));
         float lineEnergy = totalEnergy / Math.max(1, offsets.size());
         for (Vec3 offset : offsets) {
-            float energy = lineEnergy * (.95f + level.random.nextFloat() * .1f);
+            float energy = lineEnergy * (Balance.f("ability_executor", "destroy_beam_blocks_energy_1") + level.random.nextFloat() * Balance.f("ability_executor", "destroy_beam_blocks_energy_2"));
             BlockPos previous = null;
             for (double distance = 0; distance <= maxDistance && energy > 0; distance += .9) {
                 BlockPos pos = BlockPos.containing(start.add(offset).add(direction.scale(distance)));
@@ -1351,9 +1356,9 @@ public final class AbilityExecutor {
                 if (blockState.isAir() || !blockState.getFluidState().isEmpty()) continue;
                 float hardness = blockState.getDestroySpeed(level, pos);
                 if (hardness < 0 || energy < hardness || !canDestroyBlock(player, skill, pos)) break;
-                if (level.random.nextFloat() < .05f)
+                if (level.random.nextFloat() < Balance.f("ability_executor", "destroy_beam_blocks_threshold_1"))
                     Block.dropResources(blockState, level, pos, level.getBlockEntity(pos), player, ItemStack.EMPTY);
-                if (distance < 20 && level.random.nextFloat() < .1f)
+                if (distance < Balance.i("ability_executor", "destroy_beam_blocks_threshold_2") && level.random.nextFloat() < Balance.f("ability_executor", "destroy_beam_blocks_threshold_3"))
                     level.playSound(null, pos, blockState.getSoundType(level, pos, player).getBreakSound(),
                             SoundSource.BLOCKS, .5f, 1f);
                 level.removeBlock(pos, false);
@@ -1417,7 +1422,7 @@ public final class AbilityExecutor {
     private static void broadcastContextSound(ServerPlayer source, String sound, boolean start, float volume) {
         ContextSoundPayload payload = new ContextSoundPayload(source.getUUID(), sound, start, volume);
         for (ServerPlayer viewer : source.serverLevel().players()) {
-            if (viewer.distanceToSqr(source) <= 128 * 128) PacketDistributor.sendToPlayer(viewer, payload);
+            if (viewer.distanceToSqr(source) <= Balance.i("ability_executor", "broadcast_context_sound_threshold_1") * Balance.i("ability_executor", "broadcast_context_sound_threshold_2")) PacketDistributor.sendToPlayer(viewer, payload);
         }
     }
 

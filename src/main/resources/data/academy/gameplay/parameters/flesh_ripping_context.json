@@ -1,0 +1,17 @@
+{
+  "flesh_ripping_context_threshold_1": 625,
+  "target_range_1": 6,
+  "target_range_2": 14,
+  "target_range_3": 6,
+  "release_consume_force_1": 60,
+  "release_consume_force_2": 50,
+  "release_consume_force_3": 60,
+  "release_attack_1": 5,
+  "release_attack_2": 12,
+  "release_attack_3": 5,
+  "release_add_effect_1": 100,
+  "release_finish_context_1": 90,
+  "release_finish_context_2": 40,
+  "release_finish_context_3": 90,
+  "release_finish_context_4": 0.005
+}

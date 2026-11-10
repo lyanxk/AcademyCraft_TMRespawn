@@ -1,5 +1,7 @@
 package cn.academy.block;
 
+import cn.academy.data.GameplayRules;
+
 import cn.academy.block.entity.ACMachineBlockEntity;
 import cn.academy.block.entity.ACMultiblockPartEntity;
 import cn.academy.registry.ACBlocks;
@@ -104,17 +106,7 @@ public final class ACMachineBlock extends Block implements EntityBlock {
     }
 
     public int[][] multiblockOffsets() {
-        return switch (kind) {
-            case DEVELOPER_NORMAL, DEVELOPER_ADVANCED -> new int[][]{
-                    {0, 1, 0}, {0, 0, 1}, {0, 1, 1}, {0, 2, 1},
-                    {0, 0, 2}, {0, 1, 2}, {0, 2, 2}};
-            case MATRIX -> new int[][]{
-                    {0, 0, 1}, {1, 0, 1}, {1, 0, 0}, {0, 1, 0},
-                    {0, 1, 1}, {1, 1, 1}, {1, 1, 0}};
-            case WIND_BASE -> new int[][]{{0, 1, 0}};
-            case WIND_GENERATOR -> new int[][]{{0, 0, -1}, {0, 0, 1}};
-            default -> new int[0][0];
-        };
+        return GameplayRules.offsets(kind);
     }
 
     public BlockState partState() {

@@ -28,9 +28,8 @@ public final class ACNetwork {
     private record WirelessAuthorization(net.minecraft.core.BlockPos primary, int linkAction,
                                          String password, long expiresAt) { }
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("62");
-        registrar.playToClient(SettingsPolicyPayload.TYPE, SettingsPolicyPayload.STREAM_CODEC,
-                (payload, context) -> payload.apply());
+        PayloadRegistrar registrar = event.registrar("63");
+        registrar.playToClient(GameplayDataPayload.TYPE, GameplayDataPayload.STREAM_CODEC, (payload, context) -> payload.apply());
         registrar.playToClient(TerminalInstalledPayload.TYPE, TerminalInstalledPayload.STREAM_CODEC,
                 (payload, context) -> payload.applyTo(context.player()));
         registrar.playToClient(FlashingContextPayload.TYPE,FlashingContextPayload.STREAM_CODEC,(payload,context)->payload.applyTo(context.player()));
@@ -162,21 +161,6 @@ public final class ACNetwork {
             case AbilityActionPayload.SELECT_PRESET -> { return; }
             case AbilityActionPayload.REQUEST_SYNC -> { }
             case AbilityActionPayload.LEARN_SKILL -> { } // Learning is performed by a developer, not the terminal.
-            case AbilityActionPayload.SET_SETTING -> {
-                // Only the integrated server's owner sees these world-wide settings in the original UI.
-                // Remote/LAN players cannot change server policy through a forged settings packet.
-                if (!player.server.isSingleplayer() || !player.server.isSingleplayerOwner(player.getGameProfile())) return;
-                var property = switch (payload.argument()) {
-                    case "attack_players" -> cn.academy.config.ACConfig.ATTACK_PLAYERS;
-                    case "destroy_blocks" -> cn.academy.config.ACConfig.DESTROY_BLOCKS;
-                    default -> null;
-                };
-                if (property == null) return;
-                property.set(payload.value() != 0);
-                cn.academy.config.ACGeneralConfig.SPEC.save();
-                cn.academy.config.ACGeneralConfig.broadcast();
-                return;
-            }
             case AbilityActionPayload.SWITCH_PRESET -> { return; }
             case AbilityActionPayload.KEY_DOWN -> AbilityContextManager.keyDown(player, state, payload.value(), payload.contextRequestId());
             case AbilityActionPayload.KEY_UP -> AbilityContextManager.keyUp(player, state, payload.value(), false);

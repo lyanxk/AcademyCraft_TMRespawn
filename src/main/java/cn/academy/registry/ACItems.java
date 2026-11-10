@@ -1,5 +1,7 @@
 package cn.academy.registry;
 
+import cn.academy.data.GameplayData;
+
 import cn.academy.AcademyCraft;
 import cn.academy.item.EnergyItem;
 import cn.academy.item.InductionFactorItem;
@@ -40,10 +42,10 @@ public final class ACItems {
     public static final DeferredItem<Item> CRYSTAL_PURE = simple("crystal_pure");
     public static final DeferredItem<Item> DATA_CHIP = simple("data_chip");
     public static final DeferredItem<EnergyItem> DEVELOPER_PORTABLE = add("developer_portable", () ->
-            new EnergyItem(new Item.Properties(), 10_000, 50));
+            new EnergyItem(new Item.Properties(), "developer_portable"));
     public static final DeferredItem<Item> ENERGY_CONVERT_COMPONENT = simple("energy_convert_component");
     public static final DeferredItem<EnergyItem> ENERGY_UNIT = add("energy_unit", () ->
-            new EnergyItem(new Item.Properties(), 10_000));
+            new EnergyItem(new Item.Properties(), "energy_unit"));
     public static final DeferredItem<Item> IMAG_SILICON_INGOT = simple("imag_silicon_ingot");
     public static final DeferredItem<Item> IMAG_SILICON_PIECE = simple("imag_silicon_piece");
     public static final DeferredItem<InductionFactorItem> INDUCTION_FACTOR = add("induction_factor", () ->
@@ -69,7 +71,9 @@ public final class ACItems {
     public static final DeferredItem<Item> TUTORIAL = simple("tutorial");
     public static final DeferredItem<Item> WAFER = simple("wafer");
     public static final DeferredItem<Item> WINDGEN_FAN = add("windgen_fan", () ->
-            new Item(new Item.Properties().stacksTo(1).durability(100)));
+            new Item(new Item.Properties().stacksTo(1).durability(100)) {
+                @Override public int getMaxDamage(net.minecraft.world.item.ItemStack stack) { return GameplayData.integer("items/windgen_fan", "durability"); }
+            });
 
     // Every original block keeps the same BlockItem registry id.
     public static final DeferredItem<BlockItem> ABILITY_INTERFERER = block("ability_interferer", ACBlocks.ABILITY_INTERFERER);

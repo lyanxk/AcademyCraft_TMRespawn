@@ -1,5 +1,7 @@
 package cn.academy.registry;
 
+import cn.academy.data.GameplayRules;
+
 import cn.academy.AcademyCraft;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.Blocks;
@@ -53,10 +55,18 @@ public final class ACFluids {
     }
 
     public static void registerInteractions() {
-        // Register lava solidification through the native fluid-type interaction API.
-        FluidInteractionRegistry.addInteraction(NeoForgeMod.LAVA_TYPE.value(),
-                new FluidInteractionRegistry.InteractionInformation(IMAG_PHASE_TYPE.get(),
-                        fluid -> fluid.isSource() ? Blocks.OBSIDIAN.defaultBlockState() : Blocks.COBBLESTONE.defaultBlockState()));
+        for (var sourceType : net.neoforged.neoforge.registries.NeoForgeRegistries.FLUID_TYPES) {
+            FluidInteractionRegistry.addInteraction(sourceType, new FluidInteractionRegistry.InteractionInformation(
+                    (world, pos, neighbor, state) -> cn.academy.data.FluidReactions.find(state, world.getFluidState(neighbor)) != null,
+                    (world, pos, neighbor, state) -> {
+                        var reaction = cn.academy.data.FluidReactions.find(state, world.getFluidState(neighbor));
+                        if (reaction != null) {
+                            world.setBlockAndUpdate(pos, net.neoforged.neoforge.event.EventHooks.fireFluidPlaceBlockEvent(world, pos, pos,
+                                    GameplayRules.block(reaction.get(state.isSource() ? "source_result" : "flowing_result").getAsString()).defaultBlockState()));
+                            world.levelEvent(1501, pos, 0);
+                        }
+                    }));
+        }
     }
 
     private ACFluids() {}

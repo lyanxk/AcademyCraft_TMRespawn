@@ -1,0 +1,10 @@
+{
+  "can_cross_dimension_threshold_1": 0.8,
+  "cp_cost_value_1": 200,
+  "cp_cost_value_2": 50,
+  "cp_cost_value_3": 2,
+  "cp_cost_value_4": 8.0,
+  "cp_cost_value_5": 800,
+  "cooldown_value_1": 30,
+  "cooldown_value_2": 10
+}

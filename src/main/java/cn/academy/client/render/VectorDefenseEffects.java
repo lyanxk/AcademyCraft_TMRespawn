@@ -1,5 +1,7 @@
 package cn.academy.client.render;
 
+import cn.academy.data.SharedSkillCosts;
+
 import cn.academy.ability.*;
 import cn.academy.ability.vanilla.vecmanip.skill.*;
 import cn.academy.client.render.util.LegacyCubicCurve;
@@ -89,8 +91,8 @@ public final class VectorDefenseEffects {
             var state=AbilityState.load(mc.player);var skill=AbilityRegistry.skill(effect.reflection?"vecmanip.vec_reflection":"vecmanip.vec_deviation");
             if(!state.active()){PacketDistributor.sendToServer(new VectorDefenseEndPayload(entry.getKey()));iterator.remove();continue;}
             float exp=effect.reflection && state.level()>=5?1:state.experience(skill.id());
-            boolean paid=effect.reflection?state.consumeRaw(skill,15+(11-15)*exp,(100-50*exp)/20,mc.player.isCreative()):
-                    state.consumeRaw(skill,5+(2.5f-5)*exp,.5f+(.2f-.5f)*exp,mc.player.isCreative());
+            boolean paid=effect.reflection?state.consumeRaw(skill,SharedSkillCosts.defenseCp(true,exp),SharedSkillCosts.defenseOverload(true,exp),mc.player.isCreative()):
+                    state.consumeRaw(skill,SharedSkillCosts.defenseCp(false,exp),SharedSkillCosts.defenseOverload(false,exp),mc.player.isCreative());
             if(effect.reflection && !paid){PacketDistributor.sendToServer(new VectorDefenseEndPayload(entry.getKey()));iterator.remove();}
         }
     }

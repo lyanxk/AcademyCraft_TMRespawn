@@ -1,7 +1,5 @@
 package cn.academy;
 
-import cn.academy.ability.AbilityRegistry;
-import cn.academy.config.ACConfig;
 import cn.academy.network.ACNetwork;
 import cn.academy.registry.ACBlockEntities;
 import cn.academy.registry.ACBlocks;
@@ -32,7 +30,6 @@ public final class AcademyCraft {
         ACDataComponents.register(modBus);
         ACFluids.register(modBus);
         ACBlocks.register(modBus);
-        cn.academy.registry.ACFeatures.register(modBus);
         ACBlockEntities.register(modBus);
         ACEntities.register(modBus);
         ACParticles.register(modBus);
@@ -43,22 +40,14 @@ public final class AcademyCraft {
         cn.academy.advancement.ACAdvancements.register(modBus);
         modBus.addListener((net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) ->
                 event.enqueueWork(() -> {
-                    cn.academy.advancement.DispatcherAch.init();
                     ACFluids.registerInteractions();
                 }));
         ACSounds.register(modBus);
         ACCreativeTabs.register(modBus);
         modBus.addListener(ACNetwork::registerPayloads);
         modBus.addListener(ACCapabilities::register);
-        container.registerConfig(ModConfig.Type.SERVER, ACConfig.SPEC);
-        container.registerConfig(ModConfig.Type.COMMON, cn.academy.config.ACGeneralConfig.SPEC);
         container.registerConfig(ModConfig.Type.CLIENT, cn.academy.config.ACHudConfig.SPEC);
-        modBus.addListener(ACConfig::onReload);
-        modBus.addListener(cn.academy.config.ACGeneralConfig::onReload);
 
-        // Force deterministic construction before a player can be synchronized.
-        AbilityRegistry.bootstrap();
-        cn.academy.tutorial.TutorialInit.bootstrap();
         LOGGER.info("Starting AcademyCraft NeoForge port for Minecraft 1.21.1");
     }
 }

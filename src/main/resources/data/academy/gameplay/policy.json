@@ -1,0 +1,8 @@
+{
+  "attack_players": true,
+  "destroy_blocks": false,
+  "worlds_destroying_blocks": [],
+  "block_breaking_exempt_categories": [
+    "meltdowner"
+  ]
+}

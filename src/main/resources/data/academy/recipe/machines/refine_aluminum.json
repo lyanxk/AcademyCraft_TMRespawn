@@ -1,0 +1,13 @@
+{
+  "type": "academy:machine",
+  "machine": "metal_former",
+  "mode": "refine",
+  "ingredient": {
+    "tag": "c:ores/aluminum"
+  },
+  "input_count": 1,
+  "duration": 60,
+  "energy_per_tick": 13.3,
+  "result_tag": "c:ingots/aluminum",
+  "result_count": 2
+}

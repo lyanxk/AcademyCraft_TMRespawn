@@ -1,0 +1,15 @@
+{
+  "magnetic_movement_context_cp_1": 3,
+  "magnetic_movement_context_cp_2": 8,
+  "magnetic_movement_context_cp_3": 4,
+  "magnetic_movement_context_cp_4": 15,
+  "magnetic_movement_context_cp_5": 8,
+  "magnetic_movement_context_cp_6": 15,
+  "magnetic_movement_context_overload_1": 3,
+  "magnetic_movement_context_overload_2": 30,
+  "magnetic_movement_context_overload_3": 60,
+  "magnetic_movement_context_overload_4": 30,
+  "magnetic_movement_context_overload_5": 60,
+  "magnetic_movement_context_threshold_1": 625,
+  "start_threshold_1": 3
+}

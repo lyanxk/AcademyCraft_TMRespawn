@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.electromaster.skill;
 
+import cn.academy.data.Balance;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.DoorBlock;
@@ -23,7 +25,7 @@ public final class MagneticManipulationRules {
     public static Vec3 floatTarget(Vec3 target) { return new Vec3((float)target.x, (float)target.y, (float)target.z); }
     public static Vec3 followVelocity(Vec3 position, Vec3 target) {
         double distanceSquared = position.distanceToSqr(target);
-        return target.subtract(position).normalize().scale(.2).scale(distanceSquared < 4 ? distanceSquared / 4 : 1);
+        return target.subtract(position).normalize().scale(Balance.d("magnetic_manipulation_rules", "follow_velocity_scale_1")).scale(distanceSquared < Balance.i("magnetic_manipulation_rules", "follow_velocity_threshold_1") ? distanceSquared / Balance.i("magnetic_manipulation_rules", "follow_velocity_scale_2") : 1);
     }
     public static BlockPos placement(BlockPos origin, Direction face, Predicate<BlockPos> replaceable) {
         if (replaceable.test(origin)) return origin;

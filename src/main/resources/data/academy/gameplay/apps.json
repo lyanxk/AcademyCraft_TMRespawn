@@ -1,0 +1,34 @@
+{
+  "apps": [
+    {
+      "id": "skill_tree",
+      "preinstalled": false,
+      "enabled": true
+    },
+    {
+      "id": "tutorial",
+      "preinstalled": true,
+      "enabled": true
+    },
+    {
+      "id": "freq_transmitter",
+      "preinstalled": false,
+      "enabled": true
+    },
+    {
+      "id": "media_player",
+      "preinstalled": false,
+      "enabled": true
+    },
+    {
+      "id": "settings",
+      "preinstalled": true,
+      "enabled": true
+    },
+    {
+      "id": "about",
+      "preinstalled": true,
+      "enabled": true
+    }
+  ]
+}

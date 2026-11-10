@@ -1,0 +1,18 @@
+{
+  "rates": [
+    1.3,
+    1.6,
+    2.6
+  ],
+  "attack_add_raw_experience_1": 1,
+  "attack_add_raw_experience_2": 0.005,
+  "attack_add_raw_experience_3": 0.0001,
+  "probability_lerp_1": 0.1,
+  "probability_lerp_2": 0.2,
+  "probability_lerp_3": 0.18,
+  "probability_lerp_4": 0.25,
+  "probability_lerp_5": 0.1,
+  "probability_lerp_6": 0.15,
+  "probability_lerp_7": 0.01,
+  "probability_lerp_8": 0.03
+}

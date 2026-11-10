@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.meltdowner.skill;
 
+import cn.academy.data.Balance;
+
 import cn.academy.ability.*;
 import cn.academy.ability.vanilla.electromaster.skill.ElectricAttackTrace;
 import cn.academy.entity.ACElectronBallEntity;
@@ -17,17 +19,22 @@ public final class ElectronBomb {
     public static ACElectronBallEntity perform(ServerPlayer player,AbilityState state) {
         var skill=AbilityRegistry.skill(ID);
         if(!state.canStartContext(skill))return null;
-        float exp=state.experience(ID);
-        var ball=ACElectronBallEntity.create(player,exp>.8f?5:20,6+(12-6)*exp);
+        float proficiency=state.experience(ID);
+        boolean upgraded=MeltdownerSkillRules.upgraded(state,skill);
+        float exp=upgraded?1:proficiency;
+        var ball=ACElectronBallEntity.create(player,exp>Balance.f("electron_bomb", "perform_threshold_1")?5:20,upgraded?MeltdownerSkillRules.curve(skill,"upgraded_damage",proficiency):6+(12-6)*exp);
         player.serverLevel().addFreshEntity(ball);
-        state.addExperience(skill,.005f);
-        state.finishContext(skill,(int)(20+(10-20)*exp),0);
+        state.addExperience(skill,Balance.f("electron_bomb", "perform_add_experience_1"));
+        state.finishContext(skill,(int)(Balance.i("electron_bomb", "perform_finish_context_1")+(Balance.i("electron_bomb", "perform_finish_context_2")-Balance.i("electron_bomb", "perform_finish_context_3"))*exp),0);
         AbilityManager.completeUse(player,state,skill);
         return ball;
     }
     /** LambdaLib2 getLookingPos adds 0.6 eye height to an entity-position hitVec. */
     public static Vec3 destination(net.minecraft.world.entity.player.Player player) {
-        var trace=ElectricAttackTrace.trace(player,15,false);
+        var state=AbilityState.load(player);
+        var skill=AbilityRegistry.skill(ID);
+        double range=MeltdownerSkillRules.upgraded(state,skill)?MeltdownerSkillRules.curve(skill,"upgraded_range",state.experience(ID)):Balance.i("electron_bomb", "destination_trace_1");
+        var trace=ElectricAttackTrace.trace(player,range,false);
         return trace instanceof EntityHitResult entity
                 ? trace.getLocation().add(0,entity.getEntity().getEyeHeight()*.6,0):trace.getLocation();
     }
@@ -41,7 +48,7 @@ public final class ElectronBomb {
         }
         // Original callback notifies around the caster at firing time, even when no entity was hit.
         var visual=new ElectronBombEffectPayload(ball.getId());
-        for(var viewer:player.serverLevel().players())if(viewer.distanceToSqr(player)<400)
+        for(var viewer:player.serverLevel().players())if(viewer.distanceToSqr(player)<Balance.i("electron_bomb", "fire_threshold_1"))
             PacketDistributor.sendToPlayer(viewer,visual);
     }
     private ElectronBomb(){}

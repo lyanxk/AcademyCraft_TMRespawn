@@ -1,8 +1,11 @@
 {
   "type": "neoforge:add_features",
-  "biomes": {
-    "type": "neoforge:any"
-  },
-  "features": "academy:worldgen",
-  "step": "top_layer_modification"
+  "biomes": "#minecraft:is_overworld",
+  "features": [
+    "academy:reso_ore",
+    "academy:constraint_metal",
+    "academy:crystal_ore",
+    "academy:imagsil_ore"
+  ],
+  "step": "underground_ores"
 }

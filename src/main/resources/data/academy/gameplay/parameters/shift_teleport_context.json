@@ -1,0 +1,17 @@
+{
+  "shift_teleport_context_threshold_1": 625,
+  "release_consume_raw_1": 260,
+  "release_consume_raw_2": 320,
+  "release_consume_raw_3": 260,
+  "release_consume_raw_4": 40,
+  "release_consume_raw_5": 30,
+  "release_consume_raw_6": 40,
+  "release_attack_1": 15,
+  "release_attack_2": 35,
+  "release_attack_3": 15,
+  "release_add_experience_1": 1,
+  "release_add_experience_2": 0.002,
+  "release_finish_context_1": 100,
+  "release_finish_context_2": 60,
+  "release_finish_context_3": 100
+}

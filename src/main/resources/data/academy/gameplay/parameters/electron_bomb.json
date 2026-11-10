@@ -1,0 +1,9 @@
+{
+  "perform_threshold_1": 0.8,
+  "perform_add_experience_1": 0.005,
+  "perform_finish_context_1": 20,
+  "perform_finish_context_2": 10,
+  "perform_finish_context_3": 20,
+  "destination_trace_1": 15,
+  "fire_threshold_1": 400
+}

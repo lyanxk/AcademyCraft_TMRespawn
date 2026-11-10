@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.vecmanip.skill;
 
+import cn.academy.data.Balance;
+
 import cn.academy.ability.*;
 import cn.academy.ability.vanilla.electromaster.skill.ElectricAttackTrace;
 import cn.academy.event.ability.ReflectEvent;
@@ -35,47 +37,47 @@ public final class VectorDefenseContext {
     public static boolean handles(AbilitySkill skill){return skill.name().equals("vec_deviation") || skill.name().equals("vec_reflection");}
     public VectorDefenseContext(ServerPlayer player,AbilityState state,AbilitySkill skill) {
         this.player=player;this.skill=skill;reflection=skill.name().equals("vec_reflection");initialExperience=state.experience(skill.id());
-        enhancedReflection=reflection && state.level()>=5;
-        audience.add(player);for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=625)audience.add(viewer);
+        enhancedReflection=reflection && state.level()>=Balance.i("vector_defense_context", "vector_defense_context_threshold_1");
+        audience.add(player);for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=Balance.i("vector_defense_context", "vector_defense_context_threshold_2"))audience.add(viewer);
     }
     public void start(AbilityState state) {
-        if(!reflection)state.consumeRaw(skill,0,snapshot(80,50),player.isCreative());
+        if(!reflection)state.consumeRaw(skill,0,snapshot(Balance.i("vector_defense_context", "start_snapshot_1"),Balance.i("vector_defense_context", "start_snapshot_2")),player.isCreative());
         ACTIVE.add(this);send(START,null,Vec3.ZERO);
     }
     public boolean tick(AbilityState state) {
         if(ended)return false;
-        boolean paid=reflection || state.consumeRaw(skill,snapshot(13,5),0,player.isCreative());
-        int range=reflection?4:5;
+        boolean paid=reflection || state.consumeRaw(skill,snapshot(Balance.i("vector_defense_context", "tick_snapshot_1"),Balance.i("vector_defense_context", "tick_snapshot_2")),0,player.isCreative());
+        int range=reflection?Balance.i("vector_defense_context", "tick_range_1"):Balance.i("vector_defense_context", "tick_range_2");
         var entities=player.level().getEntities(player,player.getBoundingBox().inflate(range),e->e.distanceToSqr(player)<=range*range && !visited.contains(e));
         for(var entity:entities) {
             if(EntityAffection.marked(entity))continue;
             float difficulty=EntityAffection.difficulty(entity);if(Float.isNaN(difficulty))continue;
             if(reflection) {
-                if(!state.consumeRaw(skill,difficulty*live(state,300,160),0,player.isCreative()))continue;
+                if(!state.consumeRaw(skill,difficulty*live(state,Balance.i("vector_defense_context", "tick_live_1"),Balance.i("vector_defense_context", "tick_live_2")),0,player.isCreative()))continue;
                 reflect(entity,player,enhancedReflection && entity instanceof Projectile?1.5+2*state.experience(skill.id()):0);
                 if(enhancedReflection && entity instanceof Projectile)
                     PENDING_VELOCITIES.computeIfAbsent(player.server,server->Collections.newSetFromMap(new IdentityHashMap<>())).add(entity);
                 EntityAffection.mark(entity);
-                state.addExperience(skill,difficulty*.0008f);send(REFLECT_ENTITY,entity,entity.getDeltaMovement());
+                state.addExperience(skill,difficulty*Balance.f("vector_defense_context", "tick_add_experience_1"));send(REFLECT_ENTITY,entity,entity.getDeltaMovement());
             } else {
-                state.consumeForce(skill,snapshot(15,12),0,player.isCreative());
+                state.consumeForce(skill,snapshot(Balance.i("vector_defense_context", "tick_snapshot_3"),Balance.i("vector_defense_context", "tick_snapshot_4")),0,player.isCreative());
                 if(entity instanceof LargeFireball fireball) {
                     int power=explosionPower(fireball);fireball.discard();
                     player.level().explode(null,fireball.getX(),fireball.getY(),fireball.getZ(),power,true,
                             player.level().getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_MOBGRIEFING)?Level.ExplosionInteraction.MOB:Level.ExplosionInteraction.NONE);
                 } else if(entity instanceof SmallFireball)entity.discard();
                 else {if(entity instanceof AbstractArrow arrow)arrow.setBaseDamage(0);entity.setDeltaMovement(Vec3.ZERO);entity.hurtMarked=true;}
-                state.addExperience(skill,.001f*difficulty);send(STOP_ENTITY,entity,Vec3.ZERO);
+                state.addExperience(skill,Balance.f("vector_defense_context", "tick_add_experience_2")*difficulty);send(STOP_ENTITY,entity,Vec3.ZERO);
                 if(!(entity instanceof LargeFireball) && !(entity instanceof SmallFireball))EntityAffection.mark(entity);
             }
         }
         visited.addAll(entities); // Includes excluded entities and failures, just as the original visited set.
-        if(reflection)return state.consumeRaw(skill,live(state,15,11),live(state,100,50)/20,player.isCreative());
-        state.consumeRaw(skill,live(state,5,2.5f),live(state,.5f,.2f),player.isCreative());
+        if(reflection)return state.consumeRaw(skill,live(state,Balance.i("vector_defense_context", "tick_live_3"),Balance.i("vector_defense_context", "tick_live_4")),live(state,Balance.i("vector_defense_context", "tick_live_5"),Balance.i("vector_defense_context", "tick_live_6"))/Balance.i("vector_defense_context", "tick_consume_raw_1"),player.isCreative());
+        state.consumeRaw(skill,live(state,Balance.i("vector_defense_context", "tick_live_7"),Balance.f("vector_defense_context", "tick_live_8")),live(state,Balance.f("vector_defense_context", "tick_live_9"),Balance.f("vector_defense_context", "tick_live_10")),player.isCreative());
         return paid;
     }
     public static void reflect(Entity entity,Entity caster,double extraSpeed) {
-        Vec3 target=ElectricAttackTrace.trace(caster,20,false).getLocation();
+        Vec3 target=ElectricAttackTrace.trace(caster,Balance.i("vector_defense_context", "reflect_trace_1"),false).getLocation();
         entity.setDeltaMovement(target.subtract(entity.getEyePosition()).normalize().scale(entity.getDeltaMovement().length()+extraSpeed));
         entity.hurtMarked=true;
     }
@@ -119,9 +121,9 @@ public final class VectorDefenseContext {
         if(attacker instanceof ServerPlayer other && (other.hasDisconnected() || cancelIncoming(other)))return;
         var state=AbilityState.load(victim);
         try {
-            float damage=pending.damage(),reflectedDamage=context.live(state,.6f,1.2f)*damage;
-            state.consumeForce(context.skill,context.live(state,20,15)*damage,0,victim.isCreative());
-            state.addExperience(context.skill,damage*.0004f);
+            float damage=pending.damage(),reflectedDamage=context.live(state,Balance.f("vector_defense_context", "perform_counter_live_1"),Balance.f("vector_defense_context", "perform_counter_live_2"))*damage;
+            state.consumeForce(context.skill,context.live(state,Balance.i("vector_defense_context", "perform_counter_live_3"),Balance.i("vector_defense_context", "perform_counter_live_4"))*damage,0,victim.isCreative());
+            state.addExperience(context.skill,damage*Balance.f("vector_defense_context", "perform_counter_add_experience_1"));
             AbilityContext.of(victim,context.skill).attack(attacker,reflectedDamage);
             context.send(EFFECT,null,attacker.position());
         } finally {
@@ -135,16 +137,16 @@ public final class VectorDefenseContext {
         if(damage>9999)return damage;
         for(var context:ACTIVE)if(!context.ended && !context.reflection && context.player==victim) {
             var state=AbilityState.load(context.player);
-            state.consumeRaw(context.skill,Math.min(state.cp(),context.live(state,15,12)),0,context.player.isCreative());
-            state.addExperience(context.skill,damage*.0006f);context.send(PLAY,null,context.player.position());
-            damage*=1-context.live(state,.4f,.9f);state.save(context.player);break;
+            state.consumeRaw(context.skill,Math.min(state.cp(),context.live(state,Balance.i("vector_defense_context", "reduce_damage_live_1"),Balance.i("vector_defense_context", "reduce_damage_live_2"))),0,context.player.isCreative());
+            state.addExperience(context.skill,damage*Balance.f("vector_defense_context", "reduce_damage_add_experience_1"));context.send(PLAY,null,context.player.position());
+            damage*=1-context.live(state,Balance.f("vector_defense_context", "reduce_damage_live_3"),Balance.f("vector_defense_context", "reduce_damage_live_4"));state.save(context.player);break;
         }
         return damage;
     }
     public static void onReflect(ReflectEvent event) {
         for(var context:ACTIVE)if(!context.ended && context.reflection && event.target==context.player) {
             event.setCanceled(true);
-            Vec3 offset=event.player.getEyePosition().subtract(context.player.getEyePosition()).normalize().scale(.5);
+            Vec3 offset=event.player.getEyePosition().subtract(context.player.getEyePosition()).normalize().scale(Balance.d("vector_defense_context", "on_reflect_scale_1"));
             context.send(EFFECT,null,context.player.position().add(0,.4+context.player.getRandom().nextDouble()*.9,0).add(offset));
         }
     }

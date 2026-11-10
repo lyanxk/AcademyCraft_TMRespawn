@@ -1,5 +1,7 @@
 package cn.academy.item;
 
+import cn.academy.data.GameplayData;
+
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
@@ -14,12 +16,12 @@ public final class MatrixCoreItem extends Item {
     }
 
     public static int level(ItemStack stack) {
-        return Math.max(1, Math.min(3, stack.getOrDefault(DataComponents.CUSTOM_MODEL_DATA, CustomModelData.DEFAULT).value() + 1));
+        return Math.max(1, Math.min(GameplayData.value("wireless", "cores").getAsJsonArray().size(), stack.getOrDefault(DataComponents.CUSTOM_MODEL_DATA, CustomModelData.DEFAULT).value() + 1));
     }
 
     public static ItemStack of(Item item, int level) {
         ItemStack stack = new ItemStack(item);
-        stack.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(Math.max(0, Math.min(2, level - 1))));
+        stack.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(Math.max(0, Math.min(GameplayData.value("wireless", "cores").getAsJsonArray().size()-1, level - 1))));
         return stack;
     }
 

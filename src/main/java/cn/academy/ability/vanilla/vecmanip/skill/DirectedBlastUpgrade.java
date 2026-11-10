@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.vecmanip.skill;
 
+import cn.academy.data.Balance;
+
 import cn.academy.ability.AbilityContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -14,12 +16,12 @@ import java.util.Map;
 
 /** LV5's forward blast and the twenty-block upward explosion above its broken blocks. */
 public final class DirectedBlastUpgrade {
-    private static final double BASE_RADIUS=Math.sqrt(6)+2;
+    private static double baseRadius() { return Balance.d("directed_blast_upgrade", "base_radius"); }
 
     public static void perform(ServerPlayer player,AbilityContext context,BlockPos origin,Vec3 direction,float experience) {
         var world=player.serverLevel();
-        double radius=BASE_RADIUS+(8.45-BASE_RADIUS)*experience;
-        double depth=BASE_RADIUS+(20-BASE_RADIUS)*experience;
+        double radius=baseRadius()+(Balance.d("directed_blast_upgrade", "perform_radius_1")-baseRadius())*experience;
+        double depth=baseRadius()+(Balance.i("directed_blast_upgrade", "perform_depth_1")-baseRadius())*experience;
         int reach=(int)Math.ceil(Math.max(radius,depth));
         var primary=new ArrayList<BlockPos>();
         // At zero proficiency this is the old full-proficiency sphere. Its front stretches along the aim.
@@ -30,7 +32,7 @@ public final class DirectedBlastUpgrade {
             if(across/(radius*radius)+along*along/(length*length)>1)continue;
             var pos=origin.offset(x,y,z);var block=world.getBlockState(pos);
             float hardness=block.getDestroySpeed(world,pos);
-            if(!block.isAir() && hardness>=0 && hardness<=55 && context.canBreakBlock(world,pos))primary.add(pos);
+            if(!block.isAir() && hardness>=0 && hardness<=Balance.i("directed_blast_upgrade", "perform_threshold_1") && context.canBreakBlock(world,pos))primary.add(pos);
         }
         var destroyed=new ArrayList<BlockPos>();
         Map<Column,BitSet> upper=new HashMap<>();
@@ -48,7 +50,7 @@ public final class DirectedBlastUpgrade {
             for(int height=heights.nextSetBit(0);height>=0;height=heights.nextSetBit(height+1)) {
                 var pos=new BlockPos(column.x(),bottom+height,column.z());
                 var block=world.getBlockState(pos);float hardness=block.getDestroySpeed(world,pos);
-                if(block.isAir() || hardness<0 || hardness>55 || !context.canBreakBlock(world,pos))continue;
+                if(block.isAir() || hardness<0 || hardness>Balance.i("directed_blast_upgrade", "perform_threshold_2") || !context.canBreakBlock(world,pos))continue;
                 world.removeBlock(pos,false);
             }
         }

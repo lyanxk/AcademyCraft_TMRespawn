@@ -1,0 +1,38 @@
+{
+  "level": 3,
+  "cp_cost": 380.0,
+  "overload": 28.0,
+  "cooldown_ticks": 45,
+  "controllable": true,
+  "requirements": [
+    {
+      "skill": "meltdowner",
+      "experience": 0.3
+    }
+  ],
+  "enhancements": [],
+  "required_any_skill_level": 0,
+  "enabled": true,
+  "destroy_blocks": true,
+  "damage_scale": 1.0,
+  "cp_consume_speed": 1.0,
+  "overload_consume_speed": 1.0,
+  "exp_increase_speed": 1.0,
+  "cooldown_curve": [
+    40,
+    20
+  ],
+  "cooldown_enhanced_level": 6,
+  "cooldown_enhanced_curve": [
+    40,
+    20
+  ],
+  "cooldown_tiers": 0,
+  "experience_per_use": 0.0005,
+  "upgrade_level": 5,
+  "upgraded_speed": [
+    0.4,
+    1.6
+  ],
+  "upgraded_harvest_level": 5
+}

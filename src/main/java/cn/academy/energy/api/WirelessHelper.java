@@ -1,5 +1,9 @@
 package cn.academy.energy.api;
 
+import cn.academy.data.GameplayRules;
+
+import cn.academy.data.GameplayData;
+
 import cn.academy.energy.api.block.*;
 import cn.academy.energy.impl.NodeConn;
 import cn.academy.energy.impl.WiWorldData;
@@ -32,7 +36,7 @@ public final class WirelessHelper {
     public static boolean isReceiverLinked(IWirelessReceiver receiver) { return getNodeConn(receiver) != null; }
     public static boolean isGeneratorLinked(IWirelessGenerator generator) { return getNodeConn(generator) != null; }
     public static List<IWirelessNode> getNodesInRange(Level world, BlockPos pos) {
-        return findWirelessTiles(world, pos, 20, 100, block -> {
+        return findWirelessTiles(world, pos, discoveryRange(), GameplayData.integer("wireless", "candidate_limit"), block -> {
             if (!(block instanceof IWirelessNode node)) return false;
             var conn = getNodeConn(node);
             return pos.distSqr(block.getBlockPos()) <= node.getRange() * node.getRange() && conn.getLoad() < conn.getCapacity();
@@ -54,6 +58,12 @@ public final class WirelessHelper {
             }
         }
         return result;
+    }
+    private static double discoveryRange() {
+        double range = GameplayData.number("wireless", "node_search_minimum_range");
+        for (var kind : java.util.List.of(cn.academy.block.MachineKind.NODE_BASIC, cn.academy.block.MachineKind.NODE_STANDARD, cn.academy.block.MachineKind.NODE_ADVANCED))
+            range = Math.max(range, GameplayData.number(GameplayRules.machine(kind), "range"));
+        return range;
     }
     private WirelessHelper() {}
 }

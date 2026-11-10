@@ -27,21 +27,21 @@ public final class MineRayEffects {
     private static long rawTime=-1,time=1;
     private static final class Ray {
         final Player owner;
-        final int id,slot,variant;
+        final int id,slot,variant,range;
         final RayAnimation miningAnimation=RayAnimation.mining(time);
         Vec3 position,previous;
         float yaw,pitch,previousYaw,previousPitch;
         double length;
         int ticks;
-        Ray(Player player,int id,int slot,int variant) {
-            owner=player;this.id=id;this.slot=slot;this.variant=variant;update();previous=position;previousYaw=yaw;previousPitch=pitch;
+        Ray(Player player,int id,int slot,int variant,int range) {
+            owner=player;this.id=id;this.slot=slot;this.variant=variant;this.range=range;update();previous=position;previousYaw=yaw;previousPitch=pitch;
             ACContextSounds.handle(owner.getUUID(),"md.mine_loop",true,.3f,SoundSource.PLAYERS,id);
             world.playLocalSound(owner.getX(),owner.getY(),owner.getZ(),ACSounds.get("md.mine_"+MineRayStyle.STYLES[variant].startup()+"_startup"),
                     SoundSource.AMBIENT,.4f,1,false);
         }
         void update() {
             position=owner.position().add(0,variant==0?owner.getDimensions(Pose.STANDING).eyeHeight():1.55,0);
-            Vec3 end=owner.getEyePosition().add(owner.getLookAngle().scale(15)),delta=end.subtract(position);
+            Vec3 end=owner.getEyePosition().add(owner.getLookAngle().scale(range)),delta=end.subtract(position);
             yaw=(float)(-Math.atan2(delta.x,delta.z)*180/Math.PI);
             pitch=(float)(-Math.atan2(delta.y,Math.sqrt(delta.x*delta.x+delta.z*delta.z))*180/Math.PI);
             length=delta.length();
@@ -85,7 +85,7 @@ public final class MineRayEffects {
             if(!tag.getBoolean("Start")){var ray=RAYS.remove(id);if(ray!=null)ray.stop();continue;}
             if(variant<0 || variant>=MineRayStyle.STYLES.length || RAYS.containsKey(id))continue;
             if(world.getEntity(tag.getInt("Caster")) instanceof Player owner && (owner!=local || REQUESTS.accepts(slot,tag.getInt("Request")))) {
-                RAYS.put(id,new Ray(owner,id,slot,variant));
+                RAYS.put(id,new Ray(owner,id,slot,variant,tag.getInt("Range")));
             }
         }
         local.getPersistentData().remove(MineRayEffectPayload.QUEUE);

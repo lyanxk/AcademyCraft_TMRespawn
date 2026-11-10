@@ -1,5 +1,7 @@
 package cn.academy.item;
 
+import cn.academy.data.GameplayData;
+
 import cn.academy.registry.ACDataComponents;
 import cn.academy.ability.AbilityState;
 import cn.academy.network.ACNetwork;
@@ -21,9 +23,23 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 public final class MediaItem extends Item {
-    // Keep MediaManager's default.conf order. The original media_0/2 artwork names do not match
-    // these track names; model selection follows the original metadata indices nonetheless.
-    public static final List<String> TRACKS = List.of("level5_judgelight", "only_my_railgun", "sisters_noise");
+    // The server snapshot supplies track identities, visual models and drop weights.
+    public static List<String> tracks() {
+        return GameplayData.value("media", "tracks").getAsJsonArray().asList().stream()
+                .map(entry -> entry.getAsJsonObject().get("id").getAsString()).toList();
+    }
+    public static int model(String id) {
+        return GameplayData.value("media", "tracks").getAsJsonArray().asList().stream()
+                .map(com.google.gson.JsonElement::getAsJsonObject).filter(track -> track.get("id").getAsString().equals(id))
+                .mapToInt(track -> track.get("model").getAsInt()).findFirst().orElse(0);
+    }
+    public static String random(net.minecraft.util.RandomSource random) {
+        var tracks = GameplayData.value("media", "tracks").getAsJsonArray();
+        int total = tracks.asList().stream().mapToInt(track -> track.getAsJsonObject().get("weight").getAsInt()).sum();
+        int selected = random.nextInt(total);
+        for (var entry : tracks) { var track = entry.getAsJsonObject(); selected -= track.get("weight").getAsInt(); if (selected < 0) return track.get("id").getAsString(); }
+        throw new IllegalStateException("Empty media selection");
+    }
 
     public MediaItem(Properties properties) {
         super(properties.stacksTo(1));
@@ -37,12 +53,12 @@ public final class MediaItem extends Item {
 
     public static void setMedia(ItemStack stack, String media) {
         stack.set(ACDataComponents.MEDIA_ID.get(), media);
-        stack.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(Math.max(0, TRACKS.indexOf(media))));
+        stack.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(Math.max(0, model(media))));
     }
 
     public static String media(ItemStack stack) {
-        String id = stack.getOrDefault(ACDataComponents.MEDIA_ID.get(), TRACKS.getFirst());
-        return TRACKS.contains(id) ? id : TRACKS.getFirst();
+        String id = stack.getOrDefault(ACDataComponents.MEDIA_ID.get(), tracks().getFirst());
+        return tracks().contains(id) ? id : tracks().getFirst();
     }
 
     @Override

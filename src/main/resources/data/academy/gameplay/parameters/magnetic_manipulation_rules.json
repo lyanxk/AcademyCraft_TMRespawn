@@ -1,0 +1,8 @@
+{
+  "follow_velocity_scale_1": 0.2,
+  "follow_velocity_threshold_1": 4,
+  "follow_velocity_scale_2": 4,
+  "_constraints": {
+    "follow_velocity_scale_2": "nonzero"
+  }
+}

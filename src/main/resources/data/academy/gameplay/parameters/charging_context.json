@@ -1,0 +1,44 @@
+{
+  "charge": [
+    15.0,
+    35.0,
+    200.0,
+    1000.0,
+    10000.0,
+    1000000.0
+  ],
+  "cp_per_second": [
+    60.0,
+    140.0,
+    240.0,
+    300.0,
+    340.0,
+    440.0
+  ],
+  "ol_start": [
+    20.0,
+    40.0,
+    80.0,
+    100.0,
+    120.0
+  ],
+  "ol_end": [
+    10.0,
+    20.0,
+    40.0,
+    50.0,
+    80.0
+  ],
+  "charging_context_threshold_1": 625,
+  "tick_consumption_1": 20,
+  "tick_overload_1": 20,
+  "tick_add_experience_1": 0.0001,
+  "tick_add_experience_2": 3e-05,
+  "tick_trace_1": 15,
+  "tick_add_experience_3": 0.0001,
+  "tick_add_experience_4": 3e-05,
+  "_constraints": {
+    "tick_consumption_1": "nonzero",
+    "tick_overload_1": "nonzero"
+  }
+}

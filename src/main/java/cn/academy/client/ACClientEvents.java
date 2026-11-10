@@ -1,5 +1,7 @@
 package cn.academy.client;
 
+import cn.academy.data.GameplayData;
+
 import cn.academy.client.render.ACCPBarHud;
 
 import cn.academy.AcademyCraft;
@@ -565,8 +567,8 @@ public final class ACClientEvents {
     }
 
     @SubscribeEvent
-    public static void clearServerPolicy(net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
-        cn.academy.config.ACGeneralConfig.clearRemote();
+    public static void clearGameplayData(net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
+        GameplayData.disconnect();
         cn.academy.crafting.MachineRecipes.invalidate();
     }
 
@@ -631,4 +633,8 @@ public final class ACClientEvents {
     }
 
     private ACClientEvents() {}
+    @SubscribeEvent public static void gameplayReloaded(cn.academy.event.GameplayDataReloadedEvent event) {
+        var minecraft = Minecraft.getInstance();
+        cn.academy.client.sound.ACMediaLibrary.reload(minecraft.getResourceManager());
+    }
 }

@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.teleporter.skill;
 
+import cn.academy.data.Balance;
+
 import cn.academy.ability.*;
 import cn.academy.ability.vanilla.electromaster.skill.ElectricAttackTrace;
 import cn.academy.advancement.ACAdvancements;
@@ -24,8 +26,8 @@ public final class TargetTeleportContext {
     private int ticks;private float selected;private boolean ended,performed;
     public TargetTeleportContext(ServerPlayer player,AbilityState state,AbilitySkill skill,int slot,int request) {
         this.player=player;this.skill=skill;this.slot=slot;this.request=request;
-        kind=skill.name().equals("penetrate_teleport")?PENETRATE:MARK;experience=state.experience(skill.id());selected=10+(35-10)*experience;
-        audience.add(player);for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=625)audience.add(viewer);
+        kind=skill.name().equals("penetrate_teleport")?PENETRATE:MARK;experience=state.experience(skill.id());selected=cn.academy.data.Balance.f("target_teleport_context", "initial_range_start")+(cn.academy.data.Balance.f("target_teleport_context", "initial_range_end")-cn.academy.data.Balance.f("target_teleport_context", "initial_range_start"))*experience;
+        audience.add(player);for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=Balance.i("target_teleport_context", "target_teleport_context_threshold_1"))audience.add(viewer);
     }
     public static boolean handles(AbilitySkill skill){return skill.name().equals("penetrate_teleport") || skill.name().equals("mark_teleport");}
     public static void reject(ServerPlayer player,AbilitySkill skill,int slot,int request) {
@@ -34,10 +36,10 @@ public final class TargetTeleportContext {
     public void start(){send(START);}
     public void tick(){ticks++;}
     public float selected(){return selected;}
-    public void wheel(float delta){float proposed=selected+delta;if(proposed>=.5f && proposed<=10+(35-10)*experience)selected=proposed;}
+    public void wheel(float delta){float proposed=selected+delta;if(proposed>=.5f && proposed<=Balance.i("target_teleport_context", "wheel_threshold_1")+(Balance.i("target_teleport_context", "wheel_threshold_2")-Balance.i("target_teleport_context", "wheel_threshold_3"))*experience)selected=proposed;}
     public record Destination(Vec3 position,boolean available){}
     public static Destination penetrate(Player player,float selected,float liveExperience,float cp) {
-        double range=Math.min(selected,cp/(14+(9-14)*liveExperience));
+        double range=Math.min(selected,cp/(Balance.i("target_teleport_context", "penetrate_range_1")+(Balance.i("target_teleport_context", "penetrate_range_2")-Balance.i("target_teleport_context", "penetrate_range_3"))*liveExperience));
         return penetrateAtRange(player,range);
     }
     public static Destination penetrateAtRange(Player player,double range) {
@@ -47,7 +49,7 @@ public final class TargetTeleportContext {
             boolean open=passable(player,feet) && passable(player,feet.above());
             if(stage==0){if(!open)stage=1;}else if(stage==1){if(open)stage=2;}
             else {counter++;if(!open || counter>4)break;}
-            travelled+=.8;position=position.add(direction.scale(.8));
+            travelled+=.8;position=position.add(direction.scale(Balance.d("target_teleport_context", "penetrate_at_range_scale_1")));
         }
         return new Destination(position,stage!=1);
     }
@@ -58,7 +60,7 @@ public final class TargetTeleportContext {
         return state.isAir() || state.getBlock() instanceof LiquidBlock || state.getBlock() instanceof BaseFireBlock;
     }
     public static Vec3 mark(Player player,int ticks,float liveExperience,float cp) {
-        double range=Math.min((ticks+1)*2,Math.min(25+(60-25)*liveExperience,cp/(12+(4-12)*liveExperience)));
+        double range=Math.min((ticks+1)*Balance.i("target_teleport_context", "mark_range_1"),Math.min(Balance.i("target_teleport_context", "mark_range_2")+(Balance.i("target_teleport_context", "mark_range_3")-Balance.i("target_teleport_context", "mark_range_4"))*liveExperience,cp/(Balance.i("target_teleport_context", "mark_range_5")+(Balance.i("target_teleport_context", "mark_range_6")-Balance.i("target_teleport_context", "mark_range_7"))*liveExperience)));
         return markAtRange(player,range);
     }
     public static Vec3 markAtRange(Player player,double range) {
@@ -89,16 +91,16 @@ public final class TargetTeleportContext {
             Vec3 point=destination.position();
             // Entity.getDistance in 1.12 returned a float sqrt, then PTContext promoted it to double.
             double distance=(float)Math.sqrt(player.distanceToSqr(point));
-            state.consumeForce(skill,(float)(distance*(14+(9-14)*experience)),80+(50-80)*experience,player.isCreative());
-            state.addExperience(skill,(float)(.00014f*distance));state.finishContext(skill,(int)(50+(30-50)*experience),0);
+            state.consumeForce(skill,(float)(distance*(Balance.i("target_teleport_context", "release_consume_force_1")+(Balance.i("target_teleport_context", "release_consume_force_2")-Balance.i("target_teleport_context", "release_consume_force_3"))*experience)),Balance.i("target_teleport_context", "release_consume_force_4")+(Balance.i("target_teleport_context", "release_consume_force_5")-Balance.i("target_teleport_context", "release_consume_force_6"))*experience,player.isCreative());
+            state.addExperience(skill,(float)(Balance.f("target_teleport_context", "release_add_experience_1")*distance));state.finishContext(skill,(int)(Balance.i("target_teleport_context", "release_finish_context_1")+(Balance.i("target_teleport_context", "release_finish_context_2")-Balance.i("target_teleport_context", "release_finish_context_3"))*experience),0);
             count(state);move(point);performed=true;
         } else {
             var point=mark(player,ticks,state.experience(skill.id()),state.cp());float distance=(float)point.distanceTo(player.position());
-            if(distance>=3) {
-                send(SOUND);state.consumeForce(skill,distance*(12+(4-12)*experience),40+(20-40)*experience,player.isCreative());
+            if(distance>=Balance.i("target_teleport_context", "release_threshold_1")) {
+                send(SOUND);state.consumeForce(skill,distance*(Balance.i("target_teleport_context", "release_consume_force_7")+(Balance.i("target_teleport_context", "release_consume_force_8")-Balance.i("target_teleport_context", "release_consume_force_9"))*experience),Balance.i("target_teleport_context", "release_consume_force_10")+(Balance.i("target_teleport_context", "release_consume_force_11")-Balance.i("target_teleport_context", "release_consume_force_12"))*experience,player.isCreative());
                 if(player.isPassenger())player.stopRiding();player.teleportTo(point.x,point.y,point.z);
-                state.addExperience(skill,.00018f*distance);player.fallDistance=0;
-                state.finishContext(skill,(int)(30+(0-30)*experience),0);count(state);performed=true;
+                state.addExperience(skill,Balance.f("target_teleport_context", "release_add_experience_2")*distance);player.fallDistance=0;
+                state.finishContext(skill,(int)(Balance.i("target_teleport_context", "release_finish_context_4")+(0-Balance.i("target_teleport_context", "release_finish_context_5"))*experience),0);count(state);performed=true;
             }
         }
     }

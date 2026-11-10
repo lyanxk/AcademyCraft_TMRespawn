@@ -1,5 +1,7 @@
 package cn.academy.item;
 
+import cn.academy.data.GameplayData;
+
 import cn.academy.registry.ACDataComponents;
 import cn.academy.energy.api.IFItemManager;
 import cn.academy.energy.api.item.ImagEnergyItem;
@@ -14,25 +16,13 @@ import net.minecraft.world.entity.player.Player;
 import cn.academy.registry.ACItems;
 
 public final class EnergyItem extends Item implements ImagEnergyItem {
-    private final int capacity;
-    private final double bandwidth;
-
-    public EnergyItem(Properties properties, int capacity) {
-        this(properties, capacity, 20);
+    private final String profile;
+    public EnergyItem(Properties properties, String profile) {
+        super(properties.stacksTo(1).component(ACDataComponents.ENERGY.get(), 0)); this.profile = profile;
     }
-
-    public EnergyItem(Properties properties, int capacity, double bandwidth) {
-        super(properties.stacksTo(1).component(ACDataComponents.ENERGY.get(), 0));
-        this.capacity = capacity;
-        this.bandwidth = bandwidth;
-    }
-
-    public int capacity() {
-        return capacity;
-    }
-
-    @Override public double getMaxEnergy() { return capacity; }
-    @Override public double getBandwidth() { return bandwidth; }
+    public int capacity() { return GameplayData.integer("items/" + profile, "capacity"); }
+    @Override public double getMaxEnergy() { return capacity(); }
+    @Override public double getBandwidth() { return GameplayData.number("items/" + profile, "bandwidth"); }
 
     @Override public int getMaxStackSize(ItemStack stack) { return 1; }
 
@@ -63,7 +53,7 @@ public final class EnergyItem extends Item implements ImagEnergyItem {
 
     public static float legacyModelValue(ItemStack stack) {
         if (!(stack.getItem() instanceof EnergyItem item)) return 0;
-        return legacyModelStage(IFItemManager.instance.getEnergy(stack), item.capacity) * .5f;
+        return legacyModelStage(IFItemManager.instance.getEnergy(stack), item.capacity()) * .5f;
     }
 
     @Override
@@ -88,6 +78,6 @@ public final class EnergyItem extends Item implements ImagEnergyItem {
     }
 
     private int legacyDamage(ItemStack stack) {
-        return (int) Math.round((1 - IFItemManager.instance.getEnergy(stack) / Math.max(1, capacity)) * 13);
+        return (int) Math.round((1 - IFItemManager.instance.getEnergy(stack) / Math.max(1, capacity())) * 13);
     }
 }

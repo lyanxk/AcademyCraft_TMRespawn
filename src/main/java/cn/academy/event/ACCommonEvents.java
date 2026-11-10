@@ -7,7 +7,6 @@ import cn.academy.ability.AbilitySkill;
 import cn.academy.ability.AbilityState;
 import cn.academy.block.entity.ACMachineBlockEntity;
 import cn.academy.block.entity.ACMultiblockPartEntity;
-import cn.academy.config.ACConfig;
 import cn.academy.command.ACCommands;
 import cn.academy.network.ACNetwork;
 import cn.academy.network.OpenClientScreenPayload;
@@ -63,7 +62,6 @@ public final class ACCommonEvents {
     @SubscribeEvent
     public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
-        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player, cn.academy.config.ACGeneralConfig.payload());
         AbilityState state = AbilityState.load(player);
         ACNetwork.sync(player, state);
     }

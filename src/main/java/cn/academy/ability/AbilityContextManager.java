@@ -1,5 +1,7 @@
 package cn.academy.ability;
 
+import cn.academy.data.Balance;
+
 import cn.academy.network.AbilityContextSyncPayload;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -356,7 +358,7 @@ public final class AbilityContextManager {
         for(var session:sessions.values().toArray(Session[]::new))if(session.targetTeleport!=null && session.targetTeleport.request==packet.request()) {
             // Bound malformed/network-only values to the legitimate wheel range. Ordinary clients use the original endpoints.
             if(!packet.abort() && (session.targetTeleport.kind==cn.academy.ability.vanilla.teleporter.skill.TargetTeleportContext.MARK
-                    || Float.isFinite(packet.distance()) && packet.distance()>=.5f && packet.distance()<=10+(35-10)*session.initialExperience))
+                    || Float.isFinite(packet.distance()) && packet.distance()>=Balance.f("ability_context_manager", "target_teleport_input_threshold_1") && packet.distance()<=Balance.i("ability_context_manager", "target_teleport_input_threshold_2")+(Balance.i("ability_context_manager", "target_teleport_input_threshold_3")-Balance.i("ability_context_manager", "target_teleport_input_threshold_4"))*session.initialExperience))
                 session.targetTeleport.release(state,packet.distance());
             sessions.remove(session.slot, session);terminate(player,state,session,true,false);cleanup(player);
             cn.academy.network.ACNetwork.sync(player,state);return;
@@ -374,7 +376,7 @@ public final class AbilityContextManager {
                 session.targetTeleport.wheel((float)delta);return;
             }
             if (session.skill.name().equals("penetrate_teleport")) {
-                float max = lerp(10, 35, session.initialExperience);
+                float max = lerp(Balance.i("ability_context_manager", "mouse_wheel_lerp_1"), Balance.i("ability_context_manager", "mouse_wheel_lerp_2"), session.initialExperience);
                 float proposed = session.value + (float) delta;
                 if (proposed >= .5f && proposed <= max) session.value = proposed;
                 return;
@@ -398,7 +400,7 @@ public final class AbilityContextManager {
             }
             session.ticks++;
             if(session.flashing!=null) {
-                if(session.flashing.request==0 && (!state.canUse() || !player.isCreative() && state.cp()<lerp(13,6,session.initialExperience)))
+                if(session.flashing.request==0 && (!state.canUse() || !player.isCreative() && state.cp()<lerp(Balance.i("ability_context_manager", "tick_lerp_1"),Balance.i("ability_context_manager", "tick_lerp_2"),session.initialExperience)))
                     session.flashingInput.cancelActive();
                 if(!session.flashing.tick(state)){sessions.remove(session.slot, session);terminate(player,state,session,true,false);}
                 else if(session.ticks%3==0)syncSession(player,state,session);
@@ -513,8 +515,8 @@ public final class AbilityContextManager {
             if (limit > 0 && session.ticks >= limit) {
                 sessions.remove(session.slot, session);
                 boolean perform = autoPerforms(name, session.ticks, exp);
-                if (name.equals("scatter_bomb") && session.ticks >= 200 && !player.isCreative())
-                    player.hurt(player.damageSources().magic(), 6);
+                if (name.equals("scatter_bomb") && session.ticks >= Balance.i("ability_context_manager", "tick_threshold_1") && !player.isCreative())
+                    player.hurt(player.damageSources().magic(), Balance.i("ability_context_manager", "tick_hurt_1"));
                 terminate(player, state, session, !perform, perform);
             }
         }
@@ -596,7 +598,12 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
         return sessions != null && sessions.values().stream().anyMatch(s -> s.skill.name().equals(skillName));
     }
     public static float absorbLightShield(ServerPlayer player,net.minecraft.world.damagesource.DamageSource source,float damage) {
-        return cn.academy.ability.vanilla.meltdowner.skill.MeltdownerContext.absorbFirstShield(source,damage);
+        var sessions = ACTIVE.get(player.getUUID());
+        if (sessions == null) return damage;
+        for (var session : sessions.values())
+            if (session.meltdowner != null && session.meltdowner.isShield())
+                return session.meltdowner.absorb(AbilityState.load(player),source,damage);
+        return damage;
     }
     public static void endMeltdowner(ServerPlayer player,int context) {
         var sessions=ACTIVE.get(player.getUUID());if(sessions==null)return;
@@ -720,13 +727,13 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
         boolean effectiveAction = true;
         // Scatter Bomb fires every accumulated ball whenever its context terminates,
         // including key-abort or CP exhaustion (but never after the caster dies).
-        if (name.equals("scatter_bomb") && session.ticks >= 20 && player.isAlive()) perform = true;
+        if (name.equals("scatter_bomb") && session.ticks >= Balance.i("ability_context_manager", "terminate_threshold_1") && player.isAlive()) perform = true;
 
         if (!abort && session.mode == Mode.HOLD && !perform) {
             perform = canRelease(name, session.ticks, exp);
-            if (name.equals("vec_accel") && exp <= .5f && !hasGroundBelow(player)) perform = false;
+            if (name.equals("vec_accel") && exp <= Balance.f("ability_context_manager", "terminate_threshold_2") && !hasGroundBelow(player)) perform = false;
         } else if (!abort && session.mode == Mode.CONTINUOUS) {
-            perform = name.equals("scatter_bomb") && session.ticks >= 20;
+            perform = name.equals("scatter_bomb") && session.ticks >= Balance.i("ability_context_manager", "terminate_threshold_3");
         }
 
         if (perform) {
@@ -738,13 +745,13 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
                 var selection = AbilityExecutor.selectPenetratingDestination(player.serverLevel(), player, session.value);
                 teleportDestination = selection.position();
                 validFinal = selection.available();
-                finalCost[0] = (float) (player.position().distanceTo(teleportDestination) * lerp(14, 9, exp));
+                finalCost[0] = (float) (player.position().distanceTo(teleportDestination) * lerp(Balance.i("ability_context_manager", "terminate_lerp_1"), Balance.i("ability_context_manager", "terminate_lerp_2"), exp));
             } else if (name.equals("mark_teleport")) {
                 session.value = (float) AbilityExecutor.markAllowedRange(state, session.skill, session.ticks);
                 teleportDestination = AbilityExecutor.markDestination(player.serverLevel(), player, session.value);
                 double distance = player.position().distanceTo(teleportDestination);
-                validFinal = distance >= 3;
-                finalCost[0] = (float) (distance * lerp(12, 4, exp));
+                validFinal = distance >= Balance.i("ability_context_manager", "terminate_threshold_4");
+                finalCost[0] = (float) (distance * lerp(Balance.i("ability_context_manager", "terminate_lerp_3"), Balance.i("ability_context_manager", "terminate_lerp_4"), exp));
             } else if (name.equals("flesh_ripping")) {
                 validFinal = AbilityExecutor.hasFleshTarget(player, state, session.skill);
             } else if (name.equals("ground_shock")) {
@@ -810,7 +817,7 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
         }
         float exp = state.experience(skill.id());
         float[] cost = switch (skill.name()) {
-            case "ray_barrage" -> cost(lerp(450, 380, exp), lerp(300, 140, exp));
+            case "ray_barrage" -> cost(lerp(Balance.i("ability_context_manager", "perform_instant_lerp_1"), Balance.i("ability_context_manager", "perform_instant_lerp_2"), exp), lerp(Balance.i("ability_context_manager", "perform_instant_lerp_3"), Balance.i("ability_context_manager", "perform_instant_lerp_4"), exp));
             default -> cost(skill.cpCost(), skill.overload());
         };
         if (!state.consumeRaw(skill, cost[0], cost[1], player.isCreative())) {
@@ -819,12 +826,12 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
         }
         AbilityExecutor.execute(player, state, skill);
         int cooldown = switch (skill.name()) {
-            case "ray_barrage" -> Math.round(lerp(100, 40, exp));
+            case "ray_barrage" -> Math.round(lerp(Balance.i("ability_context_manager", "perform_instant_lerp_5"), Balance.i("ability_context_manager", "perform_instant_lerp_6"), exp));
             default -> state.cooldownFor(skill);
         };
         float gain = switch (skill.name()) {
-            case "ray_barrage" -> .005f;
-            default -> .003f;
+            case "ray_barrage" -> Balance.f("ability_context_manager", "perform_instant_gain_1");
+            default -> Balance.f("ability_context_manager", "perform_instant_gain_2");
         };
         state.finishContext(skill, cooldown, gain);
         AbilityManager.completeUse(player, state, skill);
@@ -843,64 +850,64 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
     private static float[] initialCost(String name, float exp) {
         return switch (name) {
             case "charging" -> cost(0, 0);
-            case "scatter_bomb" -> cost(0, lerp(80, 60, exp));
-            case "light_shield" -> cost(0, lerp(110, 60, exp));
-            case "body_intensify" -> cost(0, lerp(200, 120, exp));
-            case "thunder_clap" -> cost(0, lerp(390, 252, exp));
-            case "meltdowner" -> cost(0, lerp(200, 170, exp));
-            case "mine_ray_basic" -> cost(0, lerp(200, 150, exp));
-            case "mine_ray_expert" -> cost(0, lerp(300, 200, exp));
-            case "mine_ray_luck" -> cost(0, lerp(350, 300, exp));
-            case "electron_missile" -> cost(0, 200);
-            case "vec_deviation" -> cost(0, lerp(80, 50, exp));
+            case "scatter_bomb" -> cost(0, lerp(Balance.i("ability_context_manager", "initial_cost_lerp_1"), Balance.i("ability_context_manager", "initial_cost_lerp_2"), exp));
+            case "light_shield" -> cost(0, lerp(Balance.i("ability_context_manager", "initial_cost_lerp_3"), Balance.i("ability_context_manager", "initial_cost_lerp_4"), exp));
+            case "body_intensify" -> cost(0, lerp(Balance.i("ability_context_manager", "initial_cost_lerp_5"), Balance.i("ability_context_manager", "initial_cost_lerp_6"), exp));
+            case "thunder_clap" -> cost(0, lerp(Balance.i("ability_context_manager", "initial_cost_lerp_7"), Balance.i("ability_context_manager", "initial_cost_lerp_8"), exp));
+            case "meltdowner" -> cost(0, lerp(Balance.i("ability_context_manager", "initial_cost_lerp_9"), Balance.i("ability_context_manager", "initial_cost_lerp_10"), exp));
+            case "mine_ray_basic" -> cost(0, lerp(Balance.i("ability_context_manager", "initial_cost_lerp_11"), Balance.i("ability_context_manager", "initial_cost_lerp_12"), exp));
+            case "mine_ray_expert" -> cost(0, lerp(Balance.i("ability_context_manager", "initial_cost_lerp_13"), Balance.i("ability_context_manager", "initial_cost_lerp_14"), exp));
+            case "mine_ray_luck" -> cost(0, lerp(Balance.i("ability_context_manager", "initial_cost_lerp_15"), Balance.i("ability_context_manager", "initial_cost_lerp_16"), exp));
+            case "electron_missile" -> cost(0, Balance.i("ability_context_manager", "initial_cost_value_1"));
+            case "vec_deviation" -> cost(0, lerp(Balance.i("ability_context_manager", "initial_cost_lerp_17"), Balance.i("ability_context_manager", "initial_cost_lerp_18"), exp));
             case "vec_reflection" -> cost(0, 0);
-            case "plasma_cannon" -> cost(0, lerp(500, 400, exp));
-            case "flashing" -> cost(lerp(80, 60, exp), lerp(250, 180, exp));
+            case "plasma_cannon" -> cost(0, lerp(Balance.i("ability_context_manager", "initial_cost_lerp_19"), Balance.i("ability_context_manager", "initial_cost_lerp_20"), exp));
+            case "flashing" -> cost(lerp(Balance.i("ability_context_manager", "initial_cost_lerp_21"), Balance.i("ability_context_manager", "initial_cost_lerp_22"), exp), lerp(Balance.i("ability_context_manager", "initial_cost_lerp_23"), Balance.i("ability_context_manager", "initial_cost_lerp_24"), exp));
             default -> cost(0, 0);
         };
     }
 
     private static float tickCp(String name, float exp, int ticks) {
         return switch (name) {
-            case "scatter_bomb" -> ticks <= 80 ? lerp(3, 6, exp) : 0;
-            case "light_shield" -> lerp(9, 4, exp);
+            case "scatter_bomb" -> ticks <= Balance.i("ability_context_manager", "tick_cp_threshold_1") ? lerp(Balance.i("ability_context_manager", "tick_cp_lerp_1"), Balance.i("ability_context_manager", "tick_cp_lerp_2"), exp) : 0;
+            case "light_shield" -> lerp(Balance.i("ability_context_manager", "tick_cp_lerp_3"), Balance.i("ability_context_manager", "tick_cp_lerp_4"), exp);
             case "body_intensify" -> cn.academy.ability.vanilla.electromaster.skill.BodyIntensifyRules.tickConsumption(ticks, exp);
-            case "thunder_clap" -> ticks <= 40 ? lerp(18, 25, exp) : 0;
-            case "meltdowner" -> lerp(10, 15, exp);
-            case "mine_ray_basic" -> lerp(12, 7, exp);
-            case "mine_ray_expert" -> lerp(25, 15, exp);
-            case "mine_ray_luck" -> lerp(50, 35, exp);
-            case "electron_missile" -> lerp(12, 5, exp);
-            case "vec_deviation" -> lerp(18, 7.5f, exp);
-            case "vec_reflection" -> lerp(15, 11, exp);
-            case "plasma_cannon" -> ticks < Math.ceil(cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext.chargeTime(exp)) ? lerp(18, 25, exp) : 0;
-            case "storm_wing" -> ticks > Math.round(lerp(70, 30, exp)) ? lerp(40, 25, exp) : 0;
+            case "thunder_clap" -> ticks <= Balance.i("ability_context_manager", "tick_cp_threshold_2") ? lerp(Balance.i("ability_context_manager", "tick_cp_lerp_5"), Balance.i("ability_context_manager", "tick_cp_lerp_6"), exp) : 0;
+            case "meltdowner" -> lerp(Balance.i("ability_context_manager", "tick_cp_lerp_7"), Balance.i("ability_context_manager", "tick_cp_lerp_8"), exp);
+            case "mine_ray_basic" -> lerp(Balance.i("ability_context_manager", "tick_cp_lerp_9"), Balance.i("ability_context_manager", "tick_cp_lerp_10"), exp);
+            case "mine_ray_expert" -> lerp(Balance.i("ability_context_manager", "tick_cp_lerp_11"), Balance.i("ability_context_manager", "tick_cp_lerp_12"), exp);
+            case "mine_ray_luck" -> lerp(Balance.i("ability_context_manager", "tick_cp_lerp_13"), Balance.i("ability_context_manager", "tick_cp_lerp_14"), exp);
+            case "electron_missile" -> lerp(Balance.i("ability_context_manager", "tick_cp_lerp_15"), Balance.i("ability_context_manager", "tick_cp_lerp_16"), exp);
+            case "vec_deviation" -> lerp(Balance.i("ability_context_manager", "tick_cp_lerp_17"), Balance.f("ability_context_manager", "tick_cp_lerp_18"), exp);
+            case "vec_reflection" -> lerp(Balance.i("ability_context_manager", "tick_cp_lerp_19"), Balance.i("ability_context_manager", "tick_cp_lerp_20"), exp);
+            case "plasma_cannon" -> ticks < Math.ceil(cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext.chargeTime(exp)) ? lerp(Balance.i("ability_context_manager", "tick_cp_lerp_21"), Balance.i("ability_context_manager", "tick_cp_lerp_22"), exp) : 0;
+            case "storm_wing" -> ticks > Math.round(lerp(Balance.i("ability_context_manager", "tick_cp_lerp_23"), Balance.i("ability_context_manager", "tick_cp_lerp_24"), exp)) ? lerp(Balance.i("ability_context_manager", "tick_cp_lerp_25"), Balance.i("ability_context_manager", "tick_cp_lerp_26"), exp) : 0;
             default -> 0;
         };
     }
 
     private static float tickOverload(String name, float exp, int ticks) {
         return switch (name) {
-            case "vec_reflection" -> lerp(100, 50, exp) / 20;
-            case "vec_deviation" -> lerp(.5f, .2f, exp);
-            case "storm_wing" -> ticks > Math.round(lerp(70, 30, exp)) ? lerp(10, 7, exp) : 0;
+            case "vec_reflection" -> lerp(Balance.i("ability_context_manager", "tick_overload_lerp_1"), Balance.i("ability_context_manager", "tick_overload_lerp_2"), exp) / 20;
+            case "vec_deviation" -> lerp(Balance.f("ability_context_manager", "tick_overload_lerp_3"), Balance.f("ability_context_manager", "tick_overload_lerp_4"), exp);
+            case "storm_wing" -> ticks > Math.round(lerp(Balance.i("ability_context_manager", "tick_overload_lerp_5"), Balance.i("ability_context_manager", "tick_overload_lerp_6"), exp)) ? lerp(Balance.i("ability_context_manager", "tick_overload_lerp_7"), Balance.i("ability_context_manager", "tick_overload_lerp_8"), exp) : 0;
             default -> 0;
         };
     }
 
     private static float[] releaseCost(String name, float exp, int ticks, float value) {
         return switch (name) {
-            case "threatening_teleport" -> cost(lerp(35, 100, exp), lerp(18, 10, exp));
-            case "penetrate_teleport" -> cost(value * lerp(14, 9, exp), lerp(80, 50, exp));
-            case "mark_teleport" -> cost(Math.min((ticks + 1) * 2, lerp(25, 60, exp)) * lerp(12, 4, exp), lerp(40, 20, exp));
-            case "flesh_ripping" -> cost(lerp(130, 270, exp), lerp(60, 50, exp));
-            case "shift_tp" -> cost(lerp(260, 320, exp), lerp(40, 30, exp));
-            case "jet_engine" -> cost(lerp(60, 50, exp), lerp(170, 140, exp));
-            case "dir_shock" -> cost(lerp(50, 100, exp), lerp(18, 12, exp));
-            case "ground_shock" -> cost(lerp(80, 150, exp), lerp(15, 10, exp));
-            case "vec_accel" -> cost(lerp(240, 160, exp), lerp(30, 15, exp));
-            case "dir_blast" -> cost(lerp(160, 200, exp), lerp(50, 30, exp));
-            case "blood_retro" -> cost(lerp(280, 350, exp), lerp(55, 40, exp));
+            case "threatening_teleport" -> cost(lerp(Balance.i("ability_context_manager", "release_cost_lerp_1"), Balance.i("ability_context_manager", "release_cost_lerp_2"), exp), lerp(Balance.i("ability_context_manager", "release_cost_lerp_3"), Balance.i("ability_context_manager", "release_cost_lerp_4"), exp));
+            case "penetrate_teleport" -> cost(value * lerp(Balance.i("ability_context_manager", "release_cost_lerp_5"), Balance.i("ability_context_manager", "release_cost_lerp_6"), exp), lerp(Balance.i("ability_context_manager", "release_cost_lerp_7"), Balance.i("ability_context_manager", "release_cost_lerp_8"), exp));
+            case "mark_teleport" -> cost(Math.min((ticks + 1) * Balance.i("ability_context_manager", "release_cost_value_1"), lerp(Balance.i("ability_context_manager", "release_cost_lerp_9"), Balance.i("ability_context_manager", "release_cost_lerp_10"), exp)) * lerp(Balance.i("ability_context_manager", "release_cost_lerp_11"), Balance.i("ability_context_manager", "release_cost_lerp_12"), exp), lerp(Balance.i("ability_context_manager", "release_cost_lerp_13"), Balance.i("ability_context_manager", "release_cost_lerp_14"), exp));
+            case "flesh_ripping" -> cost(lerp(Balance.i("ability_context_manager", "release_cost_lerp_15"), Balance.i("ability_context_manager", "release_cost_lerp_16"), exp), lerp(Balance.i("ability_context_manager", "release_cost_lerp_17"), Balance.i("ability_context_manager", "release_cost_lerp_18"), exp));
+            case "shift_tp" -> cost(lerp(Balance.i("ability_context_manager", "release_cost_lerp_19"), Balance.i("ability_context_manager", "release_cost_lerp_20"), exp), lerp(Balance.i("ability_context_manager", "release_cost_lerp_21"), Balance.i("ability_context_manager", "release_cost_lerp_22"), exp));
+            case "jet_engine" -> cost(lerp(Balance.i("ability_context_manager", "release_cost_lerp_23"), Balance.i("ability_context_manager", "release_cost_lerp_24"), exp), lerp(Balance.i("ability_context_manager", "release_cost_lerp_25"), Balance.i("ability_context_manager", "release_cost_lerp_26"), exp));
+            case "dir_shock" -> cost(lerp(Balance.i("ability_context_manager", "release_cost_lerp_27"), Balance.i("ability_context_manager", "release_cost_lerp_28"), exp), lerp(Balance.i("ability_context_manager", "release_cost_lerp_29"), Balance.i("ability_context_manager", "release_cost_lerp_30"), exp));
+            case "ground_shock" -> cost(lerp(Balance.i("ability_context_manager", "release_cost_lerp_31"), Balance.i("ability_context_manager", "release_cost_lerp_32"), exp), lerp(Balance.i("ability_context_manager", "release_cost_lerp_33"), Balance.i("ability_context_manager", "release_cost_lerp_34"), exp));
+            case "vec_accel" -> cost(lerp(Balance.i("ability_context_manager", "release_cost_lerp_35"), Balance.i("ability_context_manager", "release_cost_lerp_36"), exp), lerp(Balance.i("ability_context_manager", "release_cost_lerp_37"), Balance.i("ability_context_manager", "release_cost_lerp_38"), exp));
+            case "dir_blast" -> cost(lerp(Balance.i("ability_context_manager", "release_cost_lerp_39"), Balance.i("ability_context_manager", "release_cost_lerp_40"), exp), lerp(Balance.i("ability_context_manager", "release_cost_lerp_41"), Balance.i("ability_context_manager", "release_cost_lerp_42"), exp));
+            case "blood_retro" -> cost(lerp(Balance.i("ability_context_manager", "release_cost_lerp_43"), Balance.i("ability_context_manager", "release_cost_lerp_44"), exp), lerp(Balance.i("ability_context_manager", "release_cost_lerp_45"), Balance.i("ability_context_manager", "release_cost_lerp_46"), exp));
             default -> cost(0, 0);
         };
     }
@@ -908,8 +915,8 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
     private static boolean canRelease(String name, int ticks, float exp) {
         return switch (name) {
             case "thunder_clap" -> false; // The 1.12.2 context fires only at tick 60 or on CP exhaustion.
-            case "meltdowner" -> ticks >= 20 && ticks <= 100;
-            case "dir_shock", "dir_blast" -> ticks > 6 && ticks < 50;
+            case "meltdowner" -> ticks >= Balance.i("ability_context_manager", "can_release_value_1") && ticks <= Balance.i("ability_context_manager", "can_release_value_2");
+            case "dir_shock", "dir_blast" -> ticks > Balance.i("ability_context_manager", "can_release_value_3") && ticks < Balance.i("ability_context_manager", "can_release_value_4");
             case "ground_shock" -> ticks >= 0;
             case "plasma_cannon" -> ticks >= Math.ceil(cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext.chargeTime(exp));
             default -> true;
@@ -919,45 +926,45 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
     private static int lifetime(String name, float exp) {
         return switch (name) {
             case "scatter_bomb" -> 200;
-            case "light_shield" -> Math.round(lerp(120, 180, exp));
+            case "light_shield" -> Math.round(lerp(Balance.i("ability_context_manager", "lifetime_lerp_1"), Balance.i("ability_context_manager", "lifetime_lerp_2"), exp));
             case "body_intensify", "meltdowner" -> 100;
             case "thunder_clap" -> 60;
-            case "electron_missile" -> Math.round(lerp(80, 200, exp));
+            case "electron_missile" -> Math.round(lerp(Balance.i("ability_context_manager", "lifetime_lerp_3"), Balance.i("ability_context_manager", "lifetime_lerp_4"), exp));
             case "dir_shock", "dir_blast" -> 200;
             case "blood_retro" -> 0;
-            case "flashing" -> (int) lerp(60, 150, exp) + 2; // Original checks ticks > max_time before incrementing.
+            case "flashing" -> (int) lerp(Balance.i("ability_context_manager", "lifetime_lerp_5"), Balance.i("ability_context_manager", "lifetime_lerp_6"), exp) + 2; // Original checks ticks > max_time before incrementing.
             default -> 0;
         };
     }
 
     private static boolean autoPerforms(String name, int ticks, float exp) {
-        return name.equals("thunder_clap") && ticks >= 40 || name.equals("blood_retro") && ticks >= 30
+        return name.equals("thunder_clap") && ticks >= Balance.i("ability_context_manager", "auto_performs_threshold_1") || name.equals("blood_retro") && ticks >= Balance.i("ability_context_manager", "auto_performs_threshold_2")
                ;
     }
 
     private static int cooldown(String name, float exp, int ticks, boolean performed) {
         return switch (name) {
-            case "light_shield" -> Math.round(lerp(2 * ticks, ticks, exp));
-            case "mine_ray_basic" -> Math.round(lerp(40, 20, exp));
-            case "mine_ray_expert", "mine_ray_luck" -> Math.round(lerp(60, 30, exp));
-            case "electron_missile" -> Math.round(lerp(700, 400, exp));
-            case "storm_wing" -> Math.round(lerp(30, 10, exp));
-            case "flashing" -> (int) lerp(900, 400, exp);
+            case "light_shield" -> Math.round(lerp(Balance.i("ability_context_manager", "cooldown_lerp_1") * ticks, ticks, exp));
+            case "mine_ray_basic" -> Math.round(lerp(Balance.i("ability_context_manager", "cooldown_lerp_2"), Balance.i("ability_context_manager", "cooldown_lerp_3"), exp));
+            case "mine_ray_expert", "mine_ray_luck" -> Math.round(lerp(Balance.i("ability_context_manager", "cooldown_lerp_4"), Balance.i("ability_context_manager", "cooldown_lerp_5"), exp));
+            case "electron_missile" -> Math.round(lerp(Balance.i("ability_context_manager", "cooldown_lerp_6"), Balance.i("ability_context_manager", "cooldown_lerp_7"), exp));
+            case "storm_wing" -> Math.round(lerp(Balance.i("ability_context_manager", "cooldown_lerp_8"), Balance.i("ability_context_manager", "cooldown_lerp_9"), exp));
+            case "flashing" -> (int) lerp(Balance.i("ability_context_manager", "cooldown_lerp_10"), Balance.i("ability_context_manager", "cooldown_lerp_11"), exp);
             default -> performed ? switch (name) {
-                case "thunder_clap" -> Math.round(ticks * lerp(10, 6, exp));
-                case "meltdowner" -> Math.round(lerp(.8f, 1.2f, (Math.min(ticks, 40) - 20) / 20f) * 20 * lerp(15, 7, exp));
-                case "threatening_teleport" -> Math.round(lerp(30, 15, exp));
-                case "penetrate_teleport" -> (int) lerp(50, 30, exp);
-                case "mark_teleport" -> (int) lerp(30, 0, exp);
-                case "flesh_ripping" -> Math.round(lerp(90, 40, exp));
-                case "shift_tp" -> Math.round(lerp(100, 60, exp));
-                case "jet_engine" -> Math.round(lerp(60, 30, exp));
-                case "dir_shock" -> Math.round(lerp(60, 20, exp));
-                case "ground_shock" -> Math.round(lerp(80, 40, exp));
-                case "vec_accel" -> Math.round(lerp(80, 50, exp));
-                case "dir_blast" -> Math.round(lerp(80, 50, exp));
-                case "blood_retro" -> Math.round(lerp(90, 40, exp));
-                case "plasma_cannon" -> Math.round(lerp(1000, 600, exp));
+                case "thunder_clap" -> Math.round(ticks * lerp(Balance.i("ability_context_manager", "cooldown_lerp_12"), Balance.i("ability_context_manager", "cooldown_lerp_13"), exp));
+                case "meltdowner" -> Math.round(lerp(Balance.f("ability_context_manager", "cooldown_lerp_14"), Balance.f("ability_context_manager", "cooldown_lerp_15"), (Math.min(ticks, Balance.i("ability_context_manager", "cooldown_lerp_16")) - Balance.i("ability_context_manager", "cooldown_lerp_17")) / Balance.f("ability_context_manager", "cooldown_lerp_18")) * Balance.i("ability_context_manager", "cooldown_value_1") * lerp(Balance.i("ability_context_manager", "cooldown_lerp_19"), Balance.i("ability_context_manager", "cooldown_lerp_20"), exp));
+                case "threatening_teleport" -> Math.round(lerp(Balance.i("ability_context_manager", "cooldown_lerp_21"), Balance.i("ability_context_manager", "cooldown_lerp_22"), exp));
+                case "penetrate_teleport" -> (int) lerp(Balance.i("ability_context_manager", "cooldown_lerp_23"), Balance.i("ability_context_manager", "cooldown_lerp_24"), exp);
+                case "mark_teleport" -> (int) lerp(Balance.i("ability_context_manager", "cooldown_lerp_25"), Balance.i("ability_context_manager", "cooldown_lerp_26"), exp);
+                case "flesh_ripping" -> Math.round(lerp(Balance.i("ability_context_manager", "cooldown_lerp_27"), Balance.i("ability_context_manager", "cooldown_lerp_28"), exp));
+                case "shift_tp" -> Math.round(lerp(Balance.i("ability_context_manager", "cooldown_lerp_29"), Balance.i("ability_context_manager", "cooldown_lerp_30"), exp));
+                case "jet_engine" -> Math.round(lerp(Balance.i("ability_context_manager", "cooldown_lerp_31"), Balance.i("ability_context_manager", "cooldown_lerp_32"), exp));
+                case "dir_shock" -> Math.round(lerp(Balance.i("ability_context_manager", "cooldown_lerp_33"), Balance.i("ability_context_manager", "cooldown_lerp_34"), exp));
+                case "ground_shock" -> Math.round(lerp(Balance.i("ability_context_manager", "cooldown_lerp_35"), Balance.i("ability_context_manager", "cooldown_lerp_36"), exp));
+                case "vec_accel" -> Math.round(lerp(Balance.i("ability_context_manager", "cooldown_lerp_37"), Balance.i("ability_context_manager", "cooldown_lerp_38"), exp));
+                case "dir_blast" -> Math.round(lerp(Balance.i("ability_context_manager", "cooldown_lerp_39"), Balance.i("ability_context_manager", "cooldown_lerp_40"), exp));
+                case "blood_retro" -> Math.round(lerp(Balance.i("ability_context_manager", "cooldown_lerp_41"), Balance.i("ability_context_manager", "cooldown_lerp_42"), exp));
+                case "plasma_cannon" -> Math.round(lerp(Balance.i("ability_context_manager", "cooldown_lerp_43"), Balance.i("ability_context_manager", "cooldown_lerp_44"), exp));
                 default -> 0;
             } : 0;
         };
@@ -983,7 +990,7 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
     private static float continuousExperience(String name, int ticks, float exp) {
         return switch (name) {
             case "mag_movement" -> 0;
-            case "storm_wing" -> Math.max(0, ticks - Math.round(lerp(70, 30, exp))) * .00005f;
+            case "storm_wing" -> Math.max(0, ticks - Math.round(lerp(Balance.i("ability_context_manager", "continuous_experience_lerp_1"), Balance.i("ability_context_manager", "continuous_experience_lerp_2"), exp))) * .00005f;
             default -> 0;
         };
     }
@@ -1032,9 +1039,9 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
     /** Original IConsumptionProvider values are captured when these three contexts are created. */
     private static float consumptionHint(String skill, float experience) {
         return switch (skill) {
-            case "vec_accel" -> lerp(240, 160, experience);
-            case "ground_shock" -> lerp(80, 150, experience);
-            case "dir_blast" -> lerp(160, 200, experience);
+            case "vec_accel" -> lerp(Balance.i("ability_context_manager", "consumption_hint_lerp_1"), Balance.i("ability_context_manager", "consumption_hint_lerp_2"), experience);
+            case "ground_shock" -> lerp(Balance.i("ability_context_manager", "consumption_hint_lerp_3"), Balance.i("ability_context_manager", "consumption_hint_lerp_4"), experience);
+            case "dir_blast" -> lerp(Balance.i("ability_context_manager", "consumption_hint_lerp_5"), Balance.i("ability_context_manager", "consumption_hint_lerp_6"), experience);
             default -> 0;
         };
     }
@@ -1049,7 +1056,7 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
             case "vec_accel" -> 0;
             case "blood_retro" -> 0;
             case "plasma_cannon" -> (int)Math.ceil(cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext.chargeTime(exp));
-            case "storm_wing" -> Math.round(lerp(70, 30, exp));
+            case "storm_wing" -> Math.round(lerp(Balance.i("ability_context_manager", "charge_target_lerp_1"), Balance.i("ability_context_manager", "charge_target_lerp_2"), exp));
             default -> 0;
         };
     }

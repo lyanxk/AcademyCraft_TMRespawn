@@ -1,7 +1,10 @@
 package cn.academy.entity;
 
+import cn.academy.data.GameplayData;
+
+import cn.academy.data.Balance;
+
 import cn.academy.ability.AbilityState;
-import cn.academy.config.ACConfig;
 import cn.academy.network.VisualEffectPayload;
 import cn.academy.registry.ACEntities;
 import net.minecraft.nbt.CompoundTag;
@@ -55,7 +58,7 @@ public final class ACElectronBallEntity extends Entity {
         ACElectronBallEntity ball = new ACElectronBallEntity(ACEntities.ELECTRON_BALL.get(), owner.level());
         float pi=(float)Math.PI;
         float theta = -owner.getYRot()/180*pi + (-pi*.45f+owner.getRandom().nextFloat()*(pi*.45f-(-pi*.45f)));
-        float range = .8f + owner.getRandom().nextFloat() * (1.3f-.8f);
+        float range = Balance.f("a_c_electron_ball_entity", "create_range_1") + owner.getRandom().nextFloat() * (Balance.f("a_c_electron_ball_entity", "create_range_2")-Balance.f("a_c_electron_ball_entity", "create_range_3"));
         ball.spawner=owner;
         ball.getEntityData().set(OWNER, owner.getId());
         ball.getEntityData().set(OFFSET_X, net.minecraft.util.Mth.sin(theta) * range);
@@ -125,7 +128,7 @@ public final class ACElectronBallEntity extends Entity {
         if(!level().isClientSide && getEntityData().get(MODE)==0 && owner instanceof ServerPlayer player) {
             // EntityAdvanced runs callbacks before EntityMdBall.updatePosition. The callback
             // uses the previous ball position, but the caster's current look and eye height.
-            if(!fired && tickCount>=life()-2) {
+            if(!fired && tickCount>=life()-Balance.i("a_c_electron_ball_entity", "tick_threshold_1")) {
                 fired=true;
                 cn.academy.ability.vanilla.meltdowner.skill.ElectronBomb.fire(player,this,damage);
             }
@@ -139,7 +142,7 @@ public final class ACElectronBallEntity extends Entity {
         }
         followOwner(owner);
         int life = Math.max(3, life());
-        if (!level().isClientSide && !fired && tickCount >= life - 2) {
+        if (!level().isClientSide && !fired && tickCount >= life - Balance.i("a_c_electron_ball_entity", "tick_threshold_2")) {
             fired = true;
             fire(owner);
         }
@@ -153,7 +156,7 @@ public final class ACElectronBallEntity extends Entity {
     }
 
     private void fire(LivingEntity owner) {
-        Vec3 intended = owner.getEyePosition().add(owner.getLookAngle().scale(15));
+        Vec3 intended = owner.getEyePosition().add(owner.getLookAngle().scale(Balance.i("a_c_electron_ball_entity", "fire_scale_1")));
         fireAt(owner, intended, damage);
     }
 
@@ -167,8 +170,8 @@ public final class ACElectronBallEntity extends Entity {
         AABB search = new AABB(start, end).inflate(1);
         LivingEntity target = server.getEntitiesOfClass(LivingEntity.class, search,
                         value -> value != owner && value.isAlive() && !(value instanceof Player
-                                && !ACConfig.ATTACK_PLAYERS.get()))
-                .stream().filter(value -> value.getBoundingBox().inflate(.3).clip(start, end).isPresent())
+                                && !GameplayData.flag("policy", "attack_players")))
+                .stream().filter(value -> value.getBoundingBox().inflate(Balance.d("a_c_electron_ball_entity", "fire_at_inflate_1")).clip(start, end).isPresent())
                 .min(Comparator.comparingDouble(value -> value.distanceToSqr(start))).orElse(null);
         if (target != null) {
             target.invulnerableTime = 0;
@@ -187,7 +190,7 @@ public final class ACElectronBallEntity extends Entity {
         }
         VisualEffectPayload visual = new VisualEffectPayload("meltdowner", start.x, start.y, start.z,
                 end.x, end.y, end.z, .055f, 0xD86EFF87, 10);
-        for (ServerPlayer viewer : server.players()) if (viewer.distanceToSqr(this) <= 128 * 128)
+        for (ServerPlayer viewer : server.players()) if (viewer.distanceToSqr(this) <= Balance.i("a_c_electron_ball_entity", "fire_at_threshold_1") * Balance.i("a_c_electron_ball_entity", "fire_at_threshold_2"))
             PacketDistributor.sendToPlayer(viewer, visual);
         discard();
     }

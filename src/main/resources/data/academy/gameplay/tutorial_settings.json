@@ -1,0 +1,7 @@
+{
+  "give_terminal": true,
+  "gift_item": "academy:tutorial",
+  "gift_count": 1,
+  "gift_interval_ticks": 10,
+  "condition_interval_ticks": 3
+}

@@ -43,6 +43,10 @@ public final class ACDataComponents {
                     .networkSynchronized(ByteBufCodecs.STRING_UTF8)
                     .build());
 
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<String>> MATTER_MATERIAL =
+            COMPONENTS.register("matter_material", () -> DataComponentType.<String>builder()
+                    .persistent(Codec.STRING).networkSynchronized(ByteBufCodecs.STRING_UTF8).build());
+
     public static void register(IEventBus bus) {
         COMPONENTS.register(bus);
     }

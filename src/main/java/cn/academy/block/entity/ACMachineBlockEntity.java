@@ -1,5 +1,9 @@
 package cn.academy.block.entity;
 
+import cn.academy.data.GameplayRules;
+
+import cn.academy.data.GameplayData;
+
 import cn.academy.block.ACMachineBlock;
 import cn.academy.block.MachineKind;
 import cn.academy.crafting.MachineRecipes;
@@ -65,9 +69,10 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
     private int pendingRecipeMode;
     private int formerWorkCounter;
     private double fusorWorkProgress;
-    private int fusorCheckCooldown = 10;
+    private int fusorCheckCooldown = GameplayData.integer("machines/imag_fusor", "recipe_check_interval");
     private int mode;
     private int phaseLiquid;
+    private long recipeRevision = -1;
     private int ticks;
     private java.util.UUID developerUser;
     private double lastGeneration;
@@ -98,11 +103,11 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
     private long linkedNodePos;
     private String placerId = "";
     private String placerName = "";
-    private boolean interfererEnabled;
-    private double interfererRange = 10;
+    private boolean interfererEnabled = GameplayData.flag("machines/ability_interferer", "default_enabled");
+    private double interfererRange = GameplayData.number("machines/ability_interferer", "minimum_range");
     // TickScheduler stores seconds as floats and pauses this counter while disabled.
-    private float interfererCountdown = .5f;
-    private float interfererSyncCountdown = 1;
+    private float interfererCountdown = GameplayData.integer("machines/ability_interferer", "operation_interval_ticks") / 20f;
+    private float interfererSyncCountdown = GameplayData.integer("machines/ability_interferer", "sync_interval_ticks") / 20f;
     private final java.util.SortedSet<String> interfererWhitelist = new java.util.TreeSet<>();
 
     public ACMachineBlockEntity(BlockPos pos, BlockState state) {
@@ -147,11 +152,16 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
         private TrackedEnergyStorage(int capacity, int transfer) {
             super(capacity, transfer, transfer);
         }
+        private void refreshLimits() {
+            capacity = kind.capacity(); maxReceive = maxExtract = kind.transfer();
+            setExactEnergy(exactEnergy());
+        }
 
         private double fraction;
         public void setEnergy(int value) { setExactEnergy(value); }
         public double exactEnergy() { return energy + fraction; }
         public void setExactEnergy(double value) {
+            capacity = kind.capacity(); maxReceive = maxExtract = kind.transfer();
             double clamped = Double.isFinite(value) ? Math.max(0, Math.min(capacity, value)) : 0;
             energy = (int) clamped;
             fraction = clamped - energy;
@@ -196,7 +206,7 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
         // EU bridges must use an EU adapter, never pretend that FE is EU.
         if (kind != MachineKind.FE_INPUT && kind != MachineKind.FE_OUTPUT) return null;
         return new cn.academy.support.fe.FEEnergyStorage(energy::exactEnergy, this::setWirelessEnergy,
-                kind.capacity(), kind == MachineKind.FE_INPUT);
+                kind::capacity, kind == MachineKind.FE_INPUT);
     }
 
     public MachineKind kind() { return kind; }
@@ -245,7 +255,7 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
     public int progress() { return (int) Math.round(workProgress() * maxProgress()); }
     public double workProgress() {
         restoreProcessingRecipe();
-        return kind == MachineKind.METAL_FORMER ? isWorkInProgress() ? formerWorkCounter / 60.0 : 0
+        return kind == MachineKind.METAL_FORMER ? isWorkInProgress() ? formerWorkCounter / (double) currentRecipe.duration() : 0
                 : kind == MachineKind.IMAG_FUSOR && currentRecipe != null ? fusorWorkProgress : 0;
     }
     public boolean isWorking() { restoreProcessingRecipe(); return currentRecipe != null; }
@@ -256,7 +266,7 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
         if (kind == MachineKind.METAL_FORMER) return !metalActionBlocked();
         return kind == MachineKind.IMAG_FUSOR && !fusorActionBlocked();
     }
-    public int maxProgress() { return kind == MachineKind.IMAG_FUSOR ? 120 : kind == MachineKind.METAL_FORMER ? 60 : 0; }
+    public int maxProgress() { restoreProcessingRecipe(); return currentRecipe == null ? 0 : currentRecipe.duration(); }
     public int mode() { return mode; }
     public int phaseLiquid() { return phaseLiquid; }
     public double lastGeneration() { return lastGeneration; }
@@ -286,7 +296,7 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
         // ACNetwork still requires a nearby player with this machine's open container.
         if (field == 0 || field == 1) interfererEnabled = enabled;
         if (field == 0 || field == 2) {
-            interfererRange = Math.max(10, Math.min(100, range));
+            interfererRange = Math.clamp(range, GameplayData.number("machines/ability_interferer", "minimum_range"), GameplayData.number("machines/ability_interferer", "maximum_range"));
         }
         if (field == 0 || field == 3) {
             interfererWhitelist.clear();
@@ -308,7 +318,7 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
         if (interfererEnabled) {
             interfererCountdown -= .05f;
             if (interfererCountdown <= 0) {
-                double remaining = energy.exactEnergy() - interfererRange * interfererRange;
+                double remaining = energy.exactEnergy() - interfererRange * interfererRange * GameplayData.number("machines/ability_interferer", "energy_per_range_squared");
                 energy.setExactEnergy(Math.max(0, remaining));
                 if (remaining > 0) {
                     var bounds = new net.minecraft.world.phys.AABB(worldPosition.getX() + .5 - interfererRange,
@@ -324,13 +334,13 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
                     }
                 } else interfererEnabled = false;
                 changed();
-                interfererCountdown += .5f;
+                interfererCountdown += GameplayData.integer("machines/ability_interferer", "operation_interval_ticks") / 20f;
             }
         }
         interfererSyncCountdown -= .05f;
         if (interfererSyncCountdown <= 0) {
             sync();
-            interfererSyncCountdown += 1;
+            interfererSyncCountdown += GameplayData.integer("machines/ability_interferer", "sync_interval_ticks") / 20f;
         }
     }
 
@@ -355,10 +365,10 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
     }
     public int wirelessCapacity() {
         return switch (kind) {
-            case MATRIX -> isMatrixWorking() ? 8 * matrixCoreLevel() : 0;
-            case NODE_BASIC -> 5;
-            case NODE_STANDARD -> 10;
-            case NODE_ADVANCED -> 20;
+            case MATRIX -> isMatrixWorking() ? GameplayRules.core(matrixCoreLevel()).get("connections").getAsInt() : 0;
+            case NODE_BASIC -> GameplayData.integer(GameplayRules.machine(kind), "connections");
+            case NODE_STANDARD -> GameplayData.integer(GameplayRules.machine(kind), "connections");
+            case NODE_ADVANCED -> GameplayData.integer(GameplayRules.machine(kind), "connections");
             default -> 0;
         };
     }
@@ -396,15 +406,15 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
         return new IFluidHandler() {
             @Override public int getTanks() { return 1; }
             @Override public FluidStack getFluidInTank(int tank) {
-                return tank == 0 && phaseLiquid > 0 ? new FluidStack(ACFluids.IMAG_PHASE.get(), phaseLiquid) : FluidStack.EMPTY;
+                return tank == 0 && phaseLiquid > 0 ? new FluidStack(GameplayRules.fluid(GameplayData.string(GameplayRules.machine(kind), "fluid")), phaseLiquid) : FluidStack.EMPTY;
             }
-            @Override public int getTankCapacity(int tank) { return tank == 0 ? 8_000 : 0; }
+            @Override public int getTankCapacity(int tank) { return tank == 0 ? GameplayRules.tankCapacity(kind) : 0; }
             @Override public boolean isFluidValid(int tank, FluidStack stack) {
-                return tank == 0 && stack.is(ACFluids.IMAG_PHASE.get());
+                return tank == 0 && stack.is(GameplayRules.fluid(GameplayData.string(GameplayRules.machine(kind), "fluid")));
             }
             @Override public int fill(FluidStack resource, FluidAction action) {
                 if (!isFluidValid(0, resource)) return 0;
-                int accepted = Math.min(resource.getAmount(), 8_000 - phaseLiquid);
+                int accepted = Math.min(resource.getAmount(), GameplayRules.tankCapacity(kind) - phaseLiquid);
                 if (action.execute() && accepted > 0) {
                     phaseLiquid += accepted;
                     changed();
@@ -413,7 +423,7 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
                 return accepted;
             }
             @Override public FluidStack drain(FluidStack resource, FluidAction action) {
-                return resource.is(ACFluids.IMAG_PHASE.get()) ? drain(resource.getAmount(), action) : FluidStack.EMPTY;
+                return resource.is(GameplayRules.fluid(GameplayData.string(GameplayRules.machine(kind), "fluid"))) ? drain(resource.getAmount(), action) : FluidStack.EMPTY;
             }
             @Override public FluidStack drain(int maxDrain, FluidAction action) {
                 int drained = Math.min(Math.max(0, maxDrain), phaseLiquid);
@@ -423,32 +433,32 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
                     changed();
                     sync();
                 }
-                return new FluidStack(ACFluids.IMAG_PHASE.get(), drained);
+                return new FluidStack(GameplayRules.fluid(GameplayData.string(GameplayRules.machine(kind), "fluid")), drained);
             }
         };
     }
     public boolean isWirelessConfigurable() { return this instanceof IWirelessUser || this instanceof IWirelessNode || this instanceof IWirelessMatrix; }
     public boolean isMatrixWorking() {
-        return kind == MachineKind.MATRIX && items.getStackInSlot(0).is(ACItems.CONSTRAINT_PLATE.get())
-                && items.getStackInSlot(1).is(ACItems.CONSTRAINT_PLATE.get())
-                && items.getStackInSlot(2).is(ACItems.CONSTRAINT_PLATE.get())
-                && items.getStackInSlot(3).is(ACItems.MAT_CORE.get());
+        return kind == MachineKind.MATRIX && items.getStackInSlot(0).is(GameplayRules.item(GameplayData.string("wireless", "matrix_material")))
+                && items.getStackInSlot(1).is(GameplayRules.item(GameplayData.string("wireless", "matrix_material")))
+                && items.getStackInSlot(2).is(GameplayRules.item(GameplayData.string("wireless", "matrix_material")))
+                && items.getStackInSlot(3).is(GameplayRules.item(GameplayData.string("wireless", "matrix_core")));
     }
     public int matrixTier() { return matrixCoreLevel(); }
     public double wirelessRange() {
         return switch (kind) {
             case MATRIX -> matrixRange();
-            case NODE_BASIC -> 9;
-            case NODE_STANDARD -> 12;
-            case NODE_ADVANCED -> 19;
+            case NODE_BASIC -> GameplayData.number(GameplayRules.machine(kind), "range");
+            case NODE_STANDARD -> GameplayData.number(GameplayRules.machine(kind), "range");
+            case NODE_ADVANCED -> GameplayData.number(GameplayRules.machine(kind), "range");
             default -> 0;
         };
     }
     private int matrixCoreLevel() {
-        return kind == MachineKind.MATRIX && items.getStackInSlot(3).is(ACItems.MAT_CORE.get())
+        return kind == MachineKind.MATRIX && items.getStackInSlot(3).is(GameplayRules.item(GameplayData.string("wireless", "matrix_core")))
                 ? MatrixCoreItem.level(items.getStackInSlot(3)) : 0;
     }
-    private double matrixRange() { return isMatrixWorking() ? 24 * Math.sqrt(matrixCoreLevel()) : 0; }
+    private double matrixRange() { return isMatrixWorking() ? GameplayRules.core(matrixCoreLevel()).get("range").getAsDouble() : 0; }
 
     @Override
     public void onLoad() {
@@ -470,6 +480,11 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
     }
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, ACMachineBlockEntity machine) {
+        machine.energy.refreshLimits();
+        if (machine.kind == MachineKind.IMAG_FUSOR || machine.kind == MachineKind.PHASE_GENERATOR)
+            machine.phaseLiquid = Math.min(machine.phaseLiquid, GameplayRules.tankCapacity(machine.kind));
+        if (machine.kind == MachineKind.ABILITY_INTERFERER) machine.interfererRange = Math.clamp(machine.interfererRange,
+                GameplayData.number("machines/ability_interferer", "minimum_range"), GameplayData.number("machines/ability_interferer", "maximum_range"));
         machine.ticks++;
         if (machine.ticks % 20 == 1) machine.reconcileWirelessLink();
         machine.generate();
@@ -544,6 +559,11 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
     }
 
     public static void clientTick(Level level, BlockPos pos, BlockState state, ACMachineBlockEntity machine) {
+        machine.energy.refreshLimits();
+        if (machine.kind == MachineKind.IMAG_FUSOR || machine.kind == MachineKind.PHASE_GENERATOR)
+            machine.phaseLiquid = Math.min(machine.phaseLiquid, GameplayRules.tankCapacity(machine.kind));
+        if (machine.kind == MachineKind.ABILITY_INTERFERER) machine.interfererRange = Math.clamp(machine.interfererRange,
+                GameplayData.number("machines/ability_interferer", "minimum_range"), GameplayData.number("machines/ability_interferer", "maximum_range"));
         machine.ticks++;
         if (machine.kind == MachineKind.METAL_FORMER) machine.restoreProcessingRecipe();
         if (machine.kind == MachineKind.IMAG_FUSOR) {
@@ -565,14 +585,14 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
         double required = energy.getMaxEnergyStored() - energy.exactEnergy();
         double generated;
         if (kind == MachineKind.PHASE_GENERATOR) {
-            int drained = Math.min(phaseLiquid, (int) Math.min(100, required / .5));
+            int drained = Math.min(phaseLiquid, (int) Math.min(GameplayData.integer("machines/phase_generator", "fluid_per_tick"), required / GameplayData.number("machines/phase_generator", "energy_per_mb")));
             phaseLiquid -= drained;
-            generated = drained * .5;
+            generated = drained * GameplayData.number("machines/phase_generator", "energy_per_mb");
         } else {
             double potential = switch (kind) {
                 case SOLAR_GENERATOR -> solarGeneration();
                 case WIND_BASE -> simulatedWindGeneration();
-                case CAT_ENGINE -> 500;
+                case CAT_ENGINE -> kind.generation();
                 default -> 0;
             };
             generated = Math.min(required, potential);
@@ -586,9 +606,9 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
     public boolean solarCanGenerate() {
         if (level == null) return false;
         long time = level.getDayTime() % 24000;
-        return time >= 0 && time <= 12500 && level.canSeeSky(worldPosition.above());
+        return time >= GameplayData.integer("machines/solar_generator", "day_start") && time <= GameplayData.integer("machines/solar_generator", "day_end") && level.canSeeSky(worldPosition.above());
     }
-    public double solarGeneration() { return solarCanGenerate() ? 3 * (level.isRaining() ? .2 : 1) : 0; }
+    public double solarGeneration() { return solarCanGenerate() ? kind.generation() * (level.isRaining() ? GameplayData.number("machines/solar_generator", "rain_multiplier") : 1) : 0; }
 
     public WindCompleteness windCompleteness() {
         return windCompleteness == WindCompleteness.COMPLETE && !windShouldGenerate()
@@ -599,7 +619,7 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
                 && windMain.items.getStackInSlot(0).is(ACItems.WINDGEN_FAN.get());
     }
     public double simulatedWindGeneration() {
-        return windShouldGenerate() ? 15 * (.5 + .5 * Math.max(0, Math.min(1, (windMain.worldPosition.getY() - 70.0) / 90))) : 0;
+        return windShouldGenerate() ? GameplayData.number("machines/wind_base", "generation") * (GameplayData.number("machines/wind_base", "minimum_output_multiplier") + (1 - GameplayData.number("machines/wind_base", "minimum_output_multiplier")) * Math.clamp((windMain.worldPosition.getY() - GameplayData.number("machines/wind_base", "minimum_height")) / GameplayData.number("machines/wind_base", "height_span"), 0, 1)) : 0;
     }
     private void updateWindState() {
         if (level == null) return;
@@ -623,7 +643,7 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
             if (level.getBlockState(pos).is(ACBlocks.WINDGEN_PILLAR.get())) {
                 if (++pillars > 40) { windCompleteness = WindCompleteness.NO_TOP; return; }
             } else if (level.getBlockEntity(pos) instanceof ACMachineBlockEntity main && main.kind == MachineKind.WIND_GENERATOR) {
-                if (pillars >= 8) { windMain = main; windCompleteness = WindCompleteness.COMPLETE; }
+                if (pillars >= GameplayData.integer("machines/wind_base", "required_pillars")) { windMain = main; windCompleteness = WindCompleteness.COMPLETE; }
                 else windCompleteness = WindCompleteness.NO_TOP;
                 return;
             } else {
@@ -665,9 +685,9 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
             BlockState below = level.getBlockState(belowPos);
             if (below.is(ACBlocks.WINDGEN_PILLAR.get())) {
                 if (++pillars > 40) return null;
-            } else if (pillars >= 8 && below.is(ACBlocks.WINDGEN_BASE.get())
+            } else if (pillars >= GameplayData.integer("machines/wind_base", "required_pillars") && below.is(ACBlocks.WINDGEN_BASE.get())
                     && level.getBlockEntity(belowPos) instanceof ACMachineBlockEntity base) return base;
-            else if (pillars >= 8 && level.getBlockEntity(belowPos) instanceof ACMultiblockPartEntity part
+            else if (pillars >= GameplayData.integer("machines/wind_base", "required_pillars") && level.getBlockEntity(belowPos) instanceof ACMultiblockPartEntity part
                     && level.getBlockEntity(part.origin()) instanceof ACMachineBlockEntity base
                     && base.kind == MachineKind.WIND_BASE) return base;
             else return null;
@@ -679,15 +699,15 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
         if (kind != MachineKind.IMAG_FUSOR && kind != MachineKind.PHASE_GENERATOR) return;
         ItemStack input = items.getStackInSlot(3);
         ItemStack output = items.getStackInSlot(4);
-        if (!input.is(ACItems.MATTER_UNIT.get()) || !cn.academy.item.MatterUnitItem.isFilled(input)
-                || phaseLiquid + 1_000 > 8_000 || kind == MachineKind.PHASE_GENERATOR && phaseLiquid + 1_000 == 8_000
+        if (!input.is(ACItems.MATTER_UNIT.get()) || (!cn.academy.item.MatterUnitItem.isFilled(input) || !cn.academy.item.MatterUnitItem.getMaterial(input).fluid().get().isSame(GameplayRules.fluid(GameplayData.string(GameplayRules.machine(kind), "fluid"))))
+                || phaseLiquid + GameplayData.integer("matter", "capacity") > GameplayRules.tankCapacity(kind) || kind == MachineKind.PHASE_GENERATOR && phaseLiquid + GameplayData.integer("matter", "capacity") == GameplayRules.tankCapacity(kind)
                 || !output.isEmpty() && (!output.is(ACItems.MATTER_UNIT.get()) || output.getCount() >= output.getMaxStackSize()
                         || kind == MachineKind.PHASE_GENERATOR && cn.academy.item.MatterUnitItem.isFilled(output))) return;
         items.extractItem(3, 1, false);
         ItemStack empty = new ItemStack(ACItems.MATTER_UNIT.get());
         if (output.isEmpty()) items.setStackInSlot(4, empty);
         else output.grow(1);
-        phaseLiquid += 1_000;
+        phaseLiquid += GameplayData.integer("matter", "capacity");
         changed();
     }
 
@@ -728,7 +748,15 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
     }
 
     private void restoreProcessingRecipe() {
-        if (pendingRecipeInput.isEmpty() || level == null) return;
+        if (level == null) return;
+        long revision = MachineRecipes.revision();
+        if (recipeRevision != revision) {
+            recipeRevision = revision;
+            if (currentRecipe != null) {
+                currentRecipe = null; formerWorkCounter = 0; fusorWorkProgress = 0;
+            }
+        }
+        if (pendingRecipeInput.isEmpty()) return;
         currentRecipe = MachineRecipes.find(level, kind == MachineKind.IMAG_FUSOR
                 ? MachineRecipes.Kind.IMAG_FUSOR : MachineRecipes.Kind.METAL_FORMER, pendingRecipeMode, pendingRecipeInput);
         pendingRecipeInput = ItemStack.EMPTY;
@@ -737,8 +765,8 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
 
     private void processMetalFormer() {
         if (currentRecipe != null) {
-            if (!metalActionBlocked() && energy.pullInternal(13.3) == 13.3) {
-                if (++formerWorkCounter == 60) {
+            if (!metalActionBlocked() && energy.pullInternal(currentRecipe.energy()) == currentRecipe.energy()) {
+                if (++formerWorkCounter >= currentRecipe.duration()) {
                     finishRecipe(currentRecipe);
                     currentRecipe = null;
                     formerWorkCounter = 0;
@@ -747,7 +775,7 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
                 currentRecipe = null;
                 formerWorkCounter = 0;
             }
-        } else if (++formerWorkCounter == 5) {
+        } else if (++formerWorkCounter >= GameplayData.integer("machines/metal_former", "recipe_check_interval")) {
             currentRecipe = MachineRecipes.find(level, MachineRecipes.Kind.METAL_FORMER, mode, items.getStackInSlot(0));
             formerWorkCounter = 0;
         }
@@ -756,29 +784,27 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
     private boolean metalActionBlocked() {
         if (currentRecipe == null || currentRecipe.mode().ordinal() != mode || !currentRecipe.accepts(items.getStackInSlot(0))) return true;
         ItemStack output = items.getStackInSlot(2), result = currentRecipe.output();
-        // Original MetalFormer compares item/damage only, unlike the fusor's stack-data comparison.
-        return !output.isEmpty() && (!ItemStack.isSameItem(output, result) || output.getDamageValue() != result.getDamageValue()
-                || output.getCount() + result.getCount() > output.getMaxStackSize());
+        return !canOutput(result);
     }
 
     private void processImagFusor() {
         if (currentRecipe == null && !level.isClientSide && --fusorCheckCooldown <= 0) {
-            fusorCheckCooldown = 10;
+            fusorCheckCooldown = GameplayData.integer("machines/imag_fusor", "recipe_check_interval");
             currentRecipe = MachineRecipes.find(level, MachineRecipes.Kind.IMAG_FUSOR, 0, items.getStackInSlot(0));
             if (currentRecipe != null) fusorWorkProgress = 0;
         }
         if (currentRecipe == null) return;
         ItemStack input = items.getStackInSlot(0), output = items.getStackInSlot(2);
         // Preserve short-circuit order: bad liquid/output can consume energy; a missing input cannot.
-        if (input.isEmpty() || !ItemStack.isSameItem(input, currentRecipe.input())
-                || energy.pullInternal(12) != 12 || phaseLiquid < currentRecipe.liquid()
+        if (input.isEmpty() || !currentRecipe.matchesItem(input)
+                || energy.pullInternal(currentRecipe.energy()) != currentRecipe.energy() || phaseLiquid < currentRecipe.liquid()
                 || !output.isEmpty() && !ItemStack.isSameItem(output, currentRecipe.output())) {
             currentRecipe = null;
             fusorWorkProgress = 0;
             return;
         }
         if (!fusorActionBlocked()) {
-            fusorWorkProgress += 1.0 / 120;
+            fusorWorkProgress += 1.0 / currentRecipe.duration();
             if (fusorWorkProgress >= 1) {
                 finishRecipe(currentRecipe);
                 currentRecipe = null;
@@ -789,14 +815,14 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
     }
 
     private boolean fusorActionBlocked() {
-        return currentRecipe == null || items.getStackInSlot(0).getCount() < currentRecipe.input().getCount()
+        return currentRecipe == null || !GameplayRules.recipeFluid(currentRecipe, kind) || items.getStackInSlot(0).getCount() < currentRecipe.inputCount()
                 || phaseLiquid < currentRecipe.liquid() || !canOutput(currentRecipe.output());
     }
 
     private void finishRecipe(MachineRecipes.Recipe recipe) {
         phaseLiquid -= recipe.liquid();
         if (level != null && level.isClientSide) return;
-        items.extractItem(0, recipe.input().getCount(), false);
+        items.extractItem(0, recipe.inputCount(), false);
         ItemStack result = recipe.result();
         ItemStack existing = items.getStackInSlot(2);
         if (existing.isEmpty()) items.setStackInSlot(2, result);
@@ -813,7 +839,7 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
     private boolean isValidAutomationInput(int slot, ItemStack stack) {
         boolean present = java.util.Arrays.stream(inventorySlots()).anyMatch(index -> index == slot);
         if (!present) return false;
-        if (kind == MachineKind.MATRIX) return slot < 3 ? stack.is(ACItems.CONSTRAINT_PLATE.get()) : stack.is(ACItems.MAT_CORE.get());
+        if (kind == MachineKind.MATRIX) return slot < 3 ? stack.is(GameplayRules.item(GameplayData.string("wireless", "matrix_material"))) : stack.is(GameplayRules.item(GameplayData.string("wireless", "matrix_core")));
         if (kind == MachineKind.WIND_GENERATOR) return stack.is(ACItems.WINDGEN_FAN.get());
         // TileInventory accepts arbitrary stacks; GUI Slot classes impose their own restrictions.
         return true;
@@ -833,8 +859,8 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
             case WIND_BASE -> slot == 0 && cn.academy.energy.api.IFItemManager.instance.isSupported(stack);
             case PHASE_GENERATOR -> slot == 0 && cn.academy.energy.api.IFItemManager.instance.isSupported(stack)
                     || slot == 3 && stack.is(ACItems.MATTER_UNIT.get()) && cn.academy.item.MatterUnitItem.isFilled(stack);
-            case MATRIX -> slot <= 2 && stack.is(ACItems.CONSTRAINT_PLATE.get())
-                    || slot == 3 && stack.is(ACItems.MAT_CORE.get());
+            case MATRIX -> slot <= 2 && stack.is(GameplayRules.item(GameplayData.string("wireless", "matrix_material")))
+                    || slot == 3 && stack.is(GameplayRules.item(GameplayData.string("wireless", "matrix_core")));
             case SOLAR_GENERATOR -> slot == 0 && cn.academy.energy.api.IFItemManager.instance.isSupported(stack);
             case NODE_BASIC, NODE_STANDARD, NODE_ADVANCED -> slot < 2 && cn.academy.energy.api.IFItemManager.instance.isSupported(stack);
             case FE_INPUT, FE_OUTPUT, EU_INPUT, EU_OUTPUT -> false;
@@ -874,7 +900,7 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
 
     public boolean fillPhaseLiquid(int amount) {
         if ((kind != MachineKind.IMAG_FUSOR && kind != MachineKind.PHASE_GENERATOR)
-                || phaseLiquid + amount > 8_000) return false;
+                || phaseLiquid + amount > GameplayRules.tankCapacity(kind)) return false;
         phaseLiquid += amount;
         changed();
         sync();
@@ -944,7 +970,7 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
     }
 
     public int wirelessBandwidth() {
-        return kind == MachineKind.MATRIX ? (isMatrixWorking() ? matrixCoreLevel() * matrixCoreLevel() * 60 : 0) : kind.transfer();
+        return kind == MachineKind.MATRIX ? (isMatrixWorking() ? GameplayRules.core(matrixCoreLevel()).get("bandwidth").getAsInt() : 0) : kind.transfer();
     }
 
     /** @return 0 success, 1 permission denied, 2 network/password not found, 3 invalid/capacity full. */
@@ -1245,9 +1271,9 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
         pendingRecipeInput = ItemStack.EMPTY;
         formerWorkCounter = 0;
         fusorWorkProgress = 0;
-        fusorCheckCooldown = 10;
+        fusorCheckCooldown = GameplayData.integer("machines/imag_fusor", "recipe_check_interval");
         mode = Math.max(0, Math.min(3, tag.getInt("Mode")));
-        phaseLiquid = Math.max(0, Math.min(8_000, tag.getInt("PhaseLiquid")));
+        phaseLiquid = Math.max(0, Math.min(GameplayRules.tankCapacity(kind), tag.getInt("PhaseLiquid")));
         networkId = tag.getString("NetworkId");
         networkPasswordHash = tag.getString("NetworkPasswordHash");
         networkOwner = tag.getString("NetworkOwner");
@@ -1269,8 +1295,8 @@ public class ACMachineBlockEntity extends BlockEntity implements MenuProvider {
         linkedNodePos = tag.getLong("LinkedNodePos");
         placerId = tag.getString("PlacerId");
         placerName = tag.getString("PlacerName");
-        interfererEnabled = tag.getBoolean("InterfererEnabled");
-        interfererRange = tag.contains("InterfererRange") ? Math.max(10, Math.min(100, tag.getDouble("InterfererRange"))) : 10;
+        interfererEnabled = tag.contains("InterfererEnabled") ? tag.getBoolean("InterfererEnabled") : GameplayData.flag("machines/ability_interferer", "default_enabled");
+        interfererRange = tag.contains("InterfererRange") ? Math.clamp(tag.getDouble("InterfererRange"), GameplayData.number("machines/ability_interferer", "minimum_range"), GameplayData.number("machines/ability_interferer", "maximum_range")) : GameplayData.number("machines/ability_interferer", "minimum_range");
         interfererWhitelist.clear();
         net.minecraft.nbt.ListTag whitelistTag = tag.getList("InterfererWhitelist", net.minecraft.nbt.Tag.TAG_STRING);
         for (net.minecraft.nbt.Tag value : whitelistTag) interfererWhitelist.add(value.getAsString());

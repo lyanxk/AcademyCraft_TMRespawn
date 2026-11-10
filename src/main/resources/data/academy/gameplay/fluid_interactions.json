@@ -1,0 +1,10 @@
+{
+  "reactions": [
+    {
+      "source": "minecraft:lava",
+      "neighbor": "academy:imag_phase",
+      "source_result": "minecraft:obsidian",
+      "flowing_result": "minecraft:cobblestone"
+    }
+  ]
+}

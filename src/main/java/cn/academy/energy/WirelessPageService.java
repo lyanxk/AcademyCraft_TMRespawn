@@ -1,5 +1,7 @@
 package cn.academy.energy;
 
+import cn.academy.data.GameplayData;
+
 import cn.academy.AcademyCraft;
 import cn.academy.block.entity.ACMachineBlockEntity;
 import cn.academy.energy.api.WirelessHelper;
@@ -104,7 +106,7 @@ public final class WirelessPageService {
             var connected = WirelessHelper.getWirelessNet(node);
             if (connected != null) linked = target(player, connected);
             var pos = machine.getBlockPos();
-            for (var net : WirelessHelper.getNetInRange(player.serverLevel(), pos.getX(), pos.getY(), pos.getZ(), node.getRange(), 20)) {
+            for (var net : WirelessHelper.getNetInRange(player.serverLevel(), pos.getX(), pos.getY(), pos.getZ(), node.getRange(), GameplayData.integer("wireless", "network_candidate_limit"))) {
                 if (net == connected) continue;
                 var candidate = target(player, net); if (candidate != null) available.add(candidate);
             }

@@ -1,0 +1,10 @@
+{
+  "capacity": 2000,
+  "transfer": 50,
+  "generation": 0,
+  "connections": 0,
+  "range": 0.0,
+  "tank_capacity": 8000,
+  "fluid": "academy:imag_phase",
+  "recipe_check_interval": 10
+}

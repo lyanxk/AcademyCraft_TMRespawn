@@ -1,5 +1,7 @@
 package cn.academy.entity;
 
+import cn.academy.data.Balance;
+
 import cn.academy.ability.AbilityContext;
 import cn.academy.ability.AbilityRegistry;
 import cn.academy.ability.vanilla.electromaster.skill.ElectricAttackTrace;
@@ -39,7 +41,7 @@ public final class MagManipEntityBlock extends Entity {
     }
     public static MagManipEntityBlock create(ServerPlayer owner, BlockState state, Vec3 position) {
         var entity=new MagManipEntityBlock(ACEntities.MAG_MANIP_BLOCK.get(),owner.level());
-        entity.owner=owner;entity.damage=10;entity.entityData.set(BLOCK,state.getBlock().defaultBlockState());entity.setPos(position);return entity;
+        entity.owner=owner;entity.damage=Balance.i("mag_manip_entity_block", "create_entity_damage_1");entity.entityData.set(BLOCK,state.getBlock().defaultBlockState());entity.setPos(position);return entity;
     }
     @Override protected void defineSynchedData(SynchedEntityData.Builder builder) { builder.define(BLOCK,Blocks.AIR.defaultBlockState()); }
     public BlockState blockState(){return entityData.get(BLOCK);}
@@ -47,7 +49,7 @@ public final class MagManipEntityBlock extends Entity {
     public Vec3 target(){return target;}
     public Player owner(){return owner;}
     public void setMoveTo(Vec3 position) { action=MOVE_TO; target=MagneticManipulationRules.floatTarget(position); }
-    public void follow(Player player) { setMoveTo(player.getEyePosition().subtract(0,.1,0).add(player.getLookAngle().scale(2))); }
+    public void follow(Player player) { setMoveTo(player.getEyePosition().subtract(0,.1,0).add(player.getLookAngle().scale(Balance.i("mag_manip_entity_block", "follow_scale_1")))); }
     public void release() {
         action=NOTHING; placementEnabled=true;
         if(!level().isClientSide) broadcast(MagneticManipulationPayload.PLACE,20);
@@ -62,7 +64,7 @@ public final class MagManipEntityBlock extends Entity {
     }
     @Override public void tick() {
         // EntityAdvanced did not call vanilla Entity.onUpdate/baseTick.
-        if(!level().isClientSide && ++syncTicks>5) { syncTicks=0;broadcast(MagneticManipulationPayload.ENTITY_SYNC,40); }
+        if(!level().isClientSide && ++syncTicks>Balance.i("mag_manip_entity_block", "tick_threshold_1")) { syncTicks=0;broadcast(MagneticManipulationPayload.ENTITY_SYNC,40); }
         if(first) { first=false;if(!level().isClientSide)broadcast(MagneticManipulationPayload.ENTITY_SYNC,40); }
         Vec3 velocity=getDeltaMovement();
         // Rigidbody stops at the first non-null result; Raytrace.perform returns MISS rather than null.
@@ -77,7 +79,7 @@ public final class MagManipEntityBlock extends Entity {
         // Rigidbody integrates the old motion first, even after a collision handler marked the entity dead.
         setPos(position().add(velocity));
         previousSpinYaw=spinYaw;previousSpinPitch=spinPitch;spinYaw+=yawSpeed;spinPitch+=pitchSpeed;
-        velocity=action==MOVE_TO ? MagneticManipulationRules.followVelocity(position(),target) : velocity.add(0,-.04,0);
+        velocity=action==MOVE_TO ? MagneticManipulationRules.followVelocity(position(),target) : velocity.add(0,-Balance.d("mag_manip_entity_block", "tick_velocity_1"),0);
         setDeltaMovement(velocity);
         // Original directly changes posX/Y/Z a second time, leaving its bounding box at the first integration.
         Vec3 next=position().add(velocity);setPosRaw(next.x,next.y,next.z);

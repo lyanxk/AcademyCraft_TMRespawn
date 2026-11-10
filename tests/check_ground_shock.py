@@ -1,6 +1,7 @@
 """Exercise production release/landing methods with recording world and player adapters."""
 from pathlib import Path
 import subprocess
+from gameplay_defaults import resolve_parameters
 
 root = Path(__file__).resolve().parent.parent
 source = (root / 'src/main/java/cn/academy/ability/vanilla/vecmanip/skill/VectorStrikeContext.java').read_text(encoding='utf-8')
@@ -12,7 +13,7 @@ def method(signature):
     while depth:
         depth += (source[end] == '{') - (source[end] == '}')
         end += 1
-    return source[start:end].replace('net.minecraft.core.Direction', 'Direction')
+    return resolve_parameters(source[start:end]).replace('net.minecraft.core.Direction', 'Direction')
 
 methods = '\n'.join(method(s) for s in [
     'public boolean release(', 'private Vec3 findGroundLanding(', 'public static boolean accepts(',

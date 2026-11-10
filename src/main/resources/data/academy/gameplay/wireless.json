@@ -1,0 +1,29 @@
+{
+  "matrix_material": "academy:constraint_plate",
+  "matrix_core": "academy:mat_core",
+  "matrix_buffer": 2000.0,
+  "cores": [
+    {
+      "level": 1,
+      "connections": 8,
+      "range": 24.0,
+      "bandwidth": 60
+    },
+    {
+      "level": 2,
+      "connections": 16,
+      "range": 33.941125496954285,
+      "bandwidth": 240
+    },
+    {
+      "level": 3,
+      "connections": 24,
+      "range": 41.569219381653056,
+      "bandwidth": 540
+    }
+  ],
+  "fe_per_if": 4.0,
+  "node_search_minimum_range": 20.0,
+  "candidate_limit": 100,
+  "network_candidate_limit": 20
+}

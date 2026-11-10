@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.teleporter.skill;
 
+import cn.academy.data.Balance;
+
 import cn.academy.ability.*;
 import cn.academy.ability.vanilla.electromaster.skill.ElectricAttackTrace;
 import cn.academy.ability.vanilla.teleporter.util.TPSkillHelper;
@@ -31,7 +33,7 @@ public final class ShiftTeleportContext {
     private final List<ServerPlayer> audience=new ArrayList<>();private boolean performed,ended;
     public ShiftTeleportContext(ServerPlayer player,AbilityState state,AbilitySkill skill,int slot,int request) {
         this.player=player;this.skill=skill;this.slot=slot;this.request=request;experience=state.experience(skill.id());
-        audience.add(player);for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=625)audience.add(viewer);
+        audience.add(player);for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=Balance.i("shift_teleport_context", "shift_teleport_context_threshold_1"))audience.add(viewer);
     }
     public static boolean validHand(Player player){return ShiftTeleportPlacement.validItem(player.getMainHandItem());}
     public static void reject(ServerPlayer player,AbilitySkill skill,int slot,int request) {
@@ -78,7 +80,7 @@ public final class ShiftTeleportContext {
         var point=hit.getType()==HitResult.Type.MISS ? hit.getLocation()
                 : hit.getLocation().add(Vec3.atLowerCornerOf(hit.getDirection().getNormal()));
         var destination=hit.getBlockPos().relative(hit.getDirection());
-        if(!state.consumeRaw(skill,260+(320-260)*experience,40+(30-40)*experience,player.isCreative()))return;
+        if(!state.consumeRaw(skill,Balance.i("shift_teleport_context", "release_consume_raw_1")+(Balance.i("shift_teleport_context", "release_consume_raw_2")-Balance.i("shift_teleport_context", "release_consume_raw_3"))*experience,Balance.i("shift_teleport_context", "release_consume_raw_4")+(Balance.i("shift_teleport_context", "release_consume_raw_5")-Balance.i("shift_teleport_context", "release_consume_raw_6"))*experience,player.isCreative()))return;
         var world=player.serverLevel();var block=item.getBlock();
         boolean canPlace=ShiftTeleportPlacement.canPlace(block,world,destination);
         if(canPlace && AbilityContext.of(player,skill).canBreakBlock(world,hit.getBlockPos())) {
@@ -101,9 +103,9 @@ public final class ShiftTeleportContext {
             // Original ignores placeBlockAt's return value; failure here does not enter the drop branch.
         } else world.addFreshEntity(new ItemEntity(world,point.x,point.y,point.z,stack.copyWithCount(1)));
         if(!player.isCreative()){if(stack.getCount()<=1)player.setItemInHand(InteractionHand.MAIN_HAND,ItemStack.EMPTY);else stack.shrink(1);}
-        var targets=targets(player,experience);for(var target:targets)TPSkillHelper.attack(AbilityContext.of(player,skill),target,15+(35-15)*experience,false);
+        var targets=targets(player,experience);for(var target:targets)TPSkillHelper.attack(AbilityContext.of(player,skill),target,Balance.i("shift_teleport_context", "release_attack_1")+(Balance.i("shift_teleport_context", "release_attack_2")-Balance.i("shift_teleport_context", "release_attack_3"))*experience,false);
         world.playSound(player,player.blockPosition(),ACSounds.get("tp.tp_shift"),SoundSource.AMBIENT,.5f,1);
-        state.addExperience(skill,(1+targets.size())*.002f);state.finishContext(skill,(int)(100+(60-100)*experience),0);performed=true;
+        state.addExperience(skill,(Balance.i("shift_teleport_context", "release_add_experience_1")+targets.size())*Balance.f("shift_teleport_context", "release_add_experience_2"));state.finishContext(skill,(int)(Balance.i("shift_teleport_context", "release_finish_context_1")+(Balance.i("shift_teleport_context", "release_finish_context_2")-Balance.i("shift_teleport_context", "release_finish_context_3"))*experience),0);performed=true;
     }
     private static final class LegacyPlacement extends BlockPlaceContext {
         LegacyPlacement(Player player,ItemStack stack,BlockHitResult hit,Vec3 point) {

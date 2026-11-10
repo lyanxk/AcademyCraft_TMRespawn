@@ -1,0 +1,38 @@
+{
+  "level": 4,
+  "cp_cost": 650.0,
+  "overload": 55.0,
+  "cooldown_ticks": 70,
+  "controllable": true,
+  "requirements": [
+    {
+      "skill": "thunder_bolt",
+      "experience": 0.3
+    },
+    {
+      "skill": "mag_manip",
+      "experience": 1.0
+    }
+  ],
+  "enhancements": [
+    5
+  ],
+  "required_any_skill_level": 0,
+  "enabled": true,
+  "destroy_blocks": true,
+  "damage_scale": 1.0,
+  "cp_consume_speed": 1.0,
+  "overload_consume_speed": 1.0,
+  "exp_increase_speed": 1.0,
+  "cooldown_curve": [
+    300,
+    160
+  ],
+  "cooldown_enhanced_level": 5,
+  "cooldown_enhanced_curve": [
+    160,
+    80
+  ],
+  "cooldown_tiers": 0,
+  "experience_per_use": 0.005
+}

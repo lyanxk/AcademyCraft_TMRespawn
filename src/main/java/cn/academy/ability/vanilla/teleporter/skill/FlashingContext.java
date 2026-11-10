@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.teleporter.skill;
 
+import cn.academy.data.Balance;
+
 import cn.academy.ability.*;
 import cn.academy.ability.vanilla.electromaster.skill.ElectricAttackTrace;
 import cn.academy.advancement.ACAdvancements;
@@ -29,10 +31,10 @@ public final class FlashingContext {
 
     public FlashingContext(ServerPlayer player, AbilityState state, AbilitySkill skill, int slot, int request) {
         this.player = player; this.skill = skill; this.slot = slot; this.request = request;
-        experience = state.experience(skill.id()); consumption = 13 + (6 - 13) * experience;
-        maxTime = (int)(60 + (150 - 60) * experience); cooldown = (int)(900 + (400 - 900) * experience);
+        experience = state.experience(skill.id()); consumption = Balance.i("flashing_context", "flashing_context_consumption_1") + (Balance.i("flashing_context", "flashing_context_consumption_2") - Balance.i("flashing_context", "flashing_context_consumption_3")) * experience;
+        maxTime = (int)(Balance.i("flashing_context", "flashing_context_max_time_1") + (Balance.i("flashing_context", "flashing_context_max_time_2") - Balance.i("flashing_context", "flashing_context_max_time_3")) * experience); cooldown = (int)(Balance.i("flashing_context", "flashing_context_cooldown_1") + (Balance.i("flashing_context", "flashing_context_cooldown_2") - Balance.i("flashing_context", "flashing_context_cooldown_3")) * experience);
         audience.add(player);
-        for (var viewer : player.serverLevel().players()) if (viewer != player && viewer.distanceToSqr(player) <= 625) audience.add(viewer);
+        for (var viewer : player.serverLevel().players()) if (viewer != player && viewer.distanceToSqr(player) <= Balance.i("flashing_context", "flashing_context_threshold_1")) audience.add(viewer);
     }
 
     public static void reject(ServerPlayer player, AbilitySkill skill, int slot, int request) {
@@ -60,7 +62,7 @@ public final class FlashingContext {
         Vec3 point = destination(player, direction, 12 + (18 - 12) * experience);
         if (player.isPassenger()) player.stopRiding();
         player.teleportTo(point.x, point.y, point.z); player.fallDistance = 0;
-        state.addExperience(skill, .002f);
+        state.addExperience(skill, Balance.f("flashing_context", "perform_add_experience_1"));
         if (state.recordTeleport() >= 400) ACAdvancements.grant(player, "legacy/teleporter/mastery");
         send(STEP); return true;
     }

@@ -33,7 +33,7 @@ public final class RecipeHandler {
             if (!ItemStack.isSameItem(recipe.output(), target) || recipe.output().getDamageValue() != target.getDamageValue()) continue;
             boolean isFusor = recipe.kind() == MachineRecipes.Kind.IMAG_FUSOR;
             var type = isFusor ? cn.academy.tutorial.ViewGroup.RecipeType.IMAG_FUSOR : cn.academy.tutorial.ViewGroup.RecipeType.METAL_FORMER;
-            (isFusor ? fusor : metal).add(new RecipeView(type, recipe.result(), List.of(Ingredient.of(recipe.input().copy())),
+            (isFusor ? fusor : metal).add(new RecipeView(type, recipe.result(), List.of(recipe.ingredient()),
                     1, 1, recipe.mode(), recipe.liquid()));
         }
         crafting.addAll(fusor);

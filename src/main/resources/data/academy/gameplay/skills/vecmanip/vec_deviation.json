@@ -1,0 +1,32 @@
+{
+  "level": 2,
+  "cp_cost": 220.0,
+  "overload": 16.0,
+  "cooldown_ticks": 35,
+  "controllable": true,
+  "requirements": [
+    {
+      "skill": "vec_accel",
+      "experience": 0.0
+    }
+  ],
+  "enhancements": [],
+  "required_any_skill_level": 0,
+  "enabled": true,
+  "destroy_blocks": true,
+  "damage_scale": 1.0,
+  "cp_consume_speed": 1.0,
+  "overload_consume_speed": 1.0,
+  "exp_increase_speed": 1.0,
+  "cooldown_curve": [
+    35,
+    35
+  ],
+  "cooldown_enhanced_level": 6,
+  "cooldown_enhanced_curve": [
+    35,
+    35
+  ],
+  "cooldown_tiers": 0,
+  "experience_per_use": 0.003
+}

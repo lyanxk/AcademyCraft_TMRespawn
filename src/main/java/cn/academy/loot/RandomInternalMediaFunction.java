@@ -25,7 +25,7 @@ public final class RandomInternalMediaFunction extends LootItemConditionalFuncti
     @Override
     protected ItemStack run(ItemStack stack, LootContext context) {
         if (!stack.isEmpty())
-            MediaItem.setMedia(stack, MediaItem.TRACKS.get(context.getRandom().nextInt(MediaItem.TRACKS.size())));
+            MediaItem.setMedia(stack, MediaItem.random(context.getRandom()));
         return stack;
     }
 }

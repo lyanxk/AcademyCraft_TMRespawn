@@ -1,5 +1,7 @@
 package cn.academy.client.render;
 
+import cn.academy.data.SharedSkillCosts;
+
 import cn.academy.ability.*;
 import cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext;
 import cn.academy.client.render.util.*;
@@ -92,7 +94,7 @@ public final class PlasmaCannonEffects {
                 if(!state.active()){body.stop(true);continue;}
                 body.ticks++;
                 if(!body.flying) {
-                    if(body.ticks<body.chargeTime){var skill=AbilityRegistry.skill("vecmanip.plasma_cannon");state.consumeRaw(skill,18+(25-18)*state.experience(skill.id()),0,local.isCreative());}
+                    if(body.ticks<body.chargeTime){var skill=AbilityRegistry.skill("vecmanip.plasma_cannon");state.consumeRaw(skill,SharedSkillCosts.plasmaCharge(state.experience(skill.id())),0,local.isCreative());}
                     if(body.ticks==(int)body.chargeTime)ACContextSounds.once(local.getUUID(),"vecmanip.plasma_cannon_t",.5f,SoundSource.AMBIENT,body.soundId);
                 }
             }

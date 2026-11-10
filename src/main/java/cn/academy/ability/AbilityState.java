@@ -1,6 +1,9 @@
 package cn.academy.ability;
 
-import cn.academy.config.ACConfig;
+import cn.academy.data.GameplayData;
+
+import cn.academy.data.Balance;
+
 import cn.academy.registry.ACAttachments;
 import cn.academy.event.ability.CalcEvent;
 import net.minecraft.core.BlockPos;
@@ -257,7 +260,7 @@ public final class AbilityState {
         AbilityCategory value = AbilityRegistry.category(category);
         if (value == null) return 0;
         long count = value.enabledSkills().stream().filter(skill -> skill.controllable() && skill.level() == level).count();
-        return count * (level == 4 ? 1.333f : .666f);
+        return count * (level == Balance.i("ability_state", "level_experience_threshold_value_1") ? Balance.f("ability_state", "level_experience_threshold_value_2") : Balance.f("ability_state", "level_experience_threshold_value_3"));
     }
     public float cp() { return cp; }
     public float overload() { return overload; }
@@ -284,11 +287,11 @@ public final class AbilityState {
     }
 
     private float calculateInitialCp(int targetLevel) {
-        float value = ACConfig.INITIAL_CP[targetLevel].get().floatValue();
+        float value = (float) GameplayData.at("ability", "initial_cp", targetLevel);
         if (owner != null) value = CalcEvent.calc(new CalcEvent.MaxCP(owner, value));
         else {
-            if (learned.contains(category + ".brain_course")) value += 1000;
-            if (learned.contains(category + ".brain_course_advanced")) value += 1500;
+            if (learned.contains(category + ".brain_course")) value += GameplayData.decimal("ability", "brain_course_cp");
+            if (learned.contains(category + ".brain_course_advanced")) value += GameplayData.decimal("ability", "advanced_brain_course_cp");
         }
         return Float.isFinite(value) ? Math.max(1, value) : 1;
     }
@@ -296,18 +299,18 @@ public final class AbilityState {
     public void recalculateCapacities(boolean refill) {
         int currentLevel = Math.max(0, Math.min(5, level));
         rawCpCapacity = calculateInitialCp(currentLevel);
-        levelFiveCpCapacity = currentLevel == 5 ? rawCpCapacity : calculateInitialCp(5);
-        float overloadValue = ACConfig.INITIAL_OVERLOAD[currentLevel].get().floatValue();
+        levelFiveCpCapacity = currentLevel == Balance.i("ability_state", "recalculate_capacities_level_five_cp_capacity_1") ? rawCpCapacity : calculateInitialCp(Balance.i("ability_state", "recalculate_capacities_level_five_cp_capacity_2"));
+        float overloadValue = (float) GameplayData.at("ability", "initial_overload", currentLevel);
         if (owner != null) overloadValue = CalcEvent.calc(new CalcEvent.MaxOverload(owner, overloadValue));
-        else if (learned.contains(category + ".brain_course_advanced")) overloadValue += 100;
+        else if (learned.contains(category + ".brain_course_advanced")) overloadValue += GameplayData.decimal("ability", "advanced_brain_course_overload");
         rawOverloadCapacity = Float.isFinite(overloadValue) ? Math.max(1, overloadValue) : 1;
         if (!hasCategory()) return;
         cp = refill ? rawCpCapacity + bonusCp : Math.min(cp, rawCpCapacity + bonusCp);
         overload = refill ? 0 : Math.min(overload, rawOverloadCapacity + bonusOverload);
     }
 
-    private float maxBonusCp() { return ACConfig.ADDITIONAL_CP[level].get().floatValue(); }
-    private float maxBonusOverload() { return ACConfig.ADDITIONAL_OVERLOAD[level].get().floatValue(); }
+    private float maxBonusCp() { return (float) GameplayData.at("ability", "additional_cp", level); }
+    private float maxBonusOverload() { return (float) GameplayData.at("ability", "additional_overload", level); }
     public boolean active() { return active; }
     public boolean overloadLocked() { return overloadLocked; }
     /** The full-overload indication ends as recovery starts; the lock lasts until zero. */
@@ -315,7 +318,7 @@ public final class AbilityState {
     public boolean interfered() { return interfered; }
     public boolean terminalInstalled() { return terminalInstalled; }
     // Retained only for reading/round-tripping pre-parity port saves. Gameplay settings now
-    // come from ACConfig (server policy) and ACHudConfig (local preferences), as in 1.12.2.
+    // come from the server datapack and ACHudConfig (local preferences).
     public boolean attackPlayers() { return attackPlayers; }
     public boolean destroyBlocks() { return destroyBlocks; }
     public boolean coinFlip() { return coinFlip; }
@@ -344,7 +347,7 @@ public final class AbilityState {
         if (skillId.equals("meltdowner.rad_intensify") && learned.contains(skillId))
             return clamp(maxCp() / rawMaxCpAtLevel(5), 0, 1);
         if (skillId.equals("teleporter.shift_tp")
-                && AbilityPipeline.isAllWorldDisableBreakBlock(owner == null ? null : owner.level())) return 1;
+                && AbilityPipeline.isAllWorldDisableBreakBlock()) return 1;
         return experience.getOrDefault(skillId, 0f);
     }
     public int cooldown(String skillId) { return cooldowns.getOrDefault(skillId, 0); }
@@ -529,13 +532,7 @@ public final class AbilityState {
     public boolean consume(AbilitySkill skill, boolean creative) {
         if (!consumeRaw(skill, skill.cpCost(), skill.overload(), creative)) return false;
         setCooldown(skill, cooldownFor(skill));
-        float experienceGain = switch (skill.name()) {
-            case "mine_detect" -> .008f;
-            case "body_intensify", "thunder_clap" -> .01f;
-            case "mag_movement", "railgun" -> .005f;
-            case "mine_ray_basic", "mine_ray_expert", "mine_ray_luck" -> .0005f;
-            default -> .003f;
-        };
+        float experienceGain = GameplayData.decimal("skills/" + skill.category() + "/" + skill.name(), "experience_per_use");
         addExperience(skill, experienceGain);
         return true;
     }
@@ -547,49 +544,24 @@ public final class AbilityState {
     }
 
     public void finishLocationTeleport(AbilitySkill skill,float distance) {
-        addExperience(skill,distance>=200?.03f:.015f);
+        addExperience(skill,distance>=Balance.i("ability_state", "finish_location_teleport_threshold_1")?Balance.f("ability_state", "finish_location_teleport_add_experience_1"):Balance.f("ability_state", "finish_location_teleport_add_experience_2"));
         setCooldown(skill,cn.academy.ability.vanilla.teleporter.LocationTeleportRules.cooldown(experience(skill.id())));
     }
 
     private void addCapacityGrowth(float cpCost, float overloadCost) {
         // CPData.performInternal grows capacity even in creative; addMaxOverload caps each increment at 10.
-        bonusCp = Math.min(maxBonusCp(), bonusCp + cpCost * ACConfig.CP_CAPACITY_GROWTH.get().floatValue());
+        bonusCp = Math.min(maxBonusCp(), bonusCp + cpCost * GameplayData.decimal("ability", "max_cp_increase_rate"));
         bonusOverload = Math.min(maxBonusOverload(), bonusOverload
-                + Math.min(10, overloadCost * ACConfig.OVERLOAD_CAPACITY_GROWTH.get().floatValue()));
+                + Math.min(GameplayData.decimal("ability", "max_overload_gain_per_action"), overloadCost * GameplayData.decimal("ability", "max_overload_increase_rate")));
     }
 
     public int cooldownFor(AbilitySkill skill) {
-        float exp = experience(skill.id());
-        if(skill.name().equals("blood_retro") && level>=5)return 40-5*(int)(exp*4);
-        int[] range = switch (skill.name()) {
-            case "mag_manip" -> level>=4?new int[]{40,40}:new int[]{60, 40};
-            case "mine_detect" -> new int[]{900, 400};
-            case "body_intensify" -> new int[]{900, 600};
-            case "thunder_bolt" -> level>=5?new int[]{50,40}:new int[]{120, 50};
-            case "railgun" -> level>=5?new int[]{160,80}:new int[]{300, 160};
-            case "electron_bomb" -> new int[]{20, 10};
-            case "light_shield" -> new int[]{800, 400};
-            case "meltdowner" -> new int[]{300, 140};
-            case "mine_ray_basic" -> new int[]{40, 20};
-            case "mine_ray_expert", "mine_ray_luck" -> new int[]{60, 30};
-            case "ray_barrage" -> new int[]{100, 40};
-            case "jet_engine" -> new int[]{60, 30};
-            case "electron_missile" -> new int[]{700, 400};
-            case "threatening_teleport" -> new int[]{30, 15};
-            case "penetrate_teleport" -> new int[]{50, 30};
-            case "mark_teleport" -> new int[]{30, 0};
-            case "flesh_ripping" -> new int[]{90, 40};
-            case "shift_tp" -> new int[]{100, 60};
-            case "dir_shock" -> level>=5?new int[]{20, 20}:new int[]{60, 20};
-            case "ground_shock" -> new int[]{80, 40};
-            case "vec_accel" -> level>=4?new int[]{50, 10}:new int[]{80, 50};
-            case "dir_blast" -> level>=5?new int[]{50, 50}:new int[]{80, 50};
-            case "storm_wing" -> new int[]{30, 10};
-            case "blood_retro" -> new int[]{90, 40};
-            case "plasma_cannon" -> new int[]{1000, 600};
-            default -> null;
-        };
-        return range == null ? skill.cooldownTicks() : Math.max(0, Math.round(range[0] + (range[1] - range[0]) * exp));
+        var data = GameplayData.document("skills/" + skill.category() + "/" + skill.name());
+        boolean enhanced = level >= data.get("cooldown_enhanced_level").getAsInt();
+        var curve = data.getAsJsonArray(enhanced ? "cooldown_enhanced_curve" : "cooldown_curve");
+        float progress = experience(skill.id()); int tiers = data.get("cooldown_tiers").getAsInt();
+        if (enhanced && tiers > 0) progress = (float) (int) (progress * tiers) / tiers;
+        return Math.max(0, Math.round(curve.get(0).getAsFloat() + (curve.get(1).getAsFloat() - curve.get(0).getAsFloat()) * progress));
     }
 
     public void tick() {
@@ -600,8 +572,8 @@ public final class AbilityState {
             // Legacy CPData uses its raw maximum (level + courses), excluding capacity gained from use.
             float rawMaxCp = maxCp() - bonusCp;
             float ratio = rawMaxCp <= 0 ? 0 : cp / rawMaxCp;
-            float recovery = (float) (0.0015 * rawMaxCp * (1 + ratio) * ACConfig.CP_RECOVERY_SCALE.get());
-            float factor = owner == null ? (learned.contains(category + ".mind_course") ? 1.2f : 1)
+            float recovery = (float) (GameplayData.number("ability", "cp_recovery_rate") * rawMaxCp * (1 + ratio) * GameplayData.number("ability", "cp_recovery_scale"));
+            float factor = owner == null ? (learned.contains(category + ".mind_course") ? GameplayData.decimal("ability", "mind_course_recovery") : 1)
                     : CalcEvent.calc(new CalcEvent.CPRecoverSpeed(owner, 1));
             recovery *= Float.isFinite(factor) ? Math.max(0, factor) : 0;
             cp = Math.min(maxCp(), cp + recovery);
@@ -609,8 +581,8 @@ public final class AbilityState {
 
         {
             float rawMaxOverload = maxOverload() - bonusOverload;
-            float recovery = (float) (Math.max(.002 * rawMaxOverload, .007 * rawMaxOverload * (1 - overload / rawMaxOverload / 4))
-                    * ACConfig.OVERLOAD_RECOVERY_SCALE.get());
+            float recovery = (float) (Math.max(GameplayData.number("ability", "overload_recovery_min") * rawMaxOverload, GameplayData.number("ability", "overload_recovery_rate") * rawMaxOverload * (1 - overload / rawMaxOverload / GameplayData.number("ability", "overload_recovery_divisor")))
+                    * GameplayData.number("ability", "overload_recovery_scale"));
             float factor = owner == null ? 1 : CalcEvent.calc(new CalcEvent.OverloadRecoverSpeed(owner, 1));
             recovery *= Float.isFinite(factor) ? Math.max(0, factor) : 0;
             overload = Math.max(0, overload - recovery);
@@ -711,7 +683,7 @@ public final class AbilityState {
         if (skill == null || !skill.category().equals(category) || !Float.isFinite(amount) || amount <= 0) return;
         learn(skill);
         experience.compute(skill.id(), (key, old) -> Math.min(1, (old == null ? 0 : old) + amount));
-        expAddedThisLevel += amount * ACConfig.PROGRESSION_SCALE.get().floatValue() * ACConfig.categoryProgression(category);
+        expAddedThisLevel += amount * GameplayData.decimal("ability", "progression_scale") * AbilityRegistry.progressionScale(category);
         if (serverOwned()) {
             net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new cn.academy.event.ability.SkillExpChangedEvent(owner, skill));
             net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new cn.academy.event.ability.SkillExpAddedEvent(owner, skill, amount));

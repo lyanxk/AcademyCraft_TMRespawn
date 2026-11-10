@@ -27,13 +27,13 @@ public final class EnergyUnitRecipe extends ShapedRecipe {
     @Override public RecipeSerializer<?> getSerializer() { return ACRecipes.ENERGY_UNIT.get(); }
 
     public static final class Serializer implements RecipeSerializer<EnergyUnitRecipe> {
-        // ShapedRecipe's STRICT_CODEC rejects count > max stack size. Only these empty legacy
-        // battery batches need the exception; ordinary recipes keep vanilla validation.
+        // ShapedRecipe's STRICT_CODEC rejects count > max stack size. Empty battery batches
+        // use a bounded exception; a single configured unit may carry data components.
         private static final Codec<ItemStack> RESULT_CODEC = ItemStack.CODEC.validate(stack ->
-                (stack.getCount() == 2 || stack.getCount() == 4)
-                        && ItemStack.isSameItemSameComponents(stack, new ItemStack(ACItems.ENERGY_UNIT.get()))
+                stack.is(ACItems.ENERGY_UNIT.get()) && stack.getCount() >= 1 && stack.getCount() <= 64
+                        && (stack.getCount() == 1 || ItemStack.isSameItemSameComponents(stack, new ItemStack(ACItems.ENERGY_UNIT.get())))
                         ? DataResult.success(stack)
-                        : DataResult.error(() -> "Energy unit recipes must yield 2 or 4 default empty energy units"));
+                        : DataResult.error(() -> "Energy unit recipes must yield 1..64 empty units or one unit with components"));
         private static final MapCodec<EnergyUnitRecipe> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 Codec.STRING.optionalFieldOf("group", "").forGetter(EnergyUnitRecipe::getGroup),
                 CraftingBookCategory.CODEC.optionalFieldOf("category", CraftingBookCategory.MISC).forGetter(EnergyUnitRecipe::category),

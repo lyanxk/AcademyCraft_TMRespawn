@@ -1,0 +1,10 @@
+{
+  "exclude_living": true,
+  "exclude_monsters": true,
+  "default_difficulty": 1.0,
+  "difficulties": {
+    "minecraft:arrow": 1.0,
+    "minecraft:potion": 1.4,
+    "minecraft:snowball": 0.1
+  }
+}

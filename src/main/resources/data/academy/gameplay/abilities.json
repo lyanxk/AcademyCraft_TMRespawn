@@ -1,0 +1,87 @@
+{
+  "categories": [
+    {
+      "id": "electromaster",
+      "color": 1339856,
+      "progression_scale": 1.0,
+      "skills": [
+        "arc_gen",
+        "charging",
+        "mag_movement",
+        "mag_manip",
+        "mine_detect",
+        "body_intensify",
+        "thunder_bolt",
+        "railgun",
+        "thunder_clap",
+        "brain_course",
+        "brain_course_advanced",
+        "mind_course"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "meltdowner",
+      "color": 8322948,
+      "progression_scale": 1.0,
+      "skills": [
+        "electron_bomb",
+        "rad_intensify",
+        "scatter_bomb",
+        "light_shield",
+        "meltdowner",
+        "mine_ray_basic",
+        "ray_barrage",
+        "jet_engine",
+        "mine_ray_expert",
+        "mine_ray_luck",
+        "electron_missile",
+        "brain_course",
+        "brain_course_advanced",
+        "mind_course"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "teleporter",
+      "color": 10790052,
+      "progression_scale": 1.0,
+      "skills": [
+        "threatening_teleport",
+        "dim_folding_theorem",
+        "penetrate_teleport",
+        "mark_teleport",
+        "flesh_ripping",
+        "location_teleport",
+        "shift_tp",
+        "space_fluct",
+        "flashing",
+        "brain_course",
+        "brain_course_advanced",
+        "mind_course"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "vecmanip",
+      "color": 2105376,
+      "progression_scale": 1.0,
+      "skills": [
+        "dir_shock",
+        "ground_shock",
+        "vec_accel",
+        "vec_deviation",
+        "dir_blast",
+        "storm_wing",
+        "blood_retro",
+        "vec_reflection",
+        "plasma_cannon",
+        "brain_course",
+        "brain_course_advanced",
+        "mind_course"
+      ],
+      "weight": 1.0
+    }
+  ],
+  "default_category": "electromaster"
+}

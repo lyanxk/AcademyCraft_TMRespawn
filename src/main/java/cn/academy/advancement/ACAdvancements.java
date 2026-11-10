@@ -1,5 +1,7 @@
 package cn.academy.advancement;
 
+import cn.academy.data.GameplayData;
+
 import cn.academy.AcademyCraft;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.advancements.AdvancementProgress;
@@ -17,7 +19,7 @@ public final class ACAdvancements {
     public static final List<String> TRIGGER_NAMES = List.of(
             "ac_developer", "ac_exp_full", "ac_learning_skill", "ac_level_3", "ac_level_5",
             "ac_matrix", "ac_node", "ac_overload", "convert_category", "dev_category",
-            "getting_factor", "getting_phase", "open_misaka_cloud", "phase_generator", "terminal_installed");
+            "getting_factor", "getting_phase", "open_misaka_cloud", "phase_generator", "terminal_installed", "skill_learned", "skill_used", "ability_level");
     private static final DeferredRegister<CriterionTrigger<?>> TRIGGERS =
             DeferredRegister.create(Registries.TRIGGER_TYPE, AcademyCraft.MOD_ID);
     static { TRIGGER_NAMES.forEach(name -> TRIGGERS.register(name, ACTrigger::new)); }
@@ -46,44 +48,35 @@ public final class ACAdvancements {
     }
 
     public static void grantLegacyLevels(ServerPlayer player, String category, int level) {
-        if (category == null || category.isEmpty()) return;
-        for (int current = 1; current <= Math.min(5, level); current++) {
-            grant(player, "legacy/" + category + "/lv" + current);
+        var mappings = GameplayData.value("advancements", "level_advancements").getAsJsonObject().get(category);
+        if (mappings == null) return;
+        for (var entry : mappings.getAsJsonObject().entrySet()) if (Integer.parseInt(entry.getKey()) <= level) {
+            var id = ResourceLocation.parse(entry.getValue().getAsString());
+            var holder = player.server.getAdvancements().get(id);
+            if (holder != null) for (String criterion : player.getAdvancements().getOrStartProgress(holder).getRemainingCriteria()) player.getAdvancements().award(holder, criterion);
         }
     }
 
-    public static void grantLegacySkillLearn(ServerPlayer player, String category, String skill) {
-        String achievement = switch (category + "." + skill) {
-            case "meltdowner.rad_intensify" -> "rad_intensify";
-            case "meltdowner.light_shield" -> "light_shield";
-            case "meltdowner.meltdowner" -> "meltdowner";
-            case "meltdowner.mine_ray_basic" -> "mine_ray";
-            case "meltdowner.electron_missile" -> "electron_missile";
-            default -> "";
-        };
-        if (!achievement.isEmpty()) grant(player, "legacy/" + category + "/" + achievement);
+    public static void triggerSkill(ServerPlayer player, String event, cn.academy.ability.AbilitySkill skill) {
+        var trigger = BuiltInRegistries.TRIGGER_TYPES.get(ResourceLocation.fromNamespaceAndPath("academy", event));
+        if (trigger instanceof ACTrigger academy) academy.trigger(player, skill.id());
     }
-
+    private static void mappedSkill(ServerPlayer player, String event, String category, String skill) {
+        var value = GameplayData.value("advancements", event).getAsJsonObject().get(category + "." + skill);
+        if (value != null) {
+            var id = ResourceLocation.parse(value.getAsString());
+            if (id.getNamespace().equals("academy")) grant(player, id.getPath());
+            else {
+                var holder = player.server.getAdvancements().get(id);
+                if (holder != null) for (var criterion : player.getAdvancements().getOrStartProgress(holder).getRemainingCriteria()) player.getAdvancements().award(holder, criterion);
+            }
+        }
+    }
+    public static void grantLegacySkillLearn(ServerPlayer player, String category, String skill) { mappedSkill(player, "learn", category, skill); }
     public static void grantLegacySkillUse(ServerPlayer player, String category, String skill) {
-        String achievement = switch (category + "." + skill) {
-            case "electromaster.mag_movement" -> "mag_movement";
-            case "electromaster.body_intensify" -> "body_intensify";
-            case "electromaster.mine_detect" -> "mine_detect";
-            case "electromaster.thunder_bolt" -> "thunder_bolt";
-            case "electromaster.railgun" -> "railgun";
-            case "electromaster.thunder_clap" -> "thunder_clap";
-            case "meltdowner.jet_engine" -> "jet_engine";
-            case "teleporter.threatening_teleport" -> "threatening_teleport";
-            case "teleporter.penetrate_teleport" -> "ignore_barrier";
-            case "teleporter.flashing" -> "flashing";
-            case "vecmanip.ground_shock" -> "ground_shock";
-            case "vecmanip.dir_blast" -> "dir_blast";
-            case "vecmanip.storm_wing" -> "storm_wing";
-            case "vecmanip.blood_retro" -> "blood_retro";
-            case "vecmanip.vec_reflection" -> "vec_reflection";
-            default -> "";
-        };
-        if (!achievement.isEmpty()) grant(player, "legacy/" + category + "/" + achievement);
+        mappedSkill(player, "use", category, skill);
+        var ability = cn.academy.ability.AbilityRegistry.skill(category + "." + skill);
+        if (ability != null) triggerSkill(player, "skill_used", ability);
     }
 
     private ACAdvancements() {}

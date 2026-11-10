@@ -1,0 +1,15 @@
+{
+  "type": "academy:machine",
+  "machine": "metal_former",
+  "mode": "plate",
+  "ingredient": {
+    "item": "academy:constraint_ingot"
+  },
+  "input_count": 1,
+  "duration": 60,
+  "energy_per_tick": 13.3,
+  "result": {
+    "id": "academy:constraint_plate",
+    "count": 1
+  }
+}

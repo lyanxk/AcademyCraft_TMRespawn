@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.electromaster.skill;
 
+import cn.academy.data.Balance;
+
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
@@ -13,7 +15,7 @@ public record MagneticTarget(Vec3 position, Entity entity) {
         if (hit.getType() == HitResult.Type.BLOCK) {
             var block = player.level().getBlockState(((BlockHitResult) hit).getBlockPos()).getBlock();
             // Preserve the original redundant gates: isMetalBlock already includes weak metals.
-            if (proficiency < .6f && !ElectromasterMetalRules.metal(block)) return null;
+            if (proficiency < Balance.f("magnetic_target", "trace_threshold_1") && !ElectromasterMetalRules.metal(block)) return null;
             if (!ElectromasterMetalRules.weak(block) && !ElectromasterMetalRules.metal(block)) return null;
             return new MagneticTarget(hit.getLocation(), null);
         }

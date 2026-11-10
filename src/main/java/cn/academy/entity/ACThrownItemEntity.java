@@ -1,5 +1,7 @@
 package cn.academy.entity;
 
+import cn.academy.data.GameplayData;
+
 import cn.academy.registry.ACEntities;
 import cn.academy.registry.ACItems;
 import cn.academy.registry.ACSounds;
@@ -120,9 +122,9 @@ public final class ACThrownItemEntity extends ThrowableItemProjectile {
             setPos(getX() + velocity.x, getY() + velocity.y, getZ() + velocity.z);
             if (getOwner() instanceof Player owner) {
                 setPos(owner.getX(), getY(), owner.getZ());
-                if (tickCount > 120 || getDeltaMovement().y < 0 && getY() < owner.getY())
+                if (tickCount > GameplayData.integer("projectiles", "coin_lifetime") || getDeltaMovement().y < 0 && getY() < owner.getY())
                     returnCoin(owner);
-            } else if (tickCount > 120) discard();
+            } else if (tickCount > GameplayData.integer("projectiles", "coin_lifetime")) discard();
             coinMaxY = Math.max(coinMaxY, getY());
             return;
         }
@@ -174,7 +176,7 @@ public final class ACThrownItemEntity extends ThrowableItemProjectile {
             } else hitSilbarn(false);
         }
         // EntityX's tick-50 callback changes gravity AFTER that tick's Rigidbody update.
-        setDeltaMovement(getDeltaMovement().add(0, tickCount > 50 ? -.12 : 0, 0).scale(.8));
+        setDeltaMovement(getDeltaMovement().add(0, tickCount > GameplayData.integer("projectiles", "silbarn_gravity_delay") ? -GameplayData.number("projectiles", "silbarn_gravity") : 0, 0).scale(GameplayData.number("projectiles", "silbarn_drag")));
         setPos(position().add(getDeltaMovement()));
         if (level().isClientSide) {
             boolean synced = getEntityData().get(DATA_SILBARN_HIT);
@@ -219,7 +221,7 @@ public final class ACThrownItemEntity extends ThrowableItemProjectile {
                 && other.getItem().is(ACItems.MAG_HOOK.get());
         if (!otherHook || ((ACThrownItemEntity) hit.getEntity()).isHooked()) {
             if (!otherHook && getOwner() instanceof Player owner)
-                hit.getEntity().hurt(level().damageSources().playerAttack(owner), 4);
+                hit.getEntity().hurt(level().damageSources().playerAttack(owner), GameplayData.decimal("projectiles", "hook_damage"));
             returnItemAndDiscard();
         }
     }
@@ -274,7 +276,7 @@ public final class ACThrownItemEntity extends ThrowableItemProjectile {
         if (silbarnHit) return;
         silbarnHit = true;
         playSound(ACSounds.get(heavy ? "entity.silbarn_heavy" : "entity.silbarn_light"), .5f, 1);
-        silbarnDiscardAt = tickCount + 10;
+        silbarnDiscardAt = tickCount + GameplayData.integer("projectiles", "silbarn_hit_lifetime");
     }
 
     private void silbarnFragments() {

@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.electromaster.skill;
 
+import cn.academy.data.Balance;
+
 import cn.academy.ability.AbilitySkill;
 import cn.academy.ability.AbilityState;
 import cn.academy.network.MagneticMovementPayload;
@@ -24,15 +26,15 @@ public final class MagneticMovementContext {
     public MagneticMovementContext(ServerPlayer player, AbilityState state, AbilitySkill skill, int slot, int request) {
         this.player = player; this.skill = skill; this.slot = slot; this.request = request;
         start = player.position(); float exp = state.experience(skill.id());
-        cp = state.level()>=3 ? 8-4*exp : 15+(8-15)*exp;
-        overload = state.level()>=3 ? 30*(1-exp) : 60+(30-60)*exp;
+        cp = state.level()>=Balance.i("magnetic_movement_context", "magnetic_movement_context_cp_1") ? Balance.i("magnetic_movement_context", "magnetic_movement_context_cp_2")-Balance.i("magnetic_movement_context", "magnetic_movement_context_cp_3")*exp : Balance.i("magnetic_movement_context", "magnetic_movement_context_cp_4")+(Balance.i("magnetic_movement_context", "magnetic_movement_context_cp_5")-Balance.i("magnetic_movement_context", "magnetic_movement_context_cp_6"))*exp;
+        overload = state.level()>=Balance.i("magnetic_movement_context", "magnetic_movement_context_overload_1") ? Balance.i("magnetic_movement_context", "magnetic_movement_context_overload_2")*(1-exp) : Balance.i("magnetic_movement_context", "magnetic_movement_context_overload_3")+(Balance.i("magnetic_movement_context", "magnetic_movement_context_overload_4")-Balance.i("magnetic_movement_context", "magnetic_movement_context_overload_5"))*exp;
         audience.add(player);
-        for (var viewer : player.serverLevel().players()) if (viewer != player && viewer.distanceToSqr(player) <= 625) audience.add(viewer);
+        for (var viewer : player.serverLevel().players()) if (viewer != player && viewer.distanceToSqr(player) <= Balance.i("magnetic_movement_context", "magnetic_movement_context_threshold_1")) audience.add(viewer);
     }
     public boolean start(AbilityState state) {
         state.consumeRaw(skill,0,overload,player.isCreative()); // Original does not inspect this return value.
         float exp=state.experience(skill.id());
-        target = MagneticTarget.trace(player,MagneticMovementMotion.range(state.level(),exp),state.level()>=3?1:exp);
+        target = MagneticTarget.trace(player,MagneticMovementMotion.range(state.level(),exp),state.level()>=Balance.i("magnetic_movement_context", "start_threshold_1")?1:exp);
         if (target == null) return false;
         PacketDistributor.sendToPlayer(player,new MagneticMovementPayload(player.getId(),slot,id,request,
                 MagneticMovementPayload.LINK,state.overload(),Vec3.ZERO));

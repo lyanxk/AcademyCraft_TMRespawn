@@ -1,0 +1,17 @@
+{
+  "perform_threshold_1": 625,
+  "perform_trace_1": 20,
+  "perform_lerp_1": 450,
+  "perform_lerp_2": 380,
+  "perform_lerp_3": 300,
+  "perform_lerp_4": 140,
+  "perform_scale_1": 20,
+  "perform_lerp_5": 10,
+  "perform_lerp_6": 18,
+  "perform_trace_2": 20,
+  "perform_lerp_7": 25,
+  "perform_lerp_8": 60,
+  "perform_lerp_9": 100,
+  "perform_lerp_10": 40,
+  "perform_finish_context_1": 0.005
+}

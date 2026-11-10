@@ -1,0 +1,33 @@
+{
+  "level": 5,
+  "cp_cost": 900.0,
+  "overload": 80.0,
+  "cooldown_ticks": 100,
+  "controllable": true,
+  "requirements": [
+    {
+      "skill": "mine_ray_expert",
+      "experience": 1.0
+    }
+  ],
+  "enhancements": [],
+  "required_any_skill_level": 0,
+  "enabled": true,
+  "destroy_blocks": true,
+  "damage_scale": 1.0,
+  "cp_consume_speed": 1.0,
+  "overload_consume_speed": 1.0,
+  "exp_increase_speed": 1.0,
+  "cooldown_curve": [
+    60,
+    30
+  ],
+  "cooldown_enhanced_level": 6,
+  "cooldown_enhanced_curve": [
+    60,
+    30
+  ],
+  "cooldown_tiers": 0,
+  "experience_per_use": 0.0005,
+  "fortune_level": 20
+}

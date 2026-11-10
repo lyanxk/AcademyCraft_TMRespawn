@@ -67,10 +67,10 @@ public final class ACMediaLibrary {
             Files.createDirectories(root.resolve("source"));
             Files.createDirectories(root.resolve("cover"));
             if (!initialized) copy(resources, "media/readme_template.txt", root.resolve("README.txt"));
-            for (String id : MediaItem.TRACKS) {
+            for (String id : MediaItem.tracks()) {
                 Path file = root.resolve(id + ".ogg");
                 try {
-                    if (!initialized) copy(resources, "media/source/" + id + ".ogg", file);
+                    if (!Files.isRegularFile(file)) copy(resources, "media/source/" + id + ".ogg", file);
                     loaded.add(new Track(id, length(file), false, file, resource("media/cover/" + id + ".png")));
                 } catch (Exception exception) {
                     AcademyCraft.LOGGER.warn("Cannot load internal media {}", id, exception);

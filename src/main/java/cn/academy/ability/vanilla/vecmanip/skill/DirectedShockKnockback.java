@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.vecmanip.skill;
 
+import cn.academy.data.Balance;
+
 import net.minecraft.server.MinecraftServer;
 import cn.academy.network.VectorStrikePayload;
 import net.minecraft.world.entity.Entity;
@@ -13,13 +15,11 @@ import java.util.Set;
 
 /** Precomputed initial velocities for 1/6/11/16/21 blocks of displacement over one second. */
 public final class DirectedShockKnockback {
-    private static final double[] GROUND_SPEED={.454003,2.724015,4.994028,7.264040,9.534053};
-    private static final double[] WATER_SPEED={.202333,1.213996,2.225660,3.237324,4.248987};
-    private static final double[] AIR_SPEED={.106088,.636526,1.166964,1.697402,2.227841};
+
     private static final Map<MinecraftServer,Set<Entity>> PENDING_SYNC=new IdentityHashMap<>();
 
     public static void start(Entity target,Vec3 direction,int tier) {
-        double[] speeds=target.isInWater()?WATER_SPEED:target.onGround()?GROUND_SPEED:AIR_SPEED;
+        double[] speeds=target.isInWater()?Balance.array("directed_shock_knockback", "water_speed"):target.onGround()?Balance.array("directed_shock_knockback", "ground_speed"):Balance.array("directed_shock_knockback", "air_speed");
         var velocity=direction.scale(speeds[tier]);
         target.setDeltaMovement(velocity);
         target.hasImpulse=true;target.hurtMarked=true;

@@ -1,6 +1,7 @@
 from pathlib import Path
 import json
 import subprocess
+from gameplay_defaults import resolve_parameters
 
 root = Path(__file__).resolve().parent.parent
 skills = root / 'src/main/java/cn/academy/ability/vanilla/vecmanip/skill'
@@ -14,7 +15,7 @@ def method(path, signature):
     while depth:
         depth += (source[end] == '{') - (source[end] == '}')
         end += 1
-    return source[start:end]
+    return resolve_parameters(source[start:end])
 
 methods = '\n'.join([
     method(skills / 'VectorImpulseContext.java', 'public static void attackBloodRetrograde('),

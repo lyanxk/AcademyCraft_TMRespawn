@@ -1,5 +1,7 @@
 package cn.academy.registry;
 
+import cn.academy.data.GameplayData;
+
 import cn.academy.AcademyCraft;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -33,12 +35,12 @@ public final class ACCreativeTabs {
                             output.accept(cn.academy.support.EnergyItemHelper.createEmptyItem(item));
                             output.accept(cn.academy.support.EnergyItemHelper.createFullItem(item));
                         }
-                        cn.academy.item.MatterUnitItem.MATERIALS.forEach(material ->
+                        cn.academy.item.MatterUnitItem.materials().forEach(material ->
                                 output.accept(ACItems.MATTER_UNIT.get().create(material)));
                         AbilityRegistry.categoryIds().forEach(category -> output.accept(
                                 InductionFactorItem.forCategory(ACItems.INDUCTION_FACTOR.get(), category)));
-                        MediaItem.TRACKS.forEach(track -> output.accept(MediaItem.of(ACItems.MEDIA_ITEM.get(), track)));
-                        for (int level = 1; level <= 3; level++) output.accept(MatrixCoreItem.of(ACItems.MAT_CORE.get(), level));
+                        MediaItem.tracks().forEach(track -> output.accept(MediaItem.of(ACItems.MEDIA_ITEM.get(), track)));
+                        for (int level = 1; level <= GameplayData.value("wireless", "cores").getAsJsonArray().size(); level++) output.accept(MatrixCoreItem.of(ACItems.MAT_CORE.get(), level));
                     })
                     .build());
 

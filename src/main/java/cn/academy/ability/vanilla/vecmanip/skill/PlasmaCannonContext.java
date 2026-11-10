@@ -1,5 +1,7 @@
 package cn.academy.ability.vanilla.vecmanip.skill;
 
+import cn.academy.data.Balance;
+
 import cn.academy.ability.*;
 import cn.academy.ability.vanilla.electromaster.skill.ElectricAttackTrace;
 import cn.academy.network.PlasmaCannonPayload;
@@ -25,19 +27,19 @@ public final class PlasmaCannonContext {
     public PlasmaCannonContext(ServerPlayer player,AbilityState state,AbilitySkill skill,int slot,int request) {
         this.player=player;this.skill=skill;this.slot=slot;this.request=request;
         exp=state.experience(skill.id());chargeTime=chargeTime(exp);position=chargePosition(player);
-        audience.add(player);for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=625)audience.add(viewer);
+        audience.add(player);for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=Balance.i("plasma_cannon_context", "plasma_cannon_context_threshold_1"))audience.add(viewer);
     }
-    public static float chargeTime(float experience){return 200-100*experience;}
+    public static float chargeTime(float experience){return Balance.i("plasma_cannon_context", "charge_time_value_1")-Balance.i("plasma_cannon_context", "charge_time_value_2")*experience;}
     public static float damage(Entity target,float experience) {
-        return 300+700*experience+(target instanceof LivingEntity living?living.getMaxHealth()*(.05f+.05f*experience):0);
+        return Balance.i("plasma_cannon_context", "damage_value_1")+Balance.i("plasma_cannon_context", "damage_value_2")*experience+(target instanceof LivingEntity living?living.getMaxHealth()*(Balance.f("plasma_cannon_context", "damage_value_3")+Balance.f("plasma_cannon_context", "damage_value_4")*experience):0);
     }
-    public static float explosionPower(float experience){return 36+9*experience;}
+    public static float explosionPower(float experience){return Balance.i("plasma_cannon_context", "explosion_power_value_1")+Balance.i("plasma_cannon_context", "explosion_power_value_2")*experience;}
     public static Vec3 chargePosition(Entity player){return new Vec3(player.getX(),player.getBoundingBox().maxY+3.5,player.getZ());}
     public static void reject(ServerPlayer player,AbilitySkill skill,int slot,int request) {
         if(skill.name().equals("plasma_cannon") && request>0)PacketDistributor.sendToPlayer(player,new PlasmaCannonPayload(0,player.getId(),END,slot,request,0,Vec3.ZERO));
     }
     public void start(AbilityState state) {
-        state.consumeRaw(skill,0,500+(400-500)*exp,player.isCreative());send(START,position);
+        state.consumeRaw(skill,0,Balance.i("plasma_cannon_context", "start_consume_raw_1")+(Balance.i("plasma_cannon_context", "start_consume_raw_2")-Balance.i("plasma_cannon_context", "start_consume_raw_3"))*exp,player.isCreative());send(START,position);
     }
     public boolean active(){return flying || ticks>=chargeTime;}
     public int chargeTicks(){return (int)Math.ceil(chargeTime);}
@@ -45,33 +47,33 @@ public final class PlasmaCannonContext {
     public boolean releaseWithoutClient(AbilityState state){if(ticks<chargeTime)return false;perform(state);return true;}
     public void perform(AbilityState state) {
         if(flying || finished || ended)return;
-        state.addExperience(skill,.008f);
+        state.addExperience(skill,Balance.f("plasma_cannon_context", "perform_add_experience_1"));
         Vec3 eye=player.getEyePosition();
-        var hit=ElectricAttackTrace.traceSegment(player,eye,eye.add(player.getLookAngle().scale(100)),e->e!=player && e instanceof LivingEntity);
+        var hit=ElectricAttackTrace.traceSegment(player,eye,eye.add(player.getLookAngle().scale(Balance.i("plasma_cannon_context", "perform_scale_1"))),e->e!=player && e instanceof LivingEntity);
         destination=hit.getLocation();
         // LambdaLib2 getLookingPos offsets an entity hit from its feet by 60% of its eye height.
         if(hit instanceof EntityHitResult entityHit)destination=destination.add(0,entityHit.getEntity().getEyeHeight()*.6,0);
         flying=true;ticks=0;
-        state.finishContext(skill,(int)(1000+(600-1000)*state.experience(skill.id())),0);
+        state.finishContext(skill,(int)(Balance.i("plasma_cannon_context", "perform_finish_context_1")+(Balance.i("plasma_cannon_context", "perform_finish_context_2")-Balance.i("plasma_cannon_context", "perform_finish_context_3"))*state.experience(skill.id())),0);
         send(GO,destination);
     }
     public boolean tick(AbilityState state) {
         if(finished || ended)return false;
         ticks++;
         if(!flying) {
-            return ticks>=chargeTime || state.consumeRaw(skill,18+(25-18)*state.experience(skill.id()),0,player.isCreative());
+            return ticks>=chargeTime || state.consumeRaw(skill,Balance.i("plasma_cannon_context", "tick_consume_raw_1")+(Balance.i("plasma_cannon_context", "tick_consume_raw_2")-Balance.i("plasma_cannon_context", "tick_consume_raw_3"))*state.experience(skill.id()),0,player.isCreative());
         }
         Vec3 previous=position;position=move(position,destination);
         if(ElectricAttackTrace.traceSegment(player,previous,position,e->true).getType()!=HitResult.Type.MISS)explode(state);
         // Two independent original checks: a collision at arrival can execute both explosions.
-        if(ticks>=240 || position.distanceTo(destination)<1.5)explode(state);
-        if(syncTicks==0){syncTicks=5;send(POSITION,position);}else syncTicks--;
+        if(ticks>=Balance.i("plasma_cannon_context", "tick_threshold_1") || position.distanceTo(destination)<Balance.d("plasma_cannon_context", "tick_threshold_2"))explode(state);
+        if(syncTicks==0){syncTicks=Balance.i("plasma_cannon_context", "tick_sync_ticks_1");send(POSITION,position);}else syncTicks--;
         return !finished;
     }
     public static Vec3 move(Vec3 from,Vec3 to){var delta=to.subtract(from);return delta.length()<1?from:from.add(delta.normalize());}
     private void explode(AbilityState state) {
         var world=player.serverLevel();var ctx=AbilityContext.of(player,skill);
-        for(var entity:world.getEntities((Entity)null,new AABB(destination,destination).inflate(10),e->e.distanceToSqr(destination)<=100)) {
+        for(var entity:world.getEntities((Entity)null,new AABB(destination,destination).inflate(Balance.i("plasma_cannon_context", "explode_inflate_1")),e->e.distanceToSqr(destination)<=Balance.i("plasma_cannon_context", "explode_threshold_1"))) {
             ctx.attack(entity,damage(entity,state.experience(skill.id())));entity.invulnerableTime=-1;
         }
         float radius=explosionPower(state.experience(skill.id()));

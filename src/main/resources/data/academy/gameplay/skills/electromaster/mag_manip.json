@@ -1,0 +1,34 @@
+{
+  "level": 2,
+  "cp_cost": 220.0,
+  "overload": 14.0,
+  "cooldown_ticks": 20,
+  "controllable": true,
+  "requirements": [
+    {
+      "skill": "mag_movement",
+      "experience": 0.5
+    }
+  ],
+  "enhancements": [
+    4
+  ],
+  "required_any_skill_level": 0,
+  "enabled": true,
+  "destroy_blocks": true,
+  "damage_scale": 1.0,
+  "cp_consume_speed": 1.0,
+  "overload_consume_speed": 1.0,
+  "exp_increase_speed": 1.0,
+  "cooldown_curve": [
+    60,
+    40
+  ],
+  "cooldown_enhanced_level": 4,
+  "cooldown_enhanced_curve": [
+    40,
+    40
+  ],
+  "cooldown_tiers": 0,
+  "experience_per_use": 0.003
+}

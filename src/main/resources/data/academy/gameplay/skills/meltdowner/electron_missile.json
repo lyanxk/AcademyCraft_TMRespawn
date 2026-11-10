@@ -1,0 +1,32 @@
+{
+  "level": 5,
+  "cp_cost": 1000.0,
+  "overload": 90.0,
+  "cooldown_ticks": 140,
+  "controllable": true,
+  "requirements": [
+    {
+      "skill": "jet_engine",
+      "experience": 0.3
+    }
+  ],
+  "enhancements": [],
+  "required_any_skill_level": 0,
+  "enabled": true,
+  "destroy_blocks": true,
+  "damage_scale": 1.0,
+  "cp_consume_speed": 1.0,
+  "overload_consume_speed": 1.0,
+  "exp_increase_speed": 1.0,
+  "cooldown_curve": [
+    700,
+    400
+  ],
+  "cooldown_enhanced_level": 6,
+  "cooldown_enhanced_curve": [
+    700,
+    400
+  ],
+  "cooldown_tiers": 0,
+  "experience_per_use": 0.003
+}

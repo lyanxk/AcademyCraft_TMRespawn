@@ -14,7 +14,12 @@ import java.util.List;
 
 public final class InductionFactorItem extends Item {
     public InductionFactorItem(Properties properties) {
-        super(properties.component(ACDataComponents.ABILITY_CATEGORY.get(), "electromaster"));
+        super(properties);
+    }
+
+    public static String category(ItemStack stack) {
+        return stack.getItem() instanceof InductionFactorItem ? stack.getOrDefault(ACDataComponents.ABILITY_CATEGORY.get(),
+                cn.academy.data.GameplayData.string("abilities", "default_category")) : "";
     }
 
     public static ItemStack forCategory(Item item, String category) {
@@ -28,7 +33,7 @@ public final class InductionFactorItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
-        String category = stack.getOrDefault(ACDataComponents.ABILITY_CATEGORY.get(), "");
+        String category = cn.academy.item.InductionFactorItem.category(stack);
         if (AbilityRegistry.category(category) != null) {
             tooltip.add(AbilityRegistry.category(category).displayName().copy().withStyle(ChatFormatting.GRAY));
         } else {

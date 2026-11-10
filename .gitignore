@@ -19,6 +19,8 @@ hs_err_pid*
 
 # Common working directory
 run
+logs/
+__pycache__/
 
 # Downloaded, pinned upstream checkouts and original template backup
 .reference/

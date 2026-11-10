@@ -1,5 +1,7 @@
 package cn.academy.client.render;
 
+import cn.academy.data.SharedSkillCosts;
+
 import cn.academy.ability.*;
 import cn.academy.ability.vanilla.electromaster.skill.ElectricAttackTrace;
 import cn.academy.ability.vanilla.vecmanip.skill.VectorImpulseContext;
@@ -35,7 +37,7 @@ public final class VectorImpulseEffects {
         final int kind,slot,request;final float experience;int id,ticks;
         final boolean enhancedAcceleration;
         boolean released,canPerform=true,previewCanPerform;
-        Impulse(int kind,int slot,int request,float experience){this.kind=kind;this.slot=slot;this.request=request;this.experience=experience;released=kind==BLOOD;enhancedAcceleration=kind==ACCEL && AbilityState.load(local).level()>=4;}
+        Impulse(int kind,int slot,int request,float experience){this.kind=kind;this.slot=slot;this.request=request;this.experience=experience;released=kind==BLOOD;enhancedAcceleration=kind==ACCEL && AbilityState.load(local).level()>=cn.academy.data.Balance.i("vector_impulse_context", "vector_impulse_context_threshold_1");}
         AbilitySkill skill(){return AbilityRegistry.skill(kind==ACCEL?"vecmanip.vec_accel":"vecmanip.blood_retro");}
     }
     private static final class Splash {
@@ -80,8 +82,8 @@ public final class VectorImpulseEffects {
         if(impulse.released)return;impulse.released=true;
         if(impulse.kind==ACCEL) {
             var state=AbilityState.load(local);var skill=impulse.skill();float exp=state.experience(skill.id());
-            if(!canAccelerate(impulse) || !state.consumeRaw(skill,impulse.enhancedAcceleration?160:240+(160-240)*impulse.experience,
-                    impulse.enhancedAcceleration?15:30+(15-30)*exp,local.isCreative())){cancel(impulse);return;}
+            if(!canAccelerate(impulse) || !state.consumeRaw(skill,SharedSkillCosts.accelerationCp(impulse.enhancedAcceleration,impulse.experience),
+                    SharedSkillCosts.accelerationOverload(impulse.enhancedAcceleration,exp),local.isCreative())){cancel(impulse);return;}
             local.setDeltaMovement(initialSpeed(impulse,0));
             // getLowestRidingEntity in the original always returns at least the player, so its null-only dismount does not run.
             state.finishContext(skill,state.cooldownFor(skill),0);

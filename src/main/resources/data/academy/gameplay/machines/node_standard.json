@@ -1,0 +1,7 @@
+{
+  "capacity": 50000,
+  "transfer": 300,
+  "generation": 0,
+  "connections": 10,
+  "range": 12.0
+}

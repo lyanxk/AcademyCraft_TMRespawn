@@ -1,12 +1,14 @@
 package cn.academy.ability.vanilla.electromaster.skill;
 
+import cn.academy.data.Balance;
+
 import net.minecraft.world.phys.Vec3;
 
 /** MovementContext's remembered velocity and per-axis .08 approach, including its zero-distance branch. */
 public final class MagneticMovementMotion {
     private Vec3 remembered = Vec3.ZERO;
-    public static double range(int level,float experience){return level>=3?25+25*experience:25;}
-    public static double speed(int level,float experience){return level>=3?1+2*experience:1;}
+    public static double range(int level,float experience){return level>=Balance.i("magnetic_movement_motion", "range_value_1")?Balance.i("magnetic_movement_motion", "range_value_2")+Balance.i("magnetic_movement_motion", "range_value_3")*experience:Balance.i("magnetic_movement_motion", "range_value_4");}
+    public static double speed(int level,float experience){return level>=Balance.i("magnetic_movement_motion", "speed_value_1")?1+Balance.i("magnetic_movement_motion", "speed_value_2")*experience:1;}
     public Vec3 step(Vec3 position, Vec3 target, Vec3 actual) {
         return step(position,target,actual,1);
     }
@@ -22,5 +24,5 @@ public final class MagneticMovementMotion {
         if (Math.abs(delta) < .08) return to;
         return delta > 0 ? from + .08 : from - .08;
     }
-    public static float reward(double distance) { return Math.max(.005f, .0011f * (float) distance); }
+    public static float reward(double distance) { return Math.max(Balance.f("magnetic_movement_motion", "reward_value_1"), Balance.f("magnetic_movement_motion", "reward_value_2") * (float) distance); }
 }

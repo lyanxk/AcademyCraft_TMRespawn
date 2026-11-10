@@ -1,0 +1,22 @@
+{
+  "tick_consumption_value_1": 40,
+  "tick_consumption_value_2": 20,
+  "tick_consumption_value_3": 15,
+  "tick_consumption_value_4": 20,
+  "can_release_value_1": 10,
+  "can_release_value_2": 100,
+  "cooldown_value_1": 900,
+  "cooldown_value_2": 600,
+  "cooldown_value_3": 900,
+  "calculate_charged_1": 40,
+  "calculate_probability_1": 10.0,
+  "calculate_probability_2": 18.0,
+  "calculate_charge_progress_1": 10,
+  "calculate_charge_progress_2": 30.0,
+  "calculate_duration_1": 200,
+  "calculate_duration_2": 2,
+  "_constraints": {
+    "calculate_probability_2": "nonzero",
+    "calculate_charge_progress_2": "nonzero"
+  }
+}

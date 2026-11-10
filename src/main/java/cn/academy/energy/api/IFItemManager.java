@@ -24,8 +24,9 @@ public final class IFItemManager implements EnergyItemManager {
     }
 
     @Override public double getEnergy(ItemStack stack) {
-        return stack.getOrDefault(ACDataComponents.ENERGY.get(), 0)
+        double value = stack.getOrDefault(ACDataComponents.ENERGY.get(), 0)
                 + stack.getOrDefault(ACDataComponents.ENERGY_FRACTION.get(), 0.0);
+        return Double.isFinite(value) ? Math.clamp(value, 0, getMaxEnergy(stack)) : 0;
     }
 
     @Override public void setEnergy(ItemStack stack, double amount) {

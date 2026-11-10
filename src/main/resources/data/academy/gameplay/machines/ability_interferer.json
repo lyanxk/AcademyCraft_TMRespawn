@@ -1,0 +1,14 @@
+{
+  "capacity": 10000,
+  "transfer": 50,
+  "generation": 0,
+  "connections": 0,
+  "range": 0.0,
+  "minimum_range": 10.0,
+  "maximum_range": 100.0,
+  "energy_per_range_squared": 1.0,
+  "range_step": 10.0,
+  "default_enabled": false,
+  "operation_interval_ticks": 10,
+  "sync_interval_ticks": 20
+}
