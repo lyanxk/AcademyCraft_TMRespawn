@@ -9,14 +9,16 @@ import net.neoforged.neoforge.common.Tags;
 public final class ElectromasterOreRules {
     public static boolean isOre(BlockState state) {
         if (state.is(Tags.Blocks.ORES)) return true;
+        if (state.getTags().anyMatch(tag -> isOreItemTag(tag.location()))) return true;
+        String id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath();
+        if (id.endsWith("_ore") || id.startsWith("ore_") || id.contains("_ore_")) return true;
         var item = state.getBlock().asItem();
         return item != Items.AIR && item.builtInRegistryHolder().tags()
                 .anyMatch(tag -> isOreItemTag(tag.location()));
     }
     public static boolean isOreItemTag(net.minecraft.resources.ResourceLocation tag) {
         String path = tag.getPath();
-        if (tag.getNamespace().equals("c") || tag.getNamespace().equals("forge"))
-            return path.equals("ores") || path.startsWith("ores/");
+        if (path.equals("ores") || path.startsWith("ores/") || path.endsWith("_ores")) return true;
         // Optional bridge for legacy dictionary names which were not conventional oreFoo entries.
         String prefix = "legacy_ore_dictionary/";
         return tag.getNamespace().equals("academy") && path.startsWith(prefix) && path.substring(prefix.length()).contains("ore");

@@ -23,13 +23,16 @@ public final class MagneticMovementContext {
     private boolean effectsStarted, ended;
     public MagneticMovementContext(ServerPlayer player, AbilityState state, AbilitySkill skill, int slot, int request) {
         this.player = player; this.skill = skill; this.slot = slot; this.request = request;
-        start = player.position(); float exp = state.experience(skill.id()); cp = 15 + (8 - 15) * exp; overload = 60 + (30 - 60) * exp;
+        start = player.position(); float exp = state.experience(skill.id());
+        cp = state.level()>=3 ? 8-4*exp : 15+(8-15)*exp;
+        overload = state.level()>=3 ? 30*(1-exp) : 60+(30-60)*exp;
         audience.add(player);
         for (var viewer : player.serverLevel().players()) if (viewer != player && viewer.distanceToSqr(player) <= 625) audience.add(viewer);
     }
     public boolean start(AbilityState state) {
         state.consumeRaw(skill,0,overload,player.isCreative()); // Original does not inspect this return value.
-        target = MagneticTarget.trace(player,25,state.experience(skill.id()));
+        float exp=state.experience(skill.id());
+        target = MagneticTarget.trace(player,MagneticMovementMotion.range(state.level(),exp),state.level()>=3?1:exp);
         if (target == null) return false;
         PacketDistributor.sendToPlayer(player,new MagneticMovementPayload(player.getId(),slot,id,request,
                 MagneticMovementPayload.LINK,state.overload(),Vec3.ZERO));

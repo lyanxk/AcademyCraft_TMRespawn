@@ -486,7 +486,7 @@ public class DeveloperScreen extends Screen {
             AbilitySkill dependency = category.skill(requirement.skillId());
             if (dependency != null && !dependency.isEnabled()) continue;
             boolean accepted = dependency != null && state.learned().contains(dependency.id())
-                    && state.experience(dependency.id()) >= requirement.experience();
+                    && state.experienceForLearning(dependency.id()) >= requirement.experience();
             Component hint = (dependency == null ? Component.literal(requirement.skillId()) : dependency.displayName())
                     .copy().append(": " + Math.round(requirement.experience() * 100) + "%");
             conditions.add(new ConditionView(dependency == null ? NO_CATEGORY : dependency.icon(), accepted, hint));

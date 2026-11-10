@@ -14,10 +14,26 @@ public record AbilitySkill(
         float overload,
         int cooldownTicks,
         boolean controllable,
-        List<Requirement> requirements
+        List<Requirement> requirements,
+        List<Enhancement> enhancements
 ) {
     public AbilitySkill {
         requirements = List.copyOf(requirements);
+        enhancements = List.copyOf(enhancements);
+    }
+
+    public AbilitySkill(String category,String name,int level,float cpCost,float overload,int cooldownTicks,
+                        boolean controllable,List<Requirement> requirements) {
+        this(category,name,level,cpCost,overload,cooldownTicks,controllable,requirements,List.of());
+    }
+
+    public AbilitySkill withEnhancements(int... levels) {
+        return new AbilitySkill(category,name,level,cpCost,overload,cooldownTicks,controllable,requirements,
+                java.util.Arrays.stream(levels).mapToObj(Enhancement::new).toList());
+    }
+
+    public boolean crossesEnhancement(int previousLevel,int nextLevel) {
+        return enhancements.stream().anyMatch(tag->previousLevel<tag.level() && nextLevel>=tag.level());
     }
 
     public String id() {
@@ -80,4 +96,6 @@ public record AbilitySkill(
     }
 
     public record Requirement(String skillId, float experience) {}
+    /** Skill metadata marking a level-triggered enhancement and proficiency reset. */
+    public record Enhancement(int level) {}
 }

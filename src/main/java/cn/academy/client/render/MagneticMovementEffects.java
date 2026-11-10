@@ -30,16 +30,17 @@ public final class MagneticMovementEffects {
     private static final class Motion {
         final int slot, id;
         final MagneticTarget target;
+        final double speed;
         final MagneticMovementMotion motion = new MagneticMovementMotion();
         boolean first = true;
-        Motion(int slot, int id, MagneticTarget target) {
-            this.slot = slot; this.id = id; this.target = target;
+        Motion(int slot, int id, MagneticTarget target,double speed) {
+            this.slot = slot; this.id = id; this.target = target;this.speed=speed;
         }
         void tick() {
             Vec3 point = target.entity() == null ? target.position() : target.entity().getEyePosition();
             PacketDistributor.sendToServer(new MagneticMovementUpdatePayload(id, first ? START : UPDATE, point));
             first = false;
-            local.setDeltaMovement(motion.step(local.position(), point, local.getDeltaMovement()));
+            local.setDeltaMovement(motion.step(local.position(), point, local.getDeltaMovement(),speed));
         }
     }
     private static final class Effect {
@@ -99,9 +100,10 @@ public final class MagneticMovementEffects {
             if (phase == END) {
                 MOTIONS.remove(id); var effect = EFFECTS.remove(id); if (effect != null) effect.stop();
             } else if (phase == LINK && owner == local && REQUESTS.accepts(slot, tag.getInt("Request"))) {
-                var target = MagneticTarget.trace(local, 25, AbilityState.load(local).experience("electromaster.mag_movement"));
+                var state=AbilityState.load(local);float exp=state.experience("electromaster.mag_movement");
+                var target = MagneticTarget.trace(local,MagneticMovementMotion.range(state.level(),exp),state.level()>=3?1:exp);
                 if (target == null) PacketDistributor.sendToServer(new MagneticMovementUpdatePayload(id, END, Vec3.ZERO));
-                else MOTIONS.putIfAbsent(id, new Motion(slot, id, target));
+                else MOTIONS.putIfAbsent(id, new Motion(slot, id, target,MagneticMovementMotion.speed(state.level(),exp)));
             } else if (phase == START && owner instanceof Player player && !EFFECTS.containsKey(id)) {
                 if (player != local || MOTIONS.containsKey(id) && REQUESTS.accepts(slot, tag.getInt("Request")))
                     EFFECTS.put(id, new Effect(player, slot));

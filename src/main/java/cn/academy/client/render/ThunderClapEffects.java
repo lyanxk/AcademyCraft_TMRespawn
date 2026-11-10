@@ -6,10 +6,14 @@ import cn.academy.client.render.util.SurroundArc;
 import cn.academy.client.render.util.ThunderClapAnimation;
 import cn.academy.client.render.util.ThunderClapRequests;
 import cn.academy.network.ThunderClapEffectPayload;
+import cn.academy.registry.ACSounds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import java.util.HashMap;
 
@@ -27,6 +31,7 @@ public final class ThunderClapEffects {
         final double created = RailgunHandEffects.seconds();
         Vec3 hit = Vec3.ZERO, position;
         float yaw;
+        int dischargeTicks;
         Effect(Player owner, int slot) {
             this.owner = owner; this.slot = slot;
             surround = SurroundArc.bold(owner.getBbWidth() * 1.3, owner.getBbHeight() * 1.3);
@@ -42,9 +47,33 @@ public final class ThunderClapEffects {
             if (animation.active()) {
                 hit = ElectricAttackTrace.traceBlocks(owner, 40).getLocation();
                 animation.tick();
+                discharge();
                 if (owner == local) owner.getAbilities().setWalkingSpeed(animation.walkSpeed());
             } else animation.tick();
             surround.tick(); position = owner.position(); yaw = owner.getYHeadRot();
+        }
+        void discharge() {
+            Vec3 center = owner.position(), start = owner.getEyePosition();
+            var targets = world.getEntitiesOfClass(LivingEntity.class, new AABB(center, center).inflate(6),
+                    entity -> entity != owner && entity.distanceToSqr(center) <= 36);
+            for (int i = 0; i < 12; i++) {
+                Vec3 end;
+                if (targets.isEmpty()) {
+                    double angle = world.random.nextDouble() * Math.PI * 2;
+                    double y = (world.random.nextDouble() * 2 - 1) * 6;
+                    double horizontal = Math.sqrt(36 - y * y);
+                    end = start.add(Math.cos(angle) * horizontal, y, Math.sin(angle) * horizontal);
+                } else {
+                    var target = targets.get(world.random.nextInt(targets.size()));
+                    end = target.position().add((world.random.nextDouble() - .5) * target.getBbWidth(),
+                            world.random.nextDouble() * target.getBbHeight(),
+                            (world.random.nextDouble() - .5) * target.getBbWidth());
+                }
+                LegacyArcEffects.discharge(owner, start, end);
+            }
+            if (dischargeTicks++ % 15 == 0)
+                world.playLocalSound(owner.getX(), owner.getY(), owner.getZ(), ACSounds.EM_ARC_WEAK.get(),
+                        SoundSource.AMBIENT, .5f, 1, false);
         }
     }
     private static boolean syncWorld(Minecraft mc) {

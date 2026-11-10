@@ -15,15 +15,17 @@ public final class MagneticManipulationContext {
     private final int id=NEXT_ID.incrementAndGet();
     private final ServerPlayer player;
     private final AbilitySkill skill;
-    private final float cp,overload,speed;
+    private final float cp,overload,speed,damage;
     private final int cooldown,slot,request;
     private final ArrayList<ServerPlayer> audience=new ArrayList<>();
     private MagManipEntityBlock entity;
     private boolean performed,ended;
     public MagneticManipulationContext(ServerPlayer player,AbilityState state,AbilitySkill skill,int slot,int request) {
         this.player=player;this.skill=skill;this.slot=slot;this.request=request;
-        float exp=state.experience(skill.id());cp=140+(270-140)*exp;overload=35+(20-35)*exp;
-        speed=.5f+(1-.5f)*exp;cooldown=(int)(60+(40-60)*exp);
+        float exp=state.experience(skill.id());boolean enhanced=state.level()>=4;
+        cp=enhanced?270+230*exp:140+(270-140)*exp;overload=enhanced?20:35+(20-35)*exp;
+        speed=enhanced?1+2*exp:.5f+(1-.5f)*exp;cooldown=enhanced?40:(int)(60+(40-60)*exp);
+        damage=enhanced?10+90*exp:10;
         audience.add(player);for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=625)audience.add(viewer);
     }
     public boolean start() {
@@ -38,6 +40,7 @@ public final class MagneticManipulationContext {
             player.level().removeBlock(hit.getBlockPos(),false);
             entity=MagManipEntityBlock.create(player,state,MagneticManipulationRules.grabbedPosition(hit.getBlockPos()));
         }
+        entity.damage=damage;
         player.serverLevel().addFreshEntity(entity);tick();send(MagneticManipulationPayload.START,Vec3.ZERO);return true;
     }
     public void tick(){if(entity!=null)entity.follow(player);}

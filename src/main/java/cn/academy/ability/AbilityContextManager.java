@@ -842,7 +842,7 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
 
     private static float[] initialCost(String name, float exp) {
         return switch (name) {
-            case "charging" -> cost(0, lerp(65, 48, exp));
+            case "charging" -> cost(0, 0);
             case "scatter_bomb" -> cost(0, lerp(80, 60, exp));
             case "light_shield" -> cost(0, lerp(110, 60, exp));
             case "body_intensify" -> cost(0, lerp(200, 120, exp));

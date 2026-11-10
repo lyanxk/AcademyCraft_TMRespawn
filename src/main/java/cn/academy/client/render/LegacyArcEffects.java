@@ -26,9 +26,17 @@ public final class LegacyArcEffects {
         final float yaw, pitch;
         final double length;
         final boolean fixed;
+        final boolean handOffset;
+        final double bendAngle, bendAmount;
         final ArcFactory.Arc[] patterns;
         final ArcAnimation animation;
         Arc(ArcEffectPayload payload, Entity owner, Vec3 end) {
+            this(payload, owner, end, true);
+        }
+        Arc(ArcEffectPayload payload, Entity owner, Vec3 end, boolean handOffset) {
+            this.handOffset = handOffset;
+            bendAngle = handOffset ? 0 : RANDOM.nextDouble() * Math.PI * 2;
+            bendAmount = handOffset ? 0 : .15 + RANDOM.nextDouble() * .1;
             caster = payload.caster();
             fixed = payload.kind() == ArcEffectPayload.STRONG;
             patterns = switch (payload.kind()) {
@@ -47,11 +55,15 @@ public final class LegacyArcEffects {
                 yaw = owner.getYRot(); pitch = owner.getXRot();
                 length = payload.end().distanceTo(payload.start());
             }
-            int life = payload.kind() == ArcEffectPayload.AOE ? 15 + RANDOM.nextInt(10) : payload.duration();
+            int life = payload.kind() == ArcEffectPayload.AOE && payload.duration() <= 0 ? 15 + RANDOM.nextInt(10) : payload.duration();
             animation = new ArcAnimation(new Random(RANDOM.nextLong()), patterns.length, life, payload.kind() == ArcEffectPayload.WEAK);
         }
     }
 
+    public static void discharge(Entity owner, Vec3 start, Vec3 end) {
+        ARCS.add(new Arc(new ArcEffectPayload(owner.getId(), ArcEffectPayload.AOE,
+                start, end, -1, 4, false), owner, end, false));
+    }
     public static void tick(Minecraft minecraft) {
         if (minecraft.level != world) { ARCS.clear(); world = minecraft.level; }
         if (minecraft.player == null || world == null) { ARCS.clear(); return; }
@@ -86,10 +98,22 @@ public final class LegacyArcEffects {
             boolean firstPerson = minecraft.player != null && minecraft.player.getId() == arc.caster
                     && minecraft.options.getCameraType().isFirstPerson();
             // Applied after both rotations, exactly where EntityArc.Renderer invokes ViewOptimize.fix.
-            pose.mulPose(ArcTransform.local(arc.yaw, arc.pitch, firstPerson));
+            pose.mulPose(arc.handOffset ? ArcTransform.local(arc.yaw, arc.pitch, firstPerson)
+                    : new org.joml.Matrix4f().rotateY((float) Math.toRadians(-arc.yaw - 90))
+                            .rotateZ((float) Math.toRadians(-arc.pitch)));
             var pattern = arc.patterns[arc.animation.pattern()];
-            for (ArcFactory.Vertex vertex : arc.fixed ? pattern.fixedVertices() : pattern.vertices(arc.length)) {
+            for (ArcFactory.Vertex vertex : arc.fixed || !arc.handOffset ? pattern.fixedVertices() : pattern.vertices(arc.length)) {
                 var point = vertex.position();
+                if (!arc.handOffset) {
+                    double t = Math.clamp(point.x / pattern.length, 0, 1);
+                    // Alternating bends preserve the head and target endpoints: 0 -> +1 -> -1 -> 0.
+                    double zigzag = t < .25 ? t * 4 : t < .75 ? 2 - t * 4 : t * 4 - 4;
+                    double bend = zigzag * arc.length * arc.bendAmount;
+                    double scale = arc.length / pattern.length;
+                    point = new Vec3(point.x * scale,
+                            point.y * scale + Math.cos(arc.bendAngle) * bend,
+                            point.z * scale + Math.sin(arc.bendAngle) * bend);
+                }
                 vertices.addVertex(pose.last(), (float) point.x, (float) point.y, (float) point.z)
                         .setUv((float) vertex.u(), (float) vertex.v()).setColor(1, 1, 1, (float) vertex.alpha());
             }

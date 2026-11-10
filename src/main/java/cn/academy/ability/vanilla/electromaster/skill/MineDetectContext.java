@@ -4,8 +4,6 @@ import cn.academy.ability.AbilitySkill;
 import cn.academy.ability.AbilityState;
 import cn.academy.network.MineDetectEffectPayload;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 /** MDContext snapshots view parameters before consumption, but reads cooldown proficiency after XP callbacks. */
@@ -23,7 +21,6 @@ public final class MineDetectContext {
     public boolean perform() {
         float exp = state.experience(skill.id());
         if (!state.consumeRaw(skill, 1500 + exp * (1000 - 1500), 200 + exp * (180 - 200), player.isCreative())) return false;
-        player.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 100));
         state.addExperience(skill, .008f);
         // The original broadcasts MSG_EFFECT, but all non-local clients intentionally do nothing.
         PacketDistributor.sendToPlayer(player, new MineDetectEffectPayload(range, advanced));

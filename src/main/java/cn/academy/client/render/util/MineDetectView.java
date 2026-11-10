@@ -16,7 +16,7 @@ public final class MineDetectView {
     private int ticks;
     private List<Ore> ores = List.of();
     public MineDetectView(Vec3 initial, double range, boolean advanced) {
-        position = initial; this.range = Math.min(range, 28); this.advanced = advanced;
+        position = initial; this.range = range; this.advanced = advanced;
     }
     public void tick(Vec3 target, Predicate<BlockPos> isOre, ToIntFunction<BlockPos> harvestLevel) {
         ticks++;
@@ -26,21 +26,24 @@ public final class MineDetectView {
     }
     private void update(Predicate<BlockPos> isOre, ToIntFunction<BlockPos> harvestLevel) {
         var found = new ArrayList<Ore>();
-        for (BlockPos p : scan(position, range, 8400, isOre))
-            found.add(new Ore(p, advanced ? Math.min(3, harvestLevel.applyAsInt(p) + 1) : 0));
+        for (BlockPos p : scan(position, range, Integer.MAX_VALUE, isOre))
+            found.add(new Ore(p, Math.min(3, harvestLevel.applyAsInt(p) + 1)));
         ores = List.copyOf(found);
     }
     public boolean expired() { return ticks > 100; }
+    public boolean advanced() { return advanced; }
     public List<Ore> ores() { return ores; }
     public Vec3 position() { return position; }
     public static List<BlockPos> scan(Vec3 center, double range, int limit, Predicate<BlockPos> accepts) {
         var result = new ArrayList<BlockPos>();
         int minX = (int) Math.floor(center.x - range), minY = (int) Math.floor(center.y - range), minZ = (int) Math.floor(center.z - range);
         int maxX = (int) Math.ceil(center.x + range), maxY = (int) Math.ceil(center.y + range), maxZ = (int) Math.ceil(center.z + range);
+        var p = new BlockPos.MutableBlockPos();
         for (int x = minX; x <= maxX; x++) for (int y = minY; y <= maxY; y++) for (int z = minZ; z <= maxZ; z++) {
-            var p = new BlockPos(x, y, z);
-            if (accepts.test(p) && center.distanceToSqr(x, y, z) <= range * range) {
-                result.add(p); if (result.size() == limit) return result;
+            if (center.distanceToSqr(x, y, z) > range * range) continue;
+            p.set(x, y, z);
+            if (accepts.test(p)) {
+                result.add(p.immutable()); if (result.size() == limit) return result;
             }
         }
         return result;

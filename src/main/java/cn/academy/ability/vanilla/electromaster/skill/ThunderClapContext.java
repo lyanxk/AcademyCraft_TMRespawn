@@ -8,6 +8,8 @@ import cn.academy.network.ThunderClapEffectPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.PacketDistributor;
 
@@ -40,7 +42,19 @@ public final class ThunderClapContext {
     public boolean tick(AbilityState state) {
         hit = ElectricAttackTrace.traceBlocks(player, 40).getLocation();
         ticks++;
-        return (ticks <= 40 && !state.consumeRaw(skill, 18 + experience * 7, 0, player.isCreative())) || ticks >= 60;
+        if (ticks <= 40 && !state.consumeRaw(skill, 18 + experience * 7, 0, player.isCreative())) return true;
+        if (ticks % 10 == 0) discharge();
+        return ticks >= 60;
+    }
+    private void discharge() {
+        var level = player.serverLevel();
+        Vec3 center = player.position();
+        var context = AbilityContext.of(player, skill);
+        var targets = level.getEntitiesOfClass(LivingEntity.class, new AABB(center, center).inflate(6),
+                entity -> entity != player && entity.distanceToSqr(center) <= 36);
+        for (var target : targets) {
+            context.attack(target, 25 + experience * 25);
+        }
     }
     public boolean canPerform() { return ticks >= 40; }
     public Vec3 hit() { return hit; }
@@ -57,7 +71,7 @@ public final class ThunderClapContext {
                 10000, .8f + level.random.nextFloat() * .2f);
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.WEATHER,
                 2, .5f + level.random.nextFloat() * .2f);
-        float damage = (36 + experience * 36) * (1 + ((ticks - 40.0f) / 60.0f) * (1.2f - 1));
+        float damage = (300 + experience * 300) * (1 + ((ticks - 40.0f) / 60.0f) * (1.2f - 1));
         AbilityContext.of(player, skill).attackRange(hit, 15 + experience * 15, damage,
                 entity -> entity != player && !(entity instanceof net.minecraft.world.entity.LightningBolt));
         state.finishContext(skill, (int) (ticks * (10 + experience * (6 - 10))), .003f);

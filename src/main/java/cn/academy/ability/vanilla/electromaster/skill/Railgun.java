@@ -56,27 +56,32 @@ public final class Railgun {
     private static boolean performServer(ServerPlayer player, AbilityState state) {
         AbilitySkill skill = skill();
         float exp = state.experience(skill.id());
-        if (!state.consumeRaw(skill, 200 + exp * 250, 180 + exp * -60, player.isCreative())) return false;
+        boolean enhanced = state.level() >= 5;
+        float baseExp = enhanced ? 1 : exp;
+        double radiusScale = enhanced ? 2 : 1;
+        if (!state.consumeRaw(skill, enhanced ? 450 + exp * 550 : 200 + exp * 250,
+                enhanced ? 120 + exp * 180 : 180 + exp * -60, player.isCreative())) return false;
         AbilityContext context = AbilityContext.of(player, skill);
-        double[] length = {45};
-        var damage = new RangedRayDamage.Reflectible(context, 2, 900 + exp * 1100, reflector -> {
+        double[] length = {90};
+        var damage = new RangedRayDamage.Reflectible(context, 2 * radiusScale, 900 + baseExp * 1100, reflector -> {
             var result = ElectricAttackTrace.trace(reflector, 15, false);
             if (result instanceof EntityHitResult entity) { context.attack(entity.getEntity(), 14); hitEntity = true; }
             double distance = reflector.distanceTo(player);
             length[0] = Math.min(length[0], distance);
-            visual(player, reflector.getId(), 15);
+            visual(player, reflector.getId(), 15, radiusScale);
         });
-        damage.startDamage = 60 + exp * 50;
+        damage.maxIncrement = 100;
+        damage.startDamage = enhanced ? 220 + exp * 280 : 100 + exp * 120;
         damage.perform();
         state.addExperience(skill, hitEntity ? .01f : .005f);
-        state.finishContext(skill, (int) (300 + exp * -140), 0);
-        visual(player, -1, length[0]);
+        state.finishContext(skill, enhanced ? (int) (160 - exp * 80) : (int) (300 + exp * -140), 0);
+        visual(player, -1, length[0], radiusScale);
         AbilityManager.completeUse(player, state, skill);
         return true;
     }
 
-    private static void visual(ServerPlayer player, int reflector, double length) {
-        var payload = new RailgunEffectPayload(player.getId(), reflector, length);
+    private static void visual(ServerPlayer player, int reflector, double length, double radiusScale) {
+        var payload = new RailgunEffectPayload(player.getId(), reflector, length, radiusScale);
         for (ServerPlayer viewer : player.serverLevel().players())
             if (viewer.distanceToSqr(player) <= 400) PacketDistributor.sendToPlayer(viewer, payload);
     }

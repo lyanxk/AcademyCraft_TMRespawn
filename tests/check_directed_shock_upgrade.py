@@ -1,12 +1,15 @@
 """Run production level-transition and strike methods against recording adapters."""
 from pathlib import Path
 import json
+import re
 import subprocess
 
 root = Path(__file__).resolve().parent.parent
 base = root / 'src/main/java/cn/academy'
 strike = (base / 'ability/vanilla/vecmanip/skill/VectorStrikeContext.java').read_text(encoding='utf-8')
 state = (base / 'ability/AbilityState.java').read_text(encoding='utf-8')
+registry = (base / 'ability/AbilityRegistry.java').read_text(encoding='utf-8')
+skill_source = (base / 'ability/AbilitySkill.java').read_text(encoding='utf-8')
 
 def method(source, signature):
     start = source.index(signature)
@@ -30,6 +33,19 @@ for full, short in (
 ):
     level_method = level_method.replace(full, short)
 
+category_cases = []
+for category in ('vecmanip', 'electromaster'):
+    skills = []
+    for line in method(registry, f'category("{category}",').splitlines():
+        name = re.search(r'b\.skill\("([^"]+)"', line)
+        if not name:
+            continue
+        levels = re.search(r'\.enhancedAt\(([^)]*)\)', line)
+        tags = ','.join(f'new Enhancement({level.strip()})' for level in levels[1].split(',')) if levels else ''
+        skills.append(f'new AbilitySkill("{category}","{name[1]}",List.of({tags}))')
+    assert skills, category
+    category_cases.append(f'case "{category}" -> new Category(List.of({",".join(skills)}));')
+
 harness = r'''
 import java.util.*;
 import java.util.function.Predicate;
@@ -39,8 +55,17 @@ class DirectedShockUpgradeCheck {
     boolean levelFiveShock,levelFiveBlast;
     final Player player=new Player();final Context ctx=new Context();
     final AbilitySkill skill=new AbilitySkill("dir_shock");
-    record AbilitySkill(String name){String id(){return "vecmanip."+name;}}
-    static class AbilityRegistry {static AbilitySkill skill(String id){return new AbilitySkill(id.substring(id.indexOf('.')+1));}}
+    record Enhancement(int level){}
+    record AbilitySkill(String category,String name,List<Enhancement> enhancements){
+        AbilitySkill(String name){this("vecmanip",name,List.of());}
+        String id(){return category+"."+name;}
+        CROSS_METHOD
+    }
+    record Category(List<AbilitySkill> skills){}
+    static class AbilityRegistry {
+        static AbilitySkill skill(String id){return category(id.substring(0,id.indexOf('.'))).skills().stream().filter(skill->skill.id().equals(id)).findFirst().orElseThrow();}
+        static Category category(String name){return switch(name){CATEGORY_CASES default -> new Category(List.of());};}
+    }
     static class Bus {final List<Object> events=new ArrayList<>();void post(Object event){events.add(event);}}
     record SkillExpChangedEvent(Object owner,AbilitySkill skill){}
     record LevelChangeEvent(Object owner){}
@@ -49,12 +74,15 @@ class DirectedShockUpgradeCheck {
         float expAddedThisLevel=1,bonusCp=100,bonusOverload=20,overload=10;
         boolean overloadLocked=true;Object owner=new Object();final Bus BUS=new Bus();
         final Map<String,Float> experience=new HashMap<>();
+        final Map<String,Boolean> enhanced=new HashMap<>();
+        final Set<String> learned=new HashSet<>();
         boolean hasCategory(){return !category.isEmpty();}boolean serverOwned(){return true;}
         void recalculateCapacities(boolean refill){capacityRefreshes++;}
         float experience(String id){return experience.getOrDefault(id,0f);}
         void finishContext(AbilitySkill skill,int ticks,float gain){cooldown=ticks;}
         void addExperience(AbilitySkill skill,float amount){experience.merge(skill.id(),amount,Float::sum);}
         LEVEL_METHOD
+        LEARNING_METHOD
     }
     record Vec3(double x,double y,double z) {
         static final Vec3 ZERO=new Vec3(0,0,0);
@@ -145,6 +173,25 @@ class DirectedShockUpgradeCheck {
         AbilityState skipped=new AbilityState();skipped.setLevel(5);check(skipped.level==5,"level skip accepted");
         AbilityState other=new AbilityState();other.category="electromaster";other.experience.put("vecmanip.dir_shock",.9f);other.setLevel(3);
         close(other.experience("vecmanip.dir_shock"),.9,"other category untouched");
+        var electric=new AbilityState();electric.category="electromaster";electric.level=1;
+        electric.learned.add("electromaster.charging");electric.experience.put("electromaster.charging",1f);
+        electric.setLevel(2);
+        close(electric.experience("electromaster.charging"),0,"LV2 charging resets for enhanced training");
+        close(electric.experienceForLearning("electromaster.charging"),1,"enhancement retains prerequisite mastery");
+        electric.experience.put("electromaster.arc_gen",.8f);electric.experience.put("electromaster.mag_movement",.9f);
+        electric.setLevel(3);
+        close(electric.experience("electromaster.arc_gen"),0,"LV3 arc upgrade resets proficiency");
+        close(electric.experience("electromaster.mag_movement"),0,"LV3 magnetic movement upgrade resets proficiency");
+        close(electric.experienceForLearning("electromaster.arc_gen"),0,"unlearned enhanced skills remain unavailable as prerequisites");
+        electric.experience.put("electromaster.mag_manip",.7f);electric.setLevel(4);
+        close(electric.experience("electromaster.mag_manip"),0,"LV4 manipulation upgrade resets proficiency");
+        electric.experience.put("electromaster.railgun",.8f);electric.experience.put("electromaster.thunder_bolt",.9f);
+        electric.experience.put("electromaster.body_intensify",.6f);electric.setLevel(5);
+        close(electric.experience("electromaster.railgun"),0,"LV5 railgun upgrade resets proficiency");
+        close(electric.experience("electromaster.thunder_bolt"),0,"LV5 lightning upgrade resets proficiency");
+        close(electric.experience("electromaster.body_intensify"),.6,"unupgraded electric skill retains proficiency");
+        electric.experience.put("electromaster.charging",.5f);electric.setLevel(5);
+        close(electric.experience("electromaster.charging"),.5,"same electric level preserves training");
         check(kind(new AbilitySkill("dir_shock"),2)==SHOCK,"LV2 keeps single hit");
         check(kind(new AbilitySkill("dir_shock"),3)==ENHANCED_SHOCK,"LV3 selects upgraded hit");
         check(kind(new AbilitySkill("dir_shock"),5)==ENHANCED_SHOCK,"LV5 keeps upgraded hit");
@@ -190,7 +237,10 @@ class DirectedShockUpgradeCheck {
         System.out.println("PASS: level transitions, skill routing, aimed knockback tiers, eye-height casts, damage/range, LV5 damage/armor/cooldowns, block-only blast and growing destruction radius.");
     }
 }
-'''.replace('LEVEL_METHOD', level_method).replace('STRIKE_METHODS', strike_methods)
+'''.replace('LEVEL_METHOD', level_method).replace('STRIKE_METHODS', strike_methods).replace(
+    'CROSS_METHOD', method(skill_source, 'public boolean crossesEnhancement(')).replace(
+    'CATEGORY_CASES', '\n'.join(category_cases)).replace(
+    'LEARNING_METHOD', method(state, 'public float experienceForLearning('))
 output = root / 'build/DirectedShockUpgradeCheck.java'
 output.parent.mkdir(exist_ok=True)
 output.write_text(harness, encoding='utf-8')

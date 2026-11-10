@@ -247,6 +247,10 @@ public final class ACShaders {
     static ShaderInstance cpBar() { return cpBarShader; }
     static ShaderInstance cpBarOverload() { return cpBarOverloadShader; }
 
+    private static final RenderStateShard.DepthTestStateShard MINE_DEPTH = new RenderStateShard.DepthTestStateShard("academy_mine_no_depth", 519) {
+        @Override public void setupRenderState() { com.mojang.blaze3d.systems.RenderSystem.disableDepthTest(); }
+        @Override public void clearRenderState() { com.mojang.blaze3d.systems.RenderSystem.enableDepthTest(); }
+    };
     public static final RenderType MINE_VIEW = RenderType.create("academy_mine_view",
             DefaultVertexFormat.POSITION_TEX_COLOR, com.mojang.blaze3d.vertex.VertexFormat.Mode.TRIANGLES, 4096,
             false, false, RenderType.CompositeState.builder()
@@ -255,7 +259,7 @@ public final class ACShaders {
                             "academy", "textures/effects/mineview.png"), false, false))
                     .setTransparencyState(ARC_BLENDING)
                     .setCullState(RenderStateShard.NO_CULL)
-                    .setDepthTestState(RenderStateShard.NO_DEPTH_TEST)
+                    .setDepthTestState(MINE_DEPTH)
                     .setWriteMaskState(RenderStateShard.COLOR_WRITE)
                     .createCompositeState(false));
 

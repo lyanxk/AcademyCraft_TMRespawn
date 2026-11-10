@@ -52,6 +52,7 @@ public final class AbilityState {
     private int teleportCount;
     private final Set<String> learned = new LinkedHashSet<>();
     private final Map<String, Float> experience = new HashMap<>();
+    private final Map<String, Boolean> enhanced = new HashMap<>();
     private final Map<String, Integer> cooldowns = new HashMap<>();
     private final Map<String, Integer> cooldownMaxima = new HashMap<>();
 
@@ -125,6 +126,8 @@ public final class AbilityState {
 
         CompoundTag expTag = tag.getCompound("Experience");
         for (String key : expTag.getAllKeys()) state.experience.put(key, expTag.getFloat(key));
+        CompoundTag enhancedTag = tag.getCompound("EnhancedSkills");
+        for (String key : enhancedTag.getAllKeys()) state.enhanced.put(key, enhancedTag.getBoolean(key));
 
         CompoundTag cooldownTag = tag.getCompound("Cooldowns");
         CompoundTag maxima = tag.getCompound("CooldownMaxima");
@@ -185,6 +188,9 @@ public final class AbilityState {
         CompoundTag expTag = new CompoundTag();
         experience.forEach(expTag::putFloat);
         tag.put("Experience", expTag);
+        CompoundTag enhancedTag = new CompoundTag();
+        enhanced.forEach(enhancedTag::putBoolean);
+        tag.put("EnhancedSkills", enhancedTag);
 
         CompoundTag cooldownTag = new CompoundTag();
         cooldowns.forEach(cooldownTag::putInt);
@@ -226,6 +232,7 @@ public final class AbilityState {
             active = false;
             learned.clear();
             experience.clear();
+            enhanced.clear();
         } else {
             level = Math.max(1, Math.min(5, level));
         }
@@ -341,6 +348,12 @@ public final class AbilityState {
         return experience.getOrDefault(skillId, 0f);
     }
     public int cooldown(String skillId) { return cooldowns.getOrDefault(skillId, 0); }
+    /** Upgrade resets retrain the enhanced effect, while retaining mastery for skill prerequisites. */
+    public float experienceForLearning(String skillId) {
+        if (!learned.contains(skillId)) return 0;
+        if (enhanced.getOrDefault(skillId, false)) return 1;
+        return experience(skillId);
+    }
     public int cooldownMaximum(String skillId) { return cooldownMaxima.getOrDefault(skillId, 0); }
     public BlockPos teleportMark() { return teleportMark; }
     public String teleportMarkDimension() { return teleportMarkDimension; }
@@ -356,6 +369,7 @@ public final class AbilityState {
         if (level == 0) level = 1;
         learned.clear();
         experience.clear();
+        enhanced.clear();
         if (owner instanceof net.minecraft.server.level.ServerPlayer serverPlayer)
             AbilityContextManager.categoryChanged(serverPlayer, this);
         clearCooldowns();
@@ -371,6 +385,7 @@ public final class AbilityState {
         overloadLocked = false;
         learned.clear();
         experience.clear();
+        enhanced.clear();
         if (owner instanceof net.minecraft.server.level.ServerPlayer serverPlayer)
             AbilityContextManager.categoryChanged(serverPlayer, this);
         clearCooldowns();
@@ -383,36 +398,13 @@ public final class AbilityState {
         if (!hasCategory()) return;
         int next = Math.max(1, Math.min(5, newLevel));
         if (next == level) return;
-        boolean resetDirectedShock = category.equals("vecmanip") && (level < 3 && next >= 3 || level < 5 && next >= 5);
-        boolean resetVectorAcceleration = category.equals("vecmanip") && level < 4 && next >= 4;
-        boolean resetDirectedBlast = category.equals("vecmanip") && level < 5 && next >= 5;
-        boolean resetVectorReflection = category.equals("vecmanip") && level < 5 && next >= 5;
-        boolean resetBloodRetrograde = category.equals("vecmanip") && level < 5 && next >= 5;
+        int previousLevel=level;
         level = next;
-        if (resetDirectedShock) {
-            experience.remove("vecmanip.dir_shock");
+        for(var skill:AbilityRegistry.category(category).skills())if(skill.crossesEnhancement(previousLevel,next)) {
+            experience.remove(skill.id());
+            enhanced.put(skill.id(),true);
             if (serverOwned()) net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
-                    new cn.academy.event.ability.SkillExpChangedEvent(owner, AbilityRegistry.skill("vecmanip.dir_shock")));
-        }
-        if (resetVectorAcceleration) {
-            experience.remove("vecmanip.vec_accel");
-            if (serverOwned()) net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
-                    new cn.academy.event.ability.SkillExpChangedEvent(owner, AbilityRegistry.skill("vecmanip.vec_accel")));
-        }
-        if (resetDirectedBlast) {
-            experience.remove("vecmanip.dir_blast");
-            if (serverOwned()) net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
-                    new cn.academy.event.ability.SkillExpChangedEvent(owner, AbilityRegistry.skill("vecmanip.dir_blast")));
-        }
-        if (resetVectorReflection) {
-            experience.remove("vecmanip.vec_reflection");
-            if (serverOwned()) net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
-                    new cn.academy.event.ability.SkillExpChangedEvent(owner, AbilityRegistry.skill("vecmanip.vec_reflection")));
-        }
-        if (resetBloodRetrograde) {
-            experience.remove("vecmanip.blood_retro");
-            if (serverOwned()) net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
-                    new cn.academy.event.ability.SkillExpChangedEvent(owner, AbilityRegistry.skill("vecmanip.blood_retro")));
+                    new cn.academy.event.ability.SkillExpChangedEvent(owner,skill));
         }
         expAddedThisLevel = 0;
         // Original CPData.LevelChangeEvent resets capacity trained at the previous level.
@@ -570,11 +562,11 @@ public final class AbilityState {
         float exp = experience(skill.id());
         if(skill.name().equals("blood_retro") && level>=5)return 40-5*(int)(exp*4);
         int[] range = switch (skill.name()) {
-            case "mag_manip" -> new int[]{60, 40};
+            case "mag_manip" -> level>=4?new int[]{40,40}:new int[]{60, 40};
             case "mine_detect" -> new int[]{900, 400};
             case "body_intensify" -> new int[]{900, 600};
-            case "thunder_bolt" -> new int[]{120, 50};
-            case "railgun" -> new int[]{300, 160};
+            case "thunder_bolt" -> level>=5?new int[]{50,40}:new int[]{120, 50};
+            case "railgun" -> level>=5?new int[]{160,80}:new int[]{300, 160};
             case "electron_bomb" -> new int[]{20, 10};
             case "light_shield" -> new int[]{800, 400};
             case "meltdowner" -> new int[]{300, 140};
@@ -636,7 +628,7 @@ public final class AbilityState {
             String id = category + "." + requirement.skillId();
             AbilitySkill dependency = AbilityRegistry.skill(id);
             if (dependency != null && !dependency.isEnabled()) continue;
-            if (!learned.contains(id) || experience(id) < requirement.experience()) return false;
+            if (!learned.contains(id) || experienceForLearning(id) < requirement.experience()) return false;
         }
         return true;
     }

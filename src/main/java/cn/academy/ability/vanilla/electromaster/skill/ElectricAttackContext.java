@@ -32,12 +32,16 @@ public final class ElectricAttackContext {
     private final AbilitySkill skill;
     private final float experience;
     private final boolean arc;
+    private final boolean enhancedArc;
+    private final boolean enhancedBolt;
     private final List<ServerPlayer> audience;
 
     public ElectricAttackContext(ServerPlayer player, AbilityState state, AbilitySkill skill) {
         this.player = player; this.state = state; this.skill = skill;
         experience = state.experience(skill.id());
         arc = skill.name().equals("arc_gen");
+        enhancedArc = arc && state.level()>=3;
+        enhancedBolt = !arc && state.level()>=5;
         // ContextManager captures its targets before SkillPerform/consume callbacks run.
         var viewers = new ArrayList<ServerPlayer>();
         viewers.add(player);
@@ -49,30 +53,30 @@ public final class ElectricAttackContext {
     public static boolean handles(AbilitySkill skill) {
         return skill.name().equals("arc_gen") || skill.name().equals("thunder_bolt");
     }
-    public float cpCost() { return arc ? lerp(30, 70, experience) : (int) (280 + 140.0 * experience); }
-    public float overloadCost() { return arc ? lerp(18, 11, state.experience(skill.id())) : lerp(50, 27, experience); }
+    public float cpCost() { return enhancedArc ? 70 : enhancedBolt ? lerp(420,2100,experience) : arc ? lerp(30, 70, experience) : (int) (280 + 140.0 * experience); }
+    public float overloadCost() { return enhancedArc ? 11 : enhancedBolt ? 27 : arc ? lerp(18, 11, state.experience(skill.id())) : lerp(50, 27, experience); }
 
     public int perform() {
         var level = player.serverLevel();
-        double range = arc ? lerp(6, 15, experience) : 20;
+        double range = arc ? lerp(enhancedArc?15:6, enhancedArc?30:15, experience) : 40;
         var hit = ElectricAttackTrace.trace(player, range, arc);
         if (arc) {
             sendEffects(range, hit.getLocation(), List.of());
             boolean entityHit = hit instanceof EntityHitResult;
             if (hit instanceof EntityHitResult entity) {
-                attack(player, skill, entity.getEntity(), lerp(5, 9, experience));
+                attack(player, skill, entity.getEntity(), lerp(enhancedArc?9:5, enhancedArc?15:9, experience));
                 if (entity.getEntity() instanceof Creeper) ACAdvancements.grant(player, "legacy/electromaster/attack_creeper");
             } else {
                 // LambdaLib2 returns a non-null MISS. ArcGen also runs this branch on a miss.
                 BlockHitResult block = (BlockHitResult) hit;
                 var pos = block.getBlockPos();
                 if (level.getBlockState(pos).is(Blocks.WATER) && level.getFluidState(pos).isSource()) {
-                    if (level.random.nextDouble() < (experience > .5f ? .1 : 0)) {
+                    if (level.random.nextDouble() < (enhancedArc || experience > .5f ? .1 : 0)) {
                         Vec3 point = hit.getLocation();
                         level.addFreshEntity(new ItemEntity(level, point.x, point.y, point.z, new ItemStack(Items.COOKED_COD)));
                         ACAdvancements.grant(player, "legacy/electromaster/arc_gen");
                     }
-                } else if (level.random.nextDouble() < lerp(0, .6f, experience)) {
+                } else if (level.random.nextDouble() < lerp(enhancedArc?.6f:0, enhancedArc?1f:.6f, experience)) {
                     // Original ArcGen does not run the skill's block-destruction filter here.
                     var above = pos.above();
                     if (level.isEmptyBlock(above)) level.setBlockAndUpdate(above, Blocks.FIRE.defaultBlockState());
@@ -88,17 +92,17 @@ public final class ElectricAttackContext {
             // MSG_PERFORM sends the selected targets before attack callbacks can move/remove them.
             sendEffects(range, center, targets);
             if (primary != null) {
-                attack(player, skill, primary, lerp(10, 25, experience));
+                attack(player, skill, primary, enhancedBolt?lerp(50,150,experience):lerp(25, 50, experience));
                 slowPrimary(primary, 40);
             }
             for (Entity secondary : targets) {
-                attack(player, skill, secondary, lerp(6, 15, experience));
+                attack(player, skill, secondary, enhancedBolt?lerp(30,90,experience):lerp(15, 30, experience));
                 // Preserve the original ad.target reference in the AOE loop; do not slow each secondary.
                 slowPrimary(primary, 20);
             }
             state.addExperience(skill, primary != null || !targets.isEmpty() ? .005f : .003f);
         }
-        return arc ? (int) lerp(15, 5, state.experience(skill.id())) : (int) lerp(120, 50, experience);
+        return enhancedArc ? 5 : enhancedBolt ? (int) lerp(50, 40, experience) : arc ? (int) lerp(15, 5, state.experience(skill.id())) : (int) lerp(120, 50, experience);
     }
 
     private void sendEffects(double range, Vec3 aoeCenter, List<LivingEntity> aoeTargets) {

@@ -39,12 +39,13 @@ public final class LegacyRailgunEffects {
         final int caster;
         final Vec3 position;
         final float yaw, pitch;
-        final double length;
+        final double length, radiusScale;
         final RayAnimation animation;
         final List<SubArc> arcs = new ArrayList<>();
         int ticks;
         Ray(RailgunEffectPayload payload, Entity owner, Entity reflector) {
             caster = payload.caster(); length = payload.length(); animation = new RayAnimation(time);
+            radiusScale = payload.radiusScale();
             if (reflector == null) {
                 position = owner.getEyePosition(); yaw = owner.getYRot(); pitch = owner.getXRot();
             } else {
@@ -102,7 +103,8 @@ public final class LegacyRailgunEffects {
             pose.translate(ray.position.x - camera.x, ray.position.y - camera.y, ray.position.z - camera.z);
             drawArcs(ray, firstPerson, pose, buffers);
             var frame = ray.animation.frame(time, ray.length, RANDOM);
-            var glow = RailgunGeometry.glow(ray.position, camera, ray.yaw, ray.pitch, firstPerson, frame);
+            var glow = RailgunGeometry.glow(ray.position, camera, ray.yaw, ray.pitch, firstPerson, frame,
+                    1.1 * ray.radiusScale, -.3, .3);
             // RendererRayGlow multiplies getAlpha() by getGlowAlpha(), which itself includes getAlpha().
             int alpha = (int) (255 * frame.alpha() * frame.glowAlpha());
             glow(glow.head(), alpha, ACShaders.RAILGUN_HEAD, pose, buffers);
@@ -110,8 +112,8 @@ public final class LegacyRailgunEffects {
             glow(glow.tail(), alpha, ACShaders.RAILGUN_TAIL, pose, buffers);
             pose.pushPose();
             pose.mulPose(RailgunGeometry.cylinderTransform(ray.yaw, ray.pitch, firstPerson, frame.length()));
-            cylinder(pose, buffers, frame, .09, .98, 241, 240, 222, 200);
-            cylinder(pose, buffers, frame, .13, 1, 236, 170, 93, 60);
+            cylinder(pose, buffers, frame, .09 * ray.radiusScale, .98, 241, 240, 222, 200);
+            cylinder(pose, buffers, frame, .13 * ray.radiusScale, 1, 236, 170, 93, 60);
             pose.popPose();
             pose.popPose();
         }
@@ -121,6 +123,7 @@ public final class LegacyRailgunEffects {
         pose.pushPose();
         Vec3 hand = RailgunGeometry.hand(firstPerson);
         pose.translate(hand.x, hand.y, hand.z); // Original sub-arcs use unrotated ViewOptimize.fix.
+        pose.scale(1, (float) ray.radiusScale, (float) ray.radiusScale);
         VertexConsumer out = buffers.getBuffer(ACShaders.SUB_ARCS);
         for (SubArc arc : ray.arcs) if (!arc.dead && arc.shown) {
             var template = TEMPLATES[arc.pattern];

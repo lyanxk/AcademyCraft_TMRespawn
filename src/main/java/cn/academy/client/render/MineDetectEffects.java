@@ -10,6 +10,9 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import java.util.ArrayList;
+import java.util.Comparator;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
 
 /** Only the casting client creates HandlerEntity and plays the original ambient sound. */
 public final class MineDetectEffects {
@@ -36,18 +39,25 @@ public final class MineDetectEffects {
         player.getPersistentData().remove(MineDetectEffectPayload.QUEUE);
     }
     public static void render(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES || !sync(Minecraft.getInstance())) return;
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL || !sync(Minecraft.getInstance())) return;
         var buffers = Minecraft.getInstance().renderBuffers().bufferSource();
-        var pose = event.getPoseStack(); var camera = event.getCamera().getPosition();
-        var out = buffers.getBuffer(ACShaders.MINE_VIEW);
-        for (var view : VIEWS) for (var ore : view.ores()) {
-            int color = MineDetectView.color(ore.level());
-            int alpha = MineDetectView.alpha(view.position(), ore.position(), view.range);
+        // AFTER_LEVEL has an empty PoseStack; use the world's camera rotation explicitly.
+        var pose = new com.mojang.blaze3d.vertex.PoseStack();
+        pose.mulPose(event.getModelViewMatrix());
+        var camera = event.getCamera().getPosition();
+        // Draw the original colored ore markers, farthest first.
+        var styles=new java.util.HashMap<BlockPos,Integer>();
+        for(var view:VIEWS)for(var ore:view.ores())styles.put(ore.position(),ore.level());
+        var positions=styles.keySet().stream()
+                .sorted(Comparator.comparingDouble((BlockPos pos)->Vec3.atCenterOf(pos).distanceToSqr(camera)).reversed()).toList();
+        for (var pos : positions) {
             pose.pushPose();
-            pose.translate(ore.position().getX() - camera.x, ore.position().getY() - camera.y, ore.position().getZ() - camera.z);
-            for (var vertex : MineDetectView.box())
-                out.addVertex(pose.last(), (float) vertex.x(), (float) vertex.y(), (float) vertex.z())
-                        .setUv(vertex.u(), vertex.v()).setColor((color >> 16) & 255, (color >> 8) & 255, color & 255, alpha);
+            pose.translate(pos.getX()-camera.x,pos.getY()-camera.y,pos.getZ()-camera.z);
+            int color=MineDetectView.color(styles.get(pos));
+            var out=buffers.getBuffer(ACShaders.MINE_VIEW);
+            for(var vertex:MineDetectView.box())
+                out.addVertex(pose.last(),(float)vertex.x(),(float)vertex.y(),(float)vertex.z()).setUv(vertex.u(),vertex.v())
+                        .setColor((color>>16)&255,(color>>8)&255,color&255,180);
             pose.popPose();
         }
         buffers.endBatch(ACShaders.MINE_VIEW);

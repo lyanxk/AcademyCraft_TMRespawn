@@ -1,5 +1,11 @@
 AcademyCraft TMRespawn
 
+TMRespawn 1.0.2 release modifications, 2026-11-10, by lyanxk and TMRespawn contributors:
+Extensively revised Electromaster skills, including level enhancements, charging,
+magnetic movement and manipulation, ore detection, body intensification, electric
+attacks, Railgun and Thunder Clap. Enhanced skills retain prerequisite mastery
+while their enhanced effects are retrained. Updated related visual effects.
+
 TMRespawn 1.0.1 release modifications, 2026-11-10, by lyanxk and TMRespawn contributors:
 Reworked Vector Manipulation skills for the TMC server, merging the former
 Directed Blast entity attack into Directed Shock, separating large-area block

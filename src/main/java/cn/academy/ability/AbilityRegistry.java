@@ -20,14 +20,14 @@ public final class AbilityRegistry {
         bootstrapped = true;
 
         category("electromaster", 0x1471D0, b -> {
-            b.skill("arc_gen", 1, 120, 8, 8);
-            b.skill("charging", 1, 80, 4, 10, req("arc_gen", .3f));
-            b.skill("mag_movement", 2, 180, 12, 16, req("arc_gen", 0), req("charging", .7f));
-            b.skill("mag_manip", 2, 220, 14, 20, req("mag_movement", .5f));
+            b.skill("arc_gen", 1, 120, 8, 8).enhancedAt(3);
+            b.skill("charging", 1, 80, 4, 10, req("arc_gen", .3f)).enhancedAt(2,3,4,5);
+            b.skill("mag_movement", 2, 180, 12, 16, req("arc_gen", 0), req("charging", .7f)).enhancedAt(3);
+            b.skill("mag_manip", 2, 220, 14, 20, req("mag_movement", .5f)).enhancedAt(4);
             b.skill("mine_detect", 3, 300, 20, 80, req("mag_manip", 1));
             b.skill("body_intensify", 3, 360, 25, 120, req("arc_gen", 1), req("charging", 1));
-            b.skill("thunder_bolt", 4, 520, 42, 50, req("arc_gen", 0), req("charging", .7f));
-            b.skill("railgun", 4, 650, 55, 70, req("thunder_bolt", .3f), req("mag_manip", 1));
+            b.skill("thunder_bolt", 4, 520, 42, 50, req("arc_gen", 0), req("charging", .7f)).enhancedAt(5);
+            b.skill("railgun", 4, 650, 55, 70, req("thunder_bolt", .3f), req("mag_manip", 1)).enhancedAt(5);
             b.skill("thunder_clap", 5, 1100, 100, 160, req("thunder_bolt", 1));
         });
 
@@ -58,14 +58,14 @@ public final class AbilityRegistry {
         });
 
         category("vecmanip", 0x202020, b -> {
-            b.skill("dir_shock", 1, 110, 8, 10);
+            b.skill("dir_shock", 1, 110, 8, 10).enhancedAt(3,5);
             b.skill("ground_shock", 1, 160, 12, 22, req("dir_shock", 0));
-            b.skill("vec_accel", 2, 360, 13, 50, req("dir_shock", 0));
+            b.skill("vec_accel", 2, 360, 13, 50, req("dir_shock", 0)).enhancedAt(4);
             b.skill("vec_deviation", 2, 220, 16, 35, req("vec_accel", 0));
-            b.skill("dir_blast", 3, 360, 28, 35, req("ground_shock", 0));
+            b.skill("dir_blast", 3, 360, 28, 35, req("ground_shock", 0)).enhancedAt(5);
             b.skill("storm_wing", 3, 300, 22, 45, req("vec_accel", 0));
-            b.skill("blood_retro", 4, 600, 50, 80, req("dir_blast", 0));
-            b.skill("vec_reflection", 4, 520, 44, 100, req("vec_deviation", 0));
+            b.skill("blood_retro", 4, 600, 50, 80, req("dir_blast", 0)).enhancedAt(5);
+            b.skill("vec_reflection", 4, 520, 44, 100, req("vec_deviation", 0)).enhancedAt(5);
             b.skill("plasma_cannon", 5, 1100, 100, 160, req("storm_wing", 0));
         });
     }
@@ -112,9 +112,16 @@ public final class AbilityRegistry {
             this.category = category;
         }
 
-        private void skill(String name, int level, float cp, float overload, int cooldown,
+        private Builder skill(String name, int level, float cp, float overload, int cooldown,
                            AbilitySkill.Requirement... requirements) {
             skills.add(new AbilitySkill(category, name, level, cp, overload, cooldown, true, List.of(requirements)));
+            return this;
+        }
+
+        private Builder enhancedAt(int... levels) {
+            int index=skills.size()-1;
+            skills.set(index,skills.get(index).withEnhancements(levels));
+            return this;
         }
 
         private void passive(String name, int level, AbilitySkill.Requirement... requirements) {

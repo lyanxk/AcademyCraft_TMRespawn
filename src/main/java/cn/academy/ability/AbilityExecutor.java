@@ -567,10 +567,13 @@ public final class AbilityExecutor {
             // Charging is exclusively a continuous ChargingContext; release performs no burst.
             case "charging" -> { }
             case "body_intensify" -> {
-                var buffs = cn.academy.ability.vanilla.electromaster.skill.BodyIntensifyRules.roll(
-                        heldTicks, state.experience(skill.id()), java.util.concurrent.ThreadLocalRandom.current()::nextDouble);
-                if (buffs.count() >= 1) player.addEffect(new MobEffectInstance(MobEffects.JUMP, buffs.duration(), buffs.amplifier(), false, true));
-                if (buffs.count() >= 2) player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, buffs.duration(), buffs.amplifier(), false, true));
+                var buffs = cn.academy.ability.vanilla.electromaster.skill.BodyIntensifyRules.calculate(heldTicks,state.experience(skill.id()));
+                player.addEffect(new MobEffectInstance(MobEffects.JUMP, buffs.duration(), buffs.amplifier(), false, true));
+                player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, buffs.duration(), buffs.amplifier(), false, true));
+                player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, buffs.duration(), 1, false, true));
+                player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, buffs.duration(), 0, false, true));
+                player.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, buffs.duration(), 0, false, true));
+                player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, buffs.duration(), 0, false, true));
                 player.addEffect(new MobEffectInstance(MobEffects.HUNGER, buffs.hungerDuration(), 2));
                 state.addExperience(skill, .01f);
                 state.finishContext(skill, cn.academy.ability.vanilla.electromaster.skill.BodyIntensifyRules.cooldown(
