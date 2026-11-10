@@ -50,6 +50,18 @@
       ]
     },
     {
+      "name": "chargeProgress",
+      "type": "float",
+      "count": 1,
+      "values": [0]
+    },
+    {
+      "name": "animationTime",
+      "type": "float",
+      "count": 1,
+      "values": [0]
+    },
+    {
       "name": "ballCount",
       "type": "int",
       "count": 1,

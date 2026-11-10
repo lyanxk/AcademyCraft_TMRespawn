@@ -67,6 +67,14 @@ public record AbilitySkill(
         return Component.translatable("ac.ability." + localizationCategory() + "." + name + ".desc");
     }
 
+    public Component description(AbilityState state) {
+        if(id().equals("vecmanip.dir_shock") && state.level()>=5)
+            return Component.translatable("ac.ability.vecmanip.dir_shock.lv3.desc")
+                    .append(Component.translatable("ac.ability.vecmanip.dir_shock.lv5.extra"));
+        return id().equals("vecmanip.dir_shock") && state.level()>=3
+                ? Component.translatable("ac.ability.vecmanip.dir_shock.lv3.desc") : description();
+    }
+
     public ResourceLocation icon() {
         return ResourceLocation.fromNamespaceAndPath("academy", "textures/abilities/" + localizationCategory() + "/skills/" + name + ".png");
     }

@@ -33,6 +33,8 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerWakeUpEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 
 
 @EventBusSubscriber(modid = AcademyCraft.MOD_ID)
@@ -101,8 +103,22 @@ public final class ACCommonEvents {
     @SubscribeEvent
     public static void onIncomingDamage(LivingIncomingDamageEvent event) {
         if(event.getEntity() instanceof ServerPlayer player
-                && cn.academy.ability.vanilla.vecmanip.skill.VectorDefenseContext.cancelIncoming(player))
+                && cn.academy.ability.vanilla.vecmanip.skill.VectorDefenseContext.cancelIncoming(player)) {
             event.setCanceled(true);
+            cn.academy.ability.vanilla.vecmanip.skill.VectorDefenseContext.queueCounterAttack(player,event.getSource(),event.getAmount());
+        }
+    }
+
+    @SubscribeEvent
+    public static void onServerTick(ServerTickEvent.Post event) {
+        cn.academy.ability.vanilla.vecmanip.skill.VectorDefenseContext.processCounterAttacks(event.getServer());
+        cn.academy.ability.vanilla.vecmanip.skill.DirectedShockKnockback.sync(event.getServer());
+    }
+
+    @SubscribeEvent
+    public static void onServerStopped(ServerStoppedEvent event) {
+        cn.academy.ability.vanilla.vecmanip.skill.VectorDefenseContext.clearPendingCounters(event.getServer());
+        cn.academy.ability.vanilla.vecmanip.skill.DirectedShockKnockback.clear(event.getServer());
     }
 
     @SubscribeEvent

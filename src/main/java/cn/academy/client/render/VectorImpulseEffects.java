@@ -33,9 +33,9 @@ public final class VectorImpulseEffects {
     private static Player local;
     private static final class Impulse {
         final int kind,slot,request;final float experience;int id,ticks;
+        final boolean enhancedAcceleration;
         boolean released,canPerform=true,previewCanPerform;
-        Impulse(int kind,int slot,int request,float experience){this.kind=kind;this.slot=slot;this.request=request;this.experience=experience;}
-        void stop(){if(kind==BLOOD && local!=null)local.getAbilities().setWalkingSpeed(.1f);}
+        Impulse(int kind,int slot,int request,float experience){this.kind=kind;this.slot=slot;this.request=request;this.experience=experience;released=kind==BLOOD;enhancedAcceleration=kind==ACCEL && AbilityState.load(local).level()>=4;}
         AbilitySkill skill(){return AbilityRegistry.skill(kind==ACCEL?"vecmanip.vec_accel":"vecmanip.blood_retro");}
     }
     private static final class Splash {
@@ -56,7 +56,7 @@ public final class VectorImpulseEffects {
     }
     private static boolean sync(Minecraft mc) {
         if(world!=mc.level || local!=mc.player) {
-            LOCAL.values().forEach(Impulse::stop);LOCAL.clear();SPLASHES.clear();SPRAYS.clear();REQUESTS.end(-1);world=mc.level;local=mc.player;
+            LOCAL.clear();SPLASHES.clear();SPRAYS.clear();REQUESTS.end(-1);world=mc.level;local=mc.player;
         }
         return world!=null && local!=null;
     }
@@ -73,17 +73,18 @@ public final class VectorImpulseEffects {
         }
     }
     private static void cancel(Impulse impulse) {
-        PacketDistributor.sendToServer(new VectorImpulseInputPayload(impulse.request,-1,true));impulse.stop();LOCAL.remove(impulse.request);
+        PacketDistributor.sendToServer(new VectorImpulseInputPayload(impulse.request,-1,true));LOCAL.remove(impulse.request);
         if(REQUESTS.accepts(impulse.slot,impulse.request))REQUESTS.end(impulse.slot);
     }
     private static void release(Impulse impulse) {
         if(impulse.released)return;impulse.released=true;
         if(impulse.kind==ACCEL) {
             var state=AbilityState.load(local);var skill=impulse.skill();float exp=state.experience(skill.id());
-            if(!impulse.canPerform || !state.consumeRaw(skill,120+(80-120)*impulse.experience,30+(15-30)*exp,local.isCreative())){cancel(impulse);return;}
+            if(!canAccelerate(impulse) || !state.consumeRaw(skill,impulse.enhancedAcceleration?160:240+(160-240)*impulse.experience,
+                    impulse.enhancedAcceleration?15:30+(15-30)*exp,local.isCreative())){cancel(impulse);return;}
             local.setDeltaMovement(initialSpeed(impulse,0));
             // getLowestRidingEntity in the original always returns at least the player, so its null-only dismount does not run.
-            state.finishContext(skill,(int)(80+(50-80)*state.experience(skill.id())),0);
+            state.finishContext(skill,state.cooldownFor(skill),0);
             PacketDistributor.sendToServer(new VectorImpulseInputPayload(impulse.request,-1,false));
         } else {
             var trace=ElectricAttackTrace.trace(local,2,false);
@@ -95,7 +96,7 @@ public final class VectorImpulseEffects {
     public static void receive(VectorImpulsePayload packet) {
         if(!sync(Minecraft.getInstance()))return;
         if(packet.phase()==END) {
-            if(packet.caster()==local.getId()){var impulse=LOCAL.remove(packet.request());if(impulse!=null)impulse.stop();}
+            if(packet.caster()==local.getId())LOCAL.remove(packet.request());
             return;
         }
         if(!(world.getEntity(packet.caster()) instanceof Player owner))return;
@@ -117,11 +118,8 @@ public final class VectorImpulseEffects {
             impulse.ticks++;
             if(!local.isAlive() || !AbilityState.load(local).active()){cancel(impulse);continue;}
             if(impulse.kind==ACCEL) {
-                impulse.canPerform=impulse.experience>.5f || ElectricAttackTrace.traceBlockSegment(local,local.position(),local.position().add(0,-2,0),state->!state.isAir()).getType()==HitResult.Type.BLOCK;
+                impulse.canPerform=canAccelerate(impulse);
                 impulse.previewCanPerform=impulse.canPerform;
-            } else {
-                local.getAbilities().setWalkingSpeed(.1f+(.007f-.1f)*Math.clamp(impulse.ticks/20f,0,1));
-                if(impulse.ticks>=30)release(impulse);
             }
         }
         SPLASHES.removeIf(splash->++splash.frame>=10);
@@ -131,9 +129,12 @@ public final class VectorImpulseEffects {
         float y=yaw*(float)Math.PI/180,p=pitch*(float)Math.PI/180;
         return new Vec3(-Mth.sin(y)*Mth.cos(p),-Mth.sin(p),Mth.cos(y)*Mth.cos(p));
     }
+    private static boolean canAccelerate(Impulse impulse) {
+        return impulse.enhancedAcceleration || impulse.experience>.5f || ElectricAttackTrace.traceBlockSegment(local,local.position(),local.position().add(0,-2,0),state->!state.isAir()).getType()==HitResult.Type.BLOCK;
+    }
     private static Vec3 initialSpeed(Impulse impulse,float partial) {
         float yaw=local.yRotO+(local.getYRot()-local.yRotO)*partial,pitch=local.xRotO+(local.getXRot()-local.xRotO)*partial-10;
-        return entityLook(yaw,pitch).scale(Math.sin(.4+(1-.4)*Math.clamp(impulse.ticks/20.0,0,1))*2.5);
+        return entityLook(yaw,pitch).scale(VectorImpulseContext.accelerationSpeed(impulse.enhancedAcceleration,impulse.experience));
     }
     private static void blood(Player owner,LivingEntity target) {
         int count=6+RANDOM.nextInt(4);

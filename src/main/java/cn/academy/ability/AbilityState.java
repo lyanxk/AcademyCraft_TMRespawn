@@ -383,7 +383,37 @@ public final class AbilityState {
         if (!hasCategory()) return;
         int next = Math.max(1, Math.min(5, newLevel));
         if (next == level) return;
+        boolean resetDirectedShock = category.equals("vecmanip") && (level < 3 && next >= 3 || level < 5 && next >= 5);
+        boolean resetVectorAcceleration = category.equals("vecmanip") && level < 4 && next >= 4;
+        boolean resetDirectedBlast = category.equals("vecmanip") && level < 5 && next >= 5;
+        boolean resetVectorReflection = category.equals("vecmanip") && level < 5 && next >= 5;
+        boolean resetBloodRetrograde = category.equals("vecmanip") && level < 5 && next >= 5;
         level = next;
+        if (resetDirectedShock) {
+            experience.remove("vecmanip.dir_shock");
+            if (serverOwned()) net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
+                    new cn.academy.event.ability.SkillExpChangedEvent(owner, AbilityRegistry.skill("vecmanip.dir_shock")));
+        }
+        if (resetVectorAcceleration) {
+            experience.remove("vecmanip.vec_accel");
+            if (serverOwned()) net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
+                    new cn.academy.event.ability.SkillExpChangedEvent(owner, AbilityRegistry.skill("vecmanip.vec_accel")));
+        }
+        if (resetDirectedBlast) {
+            experience.remove("vecmanip.dir_blast");
+            if (serverOwned()) net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
+                    new cn.academy.event.ability.SkillExpChangedEvent(owner, AbilityRegistry.skill("vecmanip.dir_blast")));
+        }
+        if (resetVectorReflection) {
+            experience.remove("vecmanip.vec_reflection");
+            if (serverOwned()) net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
+                    new cn.academy.event.ability.SkillExpChangedEvent(owner, AbilityRegistry.skill("vecmanip.vec_reflection")));
+        }
+        if (resetBloodRetrograde) {
+            experience.remove("vecmanip.blood_retro");
+            if (serverOwned()) net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
+                    new cn.academy.event.ability.SkillExpChangedEvent(owner, AbilityRegistry.skill("vecmanip.blood_retro")));
+        }
         expAddedThisLevel = 0;
         // Original CPData.LevelChangeEvent resets capacity trained at the previous level.
         bonusCp = bonusOverload = 0;
@@ -538,6 +568,7 @@ public final class AbilityState {
 
     public int cooldownFor(AbilitySkill skill) {
         float exp = experience(skill.id());
+        if(skill.name().equals("blood_retro") && level>=5)return 40-5*(int)(exp*4);
         int[] range = switch (skill.name()) {
             case "mag_manip" -> new int[]{60, 40};
             case "mine_detect" -> new int[]{900, 400};
@@ -557,10 +588,10 @@ public final class AbilityState {
             case "mark_teleport" -> new int[]{30, 0};
             case "flesh_ripping" -> new int[]{90, 40};
             case "shift_tp" -> new int[]{100, 60};
-            case "dir_shock" -> new int[]{60, 20};
+            case "dir_shock" -> level>=5?new int[]{20, 20}:new int[]{60, 20};
             case "ground_shock" -> new int[]{80, 40};
-            case "vec_accel" -> new int[]{80, 50};
-            case "dir_blast" -> new int[]{80, 50};
+            case "vec_accel" -> level>=4?new int[]{50, 10}:new int[]{80, 50};
+            case "dir_blast" -> level>=5?new int[]{50, 50}:new int[]{80, 50};
             case "storm_wing" -> new int[]{30, 10};
             case "blood_retro" -> new int[]{90, 40};
             case "plasma_cannon" -> new int[]{1000, 600};

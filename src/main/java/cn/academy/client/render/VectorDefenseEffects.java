@@ -53,6 +53,9 @@ public final class VectorDefenseEffects {
     private static void sync(Minecraft mc){if(world!=mc.level || localPlayer!=mc.player){world=mc.level;localPlayer=mc.player;ACTIVE.clear();WAVES.clear();}}
     public static void receive(VectorDefensePayload packet) {
         var mc=Minecraft.getInstance();sync(mc);if(world==null)return;
+        if(packet.phase()==SYNC_VELOCITY) {
+            var entity=world.getEntity(packet.entity());if(entity!=null)entity.setDeltaMovement(packet.point());return;
+        }
         if(packet.phase()==START){ACTIVE.put(packet.context(),new Defense(packet.caster(),packet.reflection()));return;}
         if(packet.phase()==END){ACTIVE.remove(packet.context());return;}
         var owner=world.getEntity(packet.caster());if(owner==null)return;
@@ -65,7 +68,7 @@ public final class VectorDefenseEffects {
                 entity.setDeltaMovement(Vec3.ZERO);
             }
             case REFLECT_ENTITY -> {
-                if(entity==null)return;VectorDefenseContext.reflect(entity,owner);
+                if(entity==null)return;entity.setDeltaMovement(packet.point());
                 WAVES.add(new Wave(entity.getEyePosition(),owner,2,1.1,true));sound(entity.getEyePosition(),true);
             }
             case EFFECT -> {WAVES.add(new Wave(packet.point(),owner,2,1.1,true));sound(packet.point(),true);}
@@ -85,8 +88,8 @@ public final class VectorDefenseEffects {
             if(owner!=mc.player)continue;
             var state=AbilityState.load(mc.player);var skill=AbilityRegistry.skill(effect.reflection?"vecmanip.vec_reflection":"vecmanip.vec_deviation");
             if(!state.active()){PacketDistributor.sendToServer(new VectorDefenseEndPayload(entry.getKey()));iterator.remove();continue;}
-            float exp=state.experience(skill.id());
-            boolean paid=effect.reflection?state.consumeRaw(skill,15+(11-15)*exp,0,mc.player.isCreative()):
+            float exp=effect.reflection && state.level()>=5?1:state.experience(skill.id());
+            boolean paid=effect.reflection?state.consumeRaw(skill,15+(11-15)*exp,(100-50*exp)/20,mc.player.isCreative()):
                     state.consumeRaw(skill,5+(2.5f-5)*exp,.5f+(.2f-.5f)*exp,mc.player.isCreative());
             if(effect.reflection && !paid){PacketDistributor.sendToServer(new VectorDefenseEndPayload(entry.getKey()));iterator.remove();}
         }

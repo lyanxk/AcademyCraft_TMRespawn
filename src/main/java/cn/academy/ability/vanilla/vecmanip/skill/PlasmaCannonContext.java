@@ -24,9 +24,15 @@ public final class PlasmaCannonContext {
     private Vec3 position,destination;
     public PlasmaCannonContext(ServerPlayer player,AbilityState state,AbilitySkill skill,int slot,int request) {
         this.player=player;this.skill=skill;this.slot=slot;this.request=request;
-        exp=state.experience(skill.id());chargeTime=60+(30-60)*exp;position=player.position().add(0,15,0);
+        exp=state.experience(skill.id());chargeTime=chargeTime(exp);position=chargePosition(player);
         audience.add(player);for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=625)audience.add(viewer);
     }
+    public static float chargeTime(float experience){return 200-100*experience;}
+    public static float damage(Entity target,float experience) {
+        return 300+700*experience+(target instanceof LivingEntity living?living.getMaxHealth()*(.05f+.05f*experience):0);
+    }
+    public static float explosionPower(float experience){return 36+9*experience;}
+    public static Vec3 chargePosition(Entity player){return new Vec3(player.getX(),player.getBoundingBox().maxY+3.5,player.getZ());}
     public static void reject(ServerPlayer player,AbilitySkill skill,int slot,int request) {
         if(skill.name().equals("plasma_cannon") && request>0)PacketDistributor.sendToPlayer(player,new PlasmaCannonPayload(0,player.getId(),END,slot,request,0,Vec3.ZERO));
     }
@@ -66,9 +72,9 @@ public final class PlasmaCannonContext {
     private void explode(AbilityState state) {
         var world=player.serverLevel();var ctx=AbilityContext.of(player,skill);
         for(var entity:world.getEntities((Entity)null,new AABB(destination,destination).inflate(10),e->e.distanceToSqr(destination)<=100)) {
-            ctx.attack(entity,80+(150-80)*state.experience(skill.id()));entity.invulnerableTime=-1;
+            ctx.attack(entity,damage(entity,state.experience(skill.id())));entity.invulnerableTime=-1;
         }
-        float radius=12+(15-12)*state.experience(skill.id());
+        float radius=explosionPower(state.experience(skill.id()));
         var explosion=new PlasmaExplosion(player,destination,radius,ctx.canBreakBlock(world));
         // Do not use Level.explode(NONE): that would still damage/knock back entities when breaking is disabled.
         if(ctx.canBreakBlock(world))explosion.explode();

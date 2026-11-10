@@ -1,57 +1,43 @@
 package cn.academy.client.render;
 
 import cn.academy.ability.*;
-import cn.academy.ability.vanilla.electromaster.skill.ElectricAttackTrace;
 import cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext;
 import cn.academy.client.render.util.*;
 import cn.academy.client.sound.ACContextSounds;
 import cn.academy.network.*;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.joml.Matrix4f;
-import org.joml.Vector3f;
 import org.joml.Vector4f;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import static cn.academy.network.PlasmaCannonPayload.*;
 
-/** Original local charge, position snaps, independent tornado tail and ray-marched PlasmaBodyEffect. */
+/** Converging blue energy streams, a contracting spherical wind shell and the charged plasma sphere. */
 public final class PlasmaCannonEffects {
     private static final ThunderClapRequests REQUESTS=new ThunderClapRequests();
     private static final List<Body> BODIES=new ArrayList<>();
     private static final Random RANDOM=new Random();
     private static ClientLevel world;private static Player local;
-    private record Trig(float amplitude,float speed,float phase) {
-        float phase(float delta){return speed*delta-phase;}
-    }
-    private record Ball(float size,Vector3f center,Trig horizontal,Trig vertical){}
-    private static float random(float lo,float hi){return lo+(hi-lo)*RANDOM.nextFloat();}
-    private static Trig trig(float size){return new Trig(random(1.4f,2)*size,random(.5f,.7f),random(0,(float)Math.PI*2));}
-    private static Ball ball(float lo,float hi,float spread,float motion){return new Ball(random(lo,hi),new Vector3f(random(-spread,spread),random(-spread,spread),random(-spread,spread)),trig(motion),trig(motion));}
     private static final class Body {
         final Player owner;final int slot,request,soundId;final float chargeTime;
-        final TornadoMesh tornado=new TornadoMesh(RANDOM,12,8,1,.3);
-        final List<Ball> balls=new ArrayList<>();
-        final Vec3 funnel;
+        final PlasmaChargeEffects chargeEffects=new PlasmaChargeEffects(RANDOM);
         int id,ticks,age,deadTicks;boolean flying,terminated,released,bodyRemoved;
-        Vec3 position,destination;float alpha;double frameTime=RailgunHandEffects.seconds();
+        final double animationStart=RailgunHandEffects.seconds();
+        Vec3 position,destination;float alpha;double frameTime=animationStart;
         Body(Player owner,int slot,int request,int id,float experience,Vec3 position) {
             this.owner=owner;this.slot=slot;this.request=request;this.id=id;this.position=position;
-            soundId=owner==local?-request:id;chargeTime=60+(30-60)*experience;
-            funnel=ElectricAttackTrace.traceBlockSegment(owner,position,position.add(0,-20,0),null).getLocation();
-            for(int i=0;i<4;i++)balls.add(ball(1,1.5f,1.5f,1));
-            int small=4+RANDOM.nextInt(2);for(int i=0;i<small;i++)balls.add(ball(.1f,.3f,3,2.5f));
+            soundId=owner==local?-request:id;chargeTime=PlasmaCannonContext.chargeTime(experience);
             ACContextSounds.once(owner.getUUID(),"vecmanip.plasma_cannon",1,SoundSource.AMBIENT,soundId);
         }
+        float progress(float partial){return flying?1:Math.clamp((age+partial)/chargeTime,0,1);}
         void stop(boolean notify) {
             if(terminated)return;terminated=true;
             ACContextSounds.handle(owner.getUUID(),"vecmanip.plasma_cannon",false,1,SoundSource.AMBIENT,soundId);
@@ -67,7 +53,7 @@ public final class PlasmaCannonEffects {
         var state=AbilityState.load(local);var skill=AbilityRegistry.skill(state.controlSkill(slot));
         if(skill==null || !skill.name().equals("plasma_cannon") || !state.canStartContext(skill))return 0;
         for(var body:BODIES)if(body.owner==local && !body.terminated && body.slot==slot)body.stop(false);
-        int request=REQUESTS.begin(slot);BODIES.add(new Body(local,slot,request,0,state.experience(skill.id()),local.position().add(0,15,0)));return request;
+        int request=REQUESTS.begin(slot);BODIES.add(new Body(local,slot,request,0,state.experience(skill.id()),PlasmaCannonContext.chargePosition(local)));return request;
     }
     public static void endLocal(int slot,boolean abort) {
         if(!sync(Minecraft.getInstance()))return;
@@ -118,42 +104,52 @@ public final class PlasmaCannonEffects {
         var mc=Minecraft.getInstance();if(event.getStage()!=RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS || !sync(mc))return;
         var pose=event.getPoseStack();var camera=event.getCamera().getPosition();var buffers=mc.renderBuffers().bufferSource();
         double seconds=RailgunHandEffects.seconds();float partial=event.getPartialTick().getGameTimeDeltaPartialTick(true);
-        var inverseViewNormal=new org.joml.Matrix3f(pose.last().normal()).invert();
-        Vec3 viewer=event.getCamera().getEntity().getPosition(partial);
-        var legacyView=new Matrix4f(RenderSystem.getModelViewMatrix()).mul(pose.last().pose())
-                .translate((float)(viewer.x-camera.x),(float)(viewer.y-camera.y),(float)(viewer.z-camera.z));
+        var view=new Matrix4f(RenderSystem.getModelViewMatrix()).mul(pose.last().pose());
         for(var body:BODIES) {
-            if(body.deadTicks<30) {
-                var relative=body.funnel.subtract(camera);pose.pushPose();pose.translate(relative.x,relative.y,relative.z);
-                double alpha=body.flying || body.terminated?1-body.deadTicks/20.0:Math.min(1,body.age/20.0);
-                body.tornado.draw(pose,buffers.getBuffer(ACShaders.VECTOR_TORNADO),seconds,alpha*.5,inverseViewNormal,
-                        net.minecraft.client.renderer.LevelRenderer.getLightColor(world,net.minecraft.core.BlockPos.containing(body.funnel.add(0,1.53,0))));pose.popPose();
+            if(!body.terminated && body.progress(partial)<1) {
+                var relative=body.position.subtract(camera);pose.pushPose();pose.translate(relative.x,relative.y,relative.z);
+                body.chargeEffects.draw(pose,buffers,camera.subtract(body.position),(seconds-body.animationStart)*60/body.chargeTime,
+                        body.progress(partial),Math.min(1,(body.age+partial)/5));pose.popPose();
             }
+            if(!body.bodyRemoved && body.progress(partial)>=1)
+                drawFormedLines(body,pose,buffers,camera,seconds,partial,false);
         }
         buffers.endBatch(ACShaders.VECTOR_TORNADO);
+        buffers.endBatch(ACShaders.ARC);
+        buffers.endBatch(ACShaders.SUB_ARCS);
         var shader=ACShaders.plasmaBody();if(shader==null)return;
         for(var body:BODIES) {
             if(body.bodyRemoved)continue;
             float dt=(float)(seconds-body.frameTime),desired=body.terminated?0:1;
-            body.alpha+=Math.min(Math.abs(desired-body.alpha),dt*(body.terminated?1:.3f))*Math.signum(desired-body.alpha);body.frameTime=seconds;
-            shader.safeGetUniform("alpha").set(body.alpha*body.alpha);shader.safeGetUniform("ballCount").set(body.balls.size());
-            for(int i=0;i<body.balls.size();i++) {
-                var ball=body.balls.get(i);float hp=ball.horizontal.phase(dt),vp=ball.vertical.phase(dt);
-                // Deliberately retain original float world subtraction and per-frame phase input.
-                var point=new Vector4f((float)body.position.x+ball.center.x+ball.horizontal.amplitude*Mth.sin(hp)-(float)viewer.x,
-                        (float)body.position.y+ball.center.y+ball.vertical.amplitude*Mth.sin(vp)-(float)viewer.y,
-                        (float)body.position.z+ball.center.z+ball.horizontal.amplitude*Mth.cos(hp)-(float)viewer.z,1).mul(legacyView);
-                shader.safeGetUniform("Ball"+i).set(point.x,point.y,-point.z,ball.size);
-            }
-            var delta=body.position.subtract(viewer);var relative=body.position.subtract(camera);
-            float yaw=-(float)Math.atan2(delta.x,delta.z)*180/(float)Math.PI;
-            float pitch=-(float)Math.atan2(delta.y,Math.sqrt(delta.x*delta.x+delta.z*delta.z))*180/(float)Math.PI;
-            pose.pushPose();pose.translate(relative.x,relative.y,relative.z);pose.mulPose(Axis.YP.rotationDegrees(-yaw+180));pose.mulPose(Axis.XP.rotationDegrees(-pitch));pose.scale(22,22,1);
+            float animationTime=(float)(seconds-body.animationStart);
+            body.alpha+=Math.min(Math.abs(desired-body.alpha),dt*(body.terminated?2:3))*Math.signum(desired-body.alpha);body.frameTime=seconds;
+            float progress=body.progress(partial);
+            float growth=PlasmaChargeEffects.coreGrowth(progress);
+            shader.safeGetUniform("alpha").set(body.alpha*Math.min(1,growth*5));
+            shader.safeGetUniform("chargeProgress").set(progress);shader.safeGetUniform("animationTime").set(animationTime);
+            shader.safeGetUniform("ballCount").set(1);
+            var relative=body.position.subtract(camera);
+            var point=new Vector4f((float)relative.x,(float)relative.y,(float)relative.z,1).mul(view);
+            shader.safeGetUniform("Ball0").set(point.x,point.y,-point.z,2.5f*growth);
+            pose.pushPose();pose.translate(relative.x,relative.y,relative.z);pose.mulPose(event.getCamera().rotation());pose.scale(14,14,1);
             var out=buffers.getBuffer(ACShaders.PLASMA_BODY);
             out.addVertex(pose.last(),-.5f,-.5f,0);out.addVertex(pose.last(),.5f,-.5f,0);
             out.addVertex(pose.last(),.5f,.5f,0);out.addVertex(pose.last(),-.5f,.5f,0);
             buffers.endBatch(ACShaders.PLASMA_BODY);pose.popPose();
+            if(progress>=1) {
+                drawFormedLines(body,pose,buffers,camera,seconds,partial,true);
+                buffers.endBatch(ACShaders.SUB_ARCS);
+            }
         }
+    }
+    private static void drawFormedLines(Body body,com.mojang.blaze3d.vertex.PoseStack pose,
+            net.minecraft.client.renderer.MultiBufferSource buffers,Vec3 camera,double seconds,float partial,boolean front) {
+        var relative=body.position.subtract(camera);
+        float appearance=Math.clamp((body.age+partial-body.chargeTime)/8,0,1);
+        pose.pushPose();pose.translate(relative.x,relative.y,relative.z);
+        body.chargeEffects.drawFormed(pose,buffers.getBuffer(ACShaders.SUB_ARCS),camera.subtract(body.position),
+                seconds-body.animationStart,appearance*body.alpha,front);
+        pose.popPose();
     }
     private PlasmaCannonEffects(){}
 }

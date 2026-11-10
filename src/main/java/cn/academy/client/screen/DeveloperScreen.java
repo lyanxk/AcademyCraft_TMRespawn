@@ -205,7 +205,7 @@ public class DeveloperScreen extends Screen {
                 AcademyCraft.MOD_ID, "textures/guis/icons/icon_" + category.id() + ".png");
         ACGuiTextures.hudQuad(gui, icon, 6, 67.5f, 32, 32, 1, 1, 1, 1, false);
         xmlText(gui, category == null ? Component.literal("N/A") : category.displayName(),
-                37, 69.5f, 70, 13, 0xFFFFFFFF, ACLegacyFont.LEFT);
+                37, 67.5f, 70, 13, 0xFFFFFFFF, ACLegacyFont.LEFT);
         rect(gui, 37, 80.75f, 70, 1.5f, 0x4C666666);
         rect(gui, 37, 80.75f, 70 * (category == null ? 0 : Math.max(.02f, state.levelProgress())), 1.5f, 0xFFFFFFFF);
         xmlText(gui, Component.literal("EXP " + (int)(state.levelProgress() * 100) + "%"),
@@ -411,7 +411,7 @@ public class DeveloperScreen extends Screen {
                 drawCenteredFit(gui, Component.translatable("ac.skill_tree.skill_exp").copy()
                         .append((int) (state.experience(selected.id()) * 100) + "%"),
                         cx, cy + 35, 250, 8, 0xFFA1E1FF);
-                drawWrappedCentered(gui, selected.description(), cx, cy + 44, 200, 9, 0xFFFFFFFF);
+                drawWrappedCentered(gui, selected.description(state), cx, cy + 44, 200, 9, 0xFFFFFFFF);
                 return;
             }
 

@@ -60,7 +60,7 @@ public final class AbilityRegistry {
         category("vecmanip", 0x202020, b -> {
             b.skill("dir_shock", 1, 110, 8, 10);
             b.skill("ground_shock", 1, 160, 12, 22, req("dir_shock", 0));
-            b.skill("vec_accel", 2, 180, 13, 50, req("dir_shock", 0));
+            b.skill("vec_accel", 2, 360, 13, 50, req("dir_shock", 0));
             b.skill("vec_deviation", 2, 220, 16, 35, req("vec_accel", 0));
             b.skill("dir_blast", 3, 360, 28, 35, req("ground_shock", 0));
             b.skill("storm_wing", 3, 300, 22, 45, req("vec_accel", 0));

@@ -189,13 +189,23 @@ public final class AbilityContextManager {
         if(cn.academy.ability.vanilla.vecmanip.skill.VectorImpulseContext.handles(skill)) {
             Session session=new Session(contextSlot,skill,mode,0,exp);
             session.vectorImpulse=new cn.academy.ability.vanilla.vecmanip.skill.VectorImpulseContext(player,state,skill,contextSlot,Math.max(0,clientRequestId));
-            startSession(player,state,session,() -> {session.vectorImpulse.start();return true;});
+            if(!startSession(player,state,session,() -> {session.vectorImpulse.start();return true;}))return;
+            if(skill.name().equals("blood_retro")) {
+                try {session.vectorImpulse.releaseWithoutClient(state);}
+                finally {terminate(player,state,session,false,false);cleanup(player);}
+                return;
+            }
             syncSession(player,state,session);return;
         }
         if(cn.academy.ability.vanilla.vecmanip.skill.VectorStrikeContext.handles(skill)) {
             Session session=new Session(contextSlot,skill,mode,0,exp);
             session.vectorStrike=new cn.academy.ability.vanilla.vecmanip.skill.VectorStrikeContext(player,state,skill,contextSlot,Math.max(0,clientRequestId));
-            startSession(player,state,session,() -> {session.vectorStrike.start();return true;});
+            if(!startSession(player,state,session,() -> {session.vectorStrike.start();return true;}))return;
+            if(skill.name().equals("ground_shock")) {
+                try {session.vectorStrike.release(state,0);}
+                finally {terminate(player,state,session,false,false);cleanup(player);}
+                return;
+            }
             syncSession(player,state,session);return;
         }
         if(cn.academy.ability.vanilla.vecmanip.skill.VectorDefenseContext.handles(skill)) {
@@ -655,7 +665,7 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
             session.stormWing.end(state);AbilityManager.completeUse(player,state,session.skill);return;
         }
         if(session.vectorImpulse!=null) {
-            session.vectorImpulse.end();if(session.vectorImpulse.performed())AbilityManager.completeUse(player,state,session.skill);return;
+            session.vectorImpulse.end(state);if(session.vectorImpulse.performed())AbilityManager.completeUse(player,state,session.skill);return;
         }
         if(session.vectorStrike!=null) {
             session.vectorStrike.end();if(session.vectorStrike.performed())AbilityManager.completeUse(player,state,session.skill);return;
@@ -843,7 +853,7 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
             case "mine_ray_luck" -> cost(0, lerp(350, 300, exp));
             case "electron_missile" -> cost(0, 200);
             case "vec_deviation" -> cost(0, lerp(80, 50, exp));
-            case "vec_reflection" -> cost(0, lerp(350, 250, exp));
+            case "vec_reflection" -> cost(0, 0);
             case "plasma_cannon" -> cost(0, lerp(500, 400, exp));
             case "flashing" -> cost(lerp(80, 60, exp), lerp(250, 180, exp));
             default -> cost(0, 0);
@@ -863,7 +873,7 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
             case "electron_missile" -> lerp(12, 5, exp);
             case "vec_deviation" -> lerp(18, 7.5f, exp);
             case "vec_reflection" -> lerp(15, 11, exp);
-            case "plasma_cannon" -> ticks < Math.round(lerp(60, 30, exp)) ? lerp(18, 25, exp) : 0;
+            case "plasma_cannon" -> ticks < Math.ceil(cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext.chargeTime(exp)) ? lerp(18, 25, exp) : 0;
             case "storm_wing" -> ticks > Math.round(lerp(70, 30, exp)) ? lerp(40, 25, exp) : 0;
             default -> 0;
         };
@@ -871,6 +881,7 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
 
     private static float tickOverload(String name, float exp, int ticks) {
         return switch (name) {
+            case "vec_reflection" -> lerp(100, 50, exp) / 20;
             case "vec_deviation" -> lerp(.5f, .2f, exp);
             case "storm_wing" -> ticks > Math.round(lerp(70, 30, exp)) ? lerp(10, 7, exp) : 0;
             default -> 0;
@@ -887,7 +898,7 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
             case "jet_engine" -> cost(lerp(60, 50, exp), lerp(170, 140, exp));
             case "dir_shock" -> cost(lerp(50, 100, exp), lerp(18, 12, exp));
             case "ground_shock" -> cost(lerp(80, 150, exp), lerp(15, 10, exp));
-            case "vec_accel" -> cost(lerp(120, 80, exp), lerp(30, 15, exp));
+            case "vec_accel" -> cost(lerp(240, 160, exp), lerp(30, 15, exp));
             case "dir_blast" -> cost(lerp(160, 200, exp), lerp(50, 30, exp));
             case "blood_retro" -> cost(lerp(280, 350, exp), lerp(55, 40, exp));
             default -> cost(0, 0);
@@ -899,8 +910,8 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
             case "thunder_clap" -> false; // The 1.12.2 context fires only at tick 60 or on CP exhaustion.
             case "meltdowner" -> ticks >= 20 && ticks <= 100;
             case "dir_shock", "dir_blast" -> ticks > 6 && ticks < 50;
-            case "ground_shock" -> ticks >= 5;
-            case "plasma_cannon" -> ticks >= Math.round(lerp(60, 30, exp));
+            case "ground_shock" -> ticks >= 0;
+            case "plasma_cannon" -> ticks >= Math.ceil(cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext.chargeTime(exp));
             default -> true;
         };
     }
@@ -913,7 +924,7 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
             case "thunder_clap" -> 60;
             case "electron_missile" -> Math.round(lerp(80, 200, exp));
             case "dir_shock", "dir_blast" -> 200;
-            case "blood_retro" -> 30;
+            case "blood_retro" -> 0;
             case "flashing" -> (int) lerp(60, 150, exp) + 2; // Original checks ticks > max_time before incrementing.
             default -> 0;
         };
@@ -1013,13 +1024,15 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
         if(session.plasma!=null){target=session.plasma.chargeTicks();contextState=session.plasma.active()?AbilityContextSyncPayload.ACTIVE:AbilityContextSyncPayload.CHARGING;}
         if(session.stormWing!=null)contextState=session.stormWing.active()?AbilityContextSyncPayload.ACTIVE:AbilityContextSyncPayload.CHARGING;
         PacketDistributor.sendToPlayer(player, new AbilityContextSyncPayload(session.slot, session.skill.id(),
-                session.ticks, target, contextState, consumptionHint(session.skill.name(), session.initialExperience)));
+                session.ticks, target, contextState, session.vectorImpulse!=null && session.skill.name().equals("vec_accel")
+                        ?session.vectorImpulse.consumptionHint():session.skill.name().equals("dir_blast") && state.level()>=5
+                        ?200:consumptionHint(session.skill.name(), session.initialExperience)));
     }
 
     /** Original IConsumptionProvider values are captured when these three contexts are created. */
     private static float consumptionHint(String skill, float experience) {
         return switch (skill) {
-            case "vec_accel" -> lerp(120, 80, experience);
+            case "vec_accel" -> lerp(240, 160, experience);
             case "ground_shock" -> lerp(80, 150, experience);
             case "dir_blast" -> lerp(160, 200, experience);
             default -> 0;
@@ -1032,10 +1045,10 @@ public static void interferenceStarted(ServerPlayer player, AbilityState state) 
             case "thunder_clap" -> 40;
             case "meltdowner" -> 40;
             case "dir_shock", "dir_blast" -> 6;
-            case "ground_shock" -> 5;
-            case "vec_accel" -> 20;
-            case "blood_retro" -> 30;
-            case "plasma_cannon" -> Math.round(lerp(60, 30, exp));
+            case "ground_shock" -> 0;
+            case "vec_accel" -> 0;
+            case "blood_retro" -> 0;
+            case "plasma_cannon" -> (int)Math.ceil(cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext.chargeTime(exp));
             case "storm_wing" -> Math.round(lerp(70, 30, exp));
             default -> 0;
         };

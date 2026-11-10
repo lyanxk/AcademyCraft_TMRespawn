@@ -142,7 +142,7 @@ public final class AbilityExecutor {
                 ? new Vec3(player.getPersistentData().getDouble("academy:plasma_charge_x"),
                 player.getPersistentData().getDouble("academy:plasma_charge_y"),
                 player.getPersistentData().getDouble("academy:plasma_charge_z"))
-                : player.position().add(0, 15, 0);
+                : cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext.chargePosition(player);
     }
 
     private static void startPlasmaFlight(ServerPlayer player, float exp) {
@@ -156,10 +156,10 @@ public final class AbilityExecutor {
         for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class,
                 new AABB(destination, destination).inflate(10), entity -> entity == player || validTarget(player, entity))) {
             AbilityContext.of(player, AbilityRegistry.skill("vecmanip.plasma_cannon"))
-                    .attack(target, lerp(80, 150, exp));
+                    .attack(target, cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext.damage(target, exp));
             target.invulnerableTime = 0;
         }
-        level.explode(player, destination.x, destination.y, destination.z, lerp(12, 15, exp),
+        level.explode(player, destination.x, destination.y, destination.z, cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext.explosionPower(exp),
                 canDestroy(player, skill) ? Level.ExplosionInteraction.BLOCK : Level.ExplosionInteraction.NONE);
         level.sendParticles(ACParticles.VECTOR.get(), destination.x, destination.y, destination.z,
                 100, 5, 5, 5, .15);
@@ -285,7 +285,7 @@ public final class AbilityExecutor {
         if (skill.name().equals("blood_retro"))
             player.getPersistentData().putFloat("academy:blood_walk_speed", player.getAbilities().getWalkingSpeed());
         if (skill.name().equals("plasma_cannon")) {
-            Vec3 charge = player.position().add(0, 15, 0);
+            Vec3 charge = cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext.chargePosition(player);
             player.getPersistentData().putDouble("academy:plasma_charge_x", charge.x);
             player.getPersistentData().putDouble("academy:plasma_charge_y", charge.y);
             player.getPersistentData().putDouble("academy:plasma_charge_z", charge.z);
@@ -405,7 +405,7 @@ public final class AbilityExecutor {
                     player.getAbilities().setWalkingSpeed(Math.max(.001f, .1f - ticks * .001f));
                     if (ticks % 5 == 0) player.onUpdateAbilities();
                 }
-                if (skill.name().equals("plasma_cannon") && ticks == Math.round(lerp(60, 30, exp)))
+                if (skill.name().equals("plasma_cannon") && ticks == Math.ceil(cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext.chargeTime(exp)))
                     sound(level, player, ACSounds.get("vecmanip.plasma_cannon_t"));
             }
             case "blood_retro" -> {
@@ -781,17 +781,11 @@ public final class AbilityExecutor {
             }
             case "ground_shock" -> performGroundShock(level, player, state, skill);
             case "vec_accel" -> {
-                if (heldTicks > 0) {
-                    double progress = Math.max(0, Math.min(1, heldTicks / 20d));
-                    double speed = Math.sin(lerp(.4f, 1, (float) progress)) * 2.5;
-                    Vec3 look = Vec3.directionFromRotation(player.getXRot() - 10, player.getYRot());
-                    player.setDeltaMovement(look.scale(speed));
-                    player.hurtMarked = true;
-                    player.resetFallDistance();
-                } else {
-                    player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 360, 2));
-                    player.addEffect(new MobEffectInstance(MobEffects.JUMP, 360, 1));
-                }
+                Vec3 look = Vec3.directionFromRotation(player.getXRot() - 10, player.getYRot());
+                player.setDeltaMovement(look.scale(cn.academy.ability.vanilla.vecmanip.skill.VectorImpulseContext
+                        .accelerationSpeed(state.level()>=4,state.experience(skill.id()))));
+                player.hurtMarked = true;
+                player.resetFallDistance();
                 sound(level, player, ACSounds.VEC_ACCEL.get());
             }
             case "vec_deviation" -> {
@@ -813,9 +807,9 @@ public final class AbilityExecutor {
             case "blood_retro" -> {
                 float exp = state.experience(skill.id());
                 LivingEntity target = targetLiving(level, player, 2);
-                if (target != null) {
+                if (target != null && target.getHealth() < target.getMaxHealth()) {
                     cn.academy.ability.vanilla.vecmanip.skill.VectorImpulseContext.attackBloodRetrograde(
-                            AbilityContext.of(player, skill), target, exp);
+                            AbilityContext.of(player, skill), target, exp, state.level()>=5);
                     particles(level, target.getEyePosition(), ParticleTypes.DAMAGE_INDICATOR, 25, .8);
                     sound(level, player, ACSounds.get("vecmanip.blood_retro"));
                 }
@@ -997,7 +991,8 @@ public final class AbilityExecutor {
     }
 
     public static boolean hasBloodRetroTarget(ServerPlayer player) {
-        return targetLiving(player.serverLevel(), player, 2) != null;
+        LivingEntity target = targetLiving(player.serverLevel(), player, 2);
+        return target != null && target.getHealth() < target.getMaxHealth();
     }
 
     public static boolean hasDirectedShockTarget(ServerPlayer player) {
@@ -1182,36 +1177,31 @@ public final class AbilityExecutor {
     private static void performDirectedBlast(ServerLevel level, ServerPlayer player, AbilityState state,
                                                AbilitySkill skill) {
         float exp = state.experience(skill.id());
-        Vec3 center = traceLocation(level, player, 4);
-        List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class,
-                new AABB(center, center).inflate(3), entity -> validTarget(player, entity));
-        for (LivingEntity target : targets) {
-            damage(player, skill, target, lerp(10, 25, exp));
-            Vec3 delta = player.getEyePosition().subtract(target.getEyePosition());
-            delta = new Vec3(delta.x, delta.y - .4, delta.z).normalize().scale(-1.2);
-            target.setPos(target.getX(), target.getY() + .1, target.getZ());
-            target.setDeltaMovement(delta);
-            target.hurtMarked = true;
+        Vec3 center = blockTrace(level, player, 4).getLocation();
+        if(state.level()>=5) {
+            cn.academy.ability.vanilla.vecmanip.skill.DirectedBlastUpgrade.perform(player,AbilityContext.of(player,skill),
+                    BlockPos.containing(Math.round(center.x),Math.round(center.y),Math.round(center.z)),player.getLookAngle(),exp);
+            state.addExperience(skill,.0012f);
+            return;
         }
-        float breakProbability = lerp(.5f, .8f, exp);
         float breakHardness = exp < .25f ? 2.9f : exp < .5f ? 25 : 55;
-        float dropRate = lerp(.4f, .9f, exp);
         BlockPos origin = BlockPos.containing(Math.round(center.x), Math.round(center.y), Math.round(center.z));
-        for (int x = -3; x < 3; x++) for (int y = -3; y < 3; y++) for (int z = -3; z < 3; z++) {
+        double radius = Math.sqrt(6) + 2 * exp;
+        double radiusSquared = 6 + 4 * exp * (Math.sqrt(6) + exp);
+        int reach = (int) Math.ceil(radius);
+        for (int x = -reach; x <= reach; x++) for (int y = -reach; y <= reach; y++) for (int z = -reach; z <= reach; z++) {
             int distanceSquared = x * x + y * y + z * z;
-            if (distanceSquared > 6 || distanceSquared != 0 && level.random.nextFloat() >= breakProbability) continue;
+            if (distanceSquared > radiusSquared) continue;
             BlockPos pos = origin.offset(x, y, z);
             BlockState blockState = level.getBlockState(pos);
             float hardness = blockState.getDestroySpeed(level, pos);
             if (blockState.isAir() || hardness < 0 || hardness > breakHardness || !canDestroyBlock(player, skill, pos)) continue;
-            if (exp >= 1 || level.random.nextFloat() < dropRate)
-                Block.dropResources(blockState, level, pos, level.getBlockEntity(pos), player, ItemStack.EMPTY);
             level.removeBlock(pos, false);
         }
-        state.addExperience(skill, targets.isEmpty() ? .0012f : .0025f);
+        state.addExperience(skill, .0012f);
         particles(level, center, ParticleTypes.CLOUD, 45, 2.2);
-        level.playSound(null, BlockPos.containing(center), ACSounds.VEC_BLAST.get(),
-                SoundSource.PLAYERS, .5f, 1);
+        level.playSound(null, BlockPos.containing(center), ACSounds.VEC_GROUNDSHOCK.get(),
+                SoundSource.PLAYERS, 2f, 1);
     }
 
     private static void performGroundShock(ServerLevel level, ServerPlayer player, AbilityState state,

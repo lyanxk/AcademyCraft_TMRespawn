@@ -3,7 +3,6 @@ package cn.academy.client.screen;
 import cn.academy.AcademyCraft;
 import cn.academy.client.render.ACGuiTextures;
 import cn.academy.client.render.ACLegacyFont;
-import cn.academy.terminal.DonatorList;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigList;
@@ -13,7 +12,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Consumer;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -21,30 +19,17 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import net.neoforged.neoforge.common.NeoForge;
 
 /** AppAbout's resource-driven text, language fallback, randomized donors and original XML geometry. */
 public final class AboutScreen extends Screen {
     private static final ResourceLocation BACK = texture("bg"), GLOW = texture("button_glow");
     private final List<TextItem> credits = new ArrayList<>(), donation = new ArrayList<>();
-    private final Consumer<DonatorList.DonatorListRefreshEvent> refresh = event -> buildContent();
-    private boolean donateTab, draggingScroll, listening;
+    private boolean donateTab, draggingScroll;
     private float scrollProgress, creditsMaxY, dragOffset;
     private String hoveringUrl;
     private record TextItem(float x, float y, String text, int align, boolean bold, float size, String url) {}
 
     public AboutScreen() { super(Component.translatable("ac.app.about.name")); buildContent(); }
-    @Override protected void init() {
-        if (!listening) {
-            NeoForge.EVENT_BUS.addListener(DonatorList.DonatorListRefreshEvent.class, refresh);
-            listening = true;
-            DonatorList.Instance.tryRequest();
-        }
-    }
-    @Override public void removed() {
-        if (listening) { NeoForge.EVENT_BUS.unregister(refresh); listening = false; }
-        super.removed();
-    }
     private static ResourceLocation texture(String name) {
         return ResourceLocation.fromNamespaceAndPath("academy", "textures/guis/about/" + name + ".png");
     }
@@ -54,7 +39,6 @@ public final class AboutScreen extends Screen {
         credits.add(new TextItem(x, y, text, align, bold, size, null));
     }
     private void buildContent() {
-        // Refresh replaces old text instead of preserving the old UI's duplicate-append bug.
         credits.clear(); donation.clear();
         var minecraft = Minecraft.getInstance();
         try (var reader = new InputStreamReader(minecraft.getResourceManager().open(
@@ -80,7 +64,7 @@ public final class AboutScreen extends Screen {
                 addCredit(0, y, hint, ACLegacyFont.CENTER, false, 21); y += 21;
             }
             y += 45;
-            var names = new ArrayList<>(DonatorList.Instance.isLoaded() ? DonatorList.Instance.getList() : root.getStringList("donators"));
+            var names = new ArrayList<>(root.getStringList("donators"));
             Collections.shuffle(names);
             for (int i = 0; i < names.size(); i++) {
                 float x = 30 + (i % 3) * (620 - 60 - 150) / 2f - 310;

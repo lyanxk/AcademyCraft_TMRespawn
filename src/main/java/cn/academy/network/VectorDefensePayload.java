@@ -12,7 +12,7 @@ import net.neoforged.neoforge.common.NeoForge;
 /** VecDeviation/VecReflection fixed-audience messages; entity IDs refer to the original projectile. */
 public record VectorDefensePayload(int context,int caster,boolean reflection,int phase,int entity,Vec3 point)
         implements CustomPacketPayload {
-    public static final int START=0,END=1,STOP_ENTITY=2,REFLECT_ENTITY=3,EFFECT=4,PLAY=5;
+    public static final int START=0,END=1,STOP_ENTITY=2,REFLECT_ENTITY=3,EFFECT=4,PLAY=5,SYNC_VELOCITY=6;
     public static final Type<VectorDefensePayload> TYPE=new Type<>(ResourceLocation.fromNamespaceAndPath("academy","vector_defense"));
     public static final StreamCodec<RegistryFriendlyByteBuf,VectorDefensePayload> STREAM_CODEC=StreamCodec.of(
             (b,v)->{b.writeVarInt(v.context);b.writeVarInt(v.caster);b.writeBoolean(v.reflection);b.writeVarInt(v.phase);b.writeVarInt(v.entity);b.writeVec3(v.point);},

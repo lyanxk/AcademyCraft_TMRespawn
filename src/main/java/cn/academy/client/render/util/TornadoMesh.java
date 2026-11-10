@@ -47,6 +47,39 @@ public final class TornadoMesh {
             }
         }
     }
+    /** Original layered ribbons and noise, wrapped onto a sphere instead of a widening funnel. */
+    public void drawSphere(PoseStack pose,VertexConsumer out,double seconds,double alpha,double sphereRadius) {
+        double time=seconds*4-timeOffset;
+        int a=(int)(Math.clamp(alpha*.7,0,1)*255);
+        var light0=new Vector3f(.2f,1,-.7f).normalize();
+        var light1=new Vector3f(-.2f,1,.7f).normalize();
+        for(var ring:rings) {
+            double ny=ring.y/height;
+            double latitude=(ny-.5)*Math.PI;
+            double halfWidth=ring.width/height*Math.PI*.5;
+            double shell=sphereRadius*(1+(ring.size-1)*.2+.06*ImprovedNoise.noise(ny,time*.2));
+            double dx=ImprovedNoise.noise(ny,time*.1)*sphereRadius*.06;
+            double dz=ImprovedNoise.noise(ny,time*.1,1)*sphereRadius*.06;
+            double rotation=.1*(1+.5*ny)*time+ring.phase;
+            double top=Math.clamp(latitude+halfWidth,-Math.PI/2,Math.PI/2);
+            double bottom=Math.clamp(latitude-halfWidth,-Math.PI/2,Math.PI/2);
+            for(int i=0;i<32;i++) {
+                double r0=i/32.0*Math.PI*2,r1=(i+1)/32.0*Math.PI*2;
+                var normal=new Vector3f((float)(Math.sin(r0)*Math.cos(latitude)),(float)Math.sin(latitude),(float)(Math.cos(r0)*Math.cos(latitude)));
+                float brightness=Math.clamp(.4f+.6f*(Math.max(0,normal.dot(light0))+Math.max(0,normal.dot(light1))),0,1);
+                int diffuse=Math.round(brightness*32767);
+                float u0=(float)(i/32.0-rotation),u1=(float)((i+1)/32.0-rotation);
+                sphereVertex(pose,out,r0,top,shell,dx,dz,u0,0,a,diffuse);
+                sphereVertex(pose,out,r0,bottom,shell,dx,dz,u0,1,a,diffuse);
+                sphereVertex(pose,out,r1,bottom,shell,dx,dz,u1,1,a,diffuse);
+                sphereVertex(pose,out,r1,top,shell,dx,dz,u1,0,a,diffuse);
+            }
+        }
+    }
+    private static void sphereVertex(PoseStack pose,VertexConsumer out,double longitude,double latitude,double radius,double dx,double dz,float u,float v,int alpha,int diffuse) {
+        vertex(pose,out,(float)(Math.sin(longitude)*Math.cos(latitude)*radius+dx),(float)(Math.sin(latitude)*radius),
+                (float)(Math.cos(longitude)*Math.cos(latitude)*radius+dz),u,v,alpha,diffuse,0xF000F0);
+    }
     private static void vertex(PoseStack pose,VertexConsumer out,float x,float y,float z,float u,float v,int alpha,int diffuse,int light) {
         out.addVertex(pose.last(),x,y,z).setUv(u,v).setColor(255,255,255,alpha).setUv1(diffuse,0).setLight(light).setNormal(0,1,0);
     }

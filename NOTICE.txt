@@ -1,5 +1,11 @@
 AcademyCraft TMRespawn
 
+TMRespawn 1.0.1 release modifications, 2026-11-10, by lyanxk and TMRespawn contributors:
+Reworked Vector Manipulation skills for the TMC server, merging the former
+Directed Blast entity attack into Directed Shock, separating large-area block
+destruction into Directed Blast, and strengthening high-level abilities.
+The full GNU GPL version 3 text is provided in COPYING.
+
 Primary gameplay and resource reference: AcademyCraft 1.1.3 for Minecraft 1.12.2,
 Copyright Lambda Innovation and contributors.
 https://github.com/LambdaInnovation/AcademyCraft

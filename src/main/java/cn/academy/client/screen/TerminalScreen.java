@@ -58,7 +58,6 @@ public final class TerminalScreen extends Screen {
     @Override protected void init() {
         if (!initialized) {
             createdAt = TerminalOverlay.seconds(); refreshApps(); initialized = true;
-            cn.academy.terminal.DonatorList.Instance.tryRequest();
         }
     }
     public void refreshApps() {

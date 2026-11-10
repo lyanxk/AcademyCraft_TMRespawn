@@ -22,12 +22,11 @@ import org.joml.Matrix4f;
 import java.util.*;
 import static cn.academy.network.VectorStrikePayload.*;
 
-/** Original local charge/punch clocks, ground camera motion, digging particles and SmokeEffect. */
+/** Local charge/punch clocks, ground particles and SmokeEffect. */
 public final class VectorStrikeEffects {
     private static final ThunderClapRequests REQUESTS=new ThunderClapRequests();
     private static final Map<Integer,Strike> LOCAL=new LinkedHashMap<>(),REMOTE=new LinkedHashMap<>();
     private static final List<Smoke> SMOKE=new ArrayList<>();
-    private static final List<Integer> SLASH=new ArrayList<>();
     private static final Random RANDOM=new Random();
     private static final LegacyCubicCurve PX=new LegacyCubicCurve(0,-.04,.5,-.04,1,0),
             PY=new LegacyCubicCurve(0,.8,.5,.75,1,0),PZ=new LegacyCubicCurve(0,0,.3,-.4,1,0),
@@ -47,7 +46,7 @@ public final class VectorStrikeEffects {
         Smoke(Vec3 position,Vec3 velocity){this.position=position;previous=position;this.velocity=velocity;}
     }
     private static boolean sync(Minecraft mc) {
-        if(world!=mc.level || local!=mc.player){world=mc.level;local=mc.player;LOCAL.clear();REMOTE.clear();SMOKE.clear();SLASH.clear();REQUESTS.end(-1);}
+        if(world!=mc.level || local!=mc.player){world=mc.level;local=mc.player;LOCAL.clear();REMOTE.clear();SMOKE.clear();REQUESTS.end(-1);}
         return world!=null && local!=null;
     }
     public static int beginLocal(int slot) {
@@ -55,7 +54,10 @@ public final class VectorStrikeEffects {
         var state=AbilityState.load(local);var skill=AbilityRegistry.skill(state.controlSkill(slot));
         if(skill==null || !VectorStrikeContext.handles(skill) || !state.canStartContext(skill))return 0;
         endLocal(slot,true);int request=REQUESTS.begin(slot);
-        LOCAL.put(request,new Strike(local,VectorStrikeContext.kind(skill),slot,request,state.experience(skill.id())));return request;
+        var strike=new Strike(local,VectorStrikeContext.kind(skill,state.level()),slot,request,state.experience(skill.id()));
+        // Groundshock is performed by the key-down packet; key-up must not submit another release.
+        strike.released=strike.kind==GROUND;
+        LOCAL.put(request,strike);return request;
     }
     public static void endLocal(int slot,boolean abort) {
         if(!sync(Minecraft.getInstance()))return;
@@ -68,6 +70,12 @@ public final class VectorStrikeEffects {
     }
     public static void receive(VectorStrikePayload packet) {
         if(!sync(Minecraft.getInstance()))return;
+        if(packet.phase()==KNOCKBACK_VELOCITY) {
+            for(int id:packet.entities()) {
+                var target=world.getEntity(id);if(target!=null)target.setDeltaMovement(packet.point());
+            }
+            return;
+        }
         if(packet.phase()==END) {
             REMOTE.remove(packet.context());
             if(packet.caster()==local.getId())LOCAL.remove(packet.request());
@@ -87,15 +95,16 @@ public final class VectorStrikeEffects {
             }
             return;
         }
-        if(packet.phase()==PERFORM && packet.kind()==BLAST) {
+        if(packet.phase()==PERFORM && (packet.kind()==BLAST || packet.kind()==ENHANCED_SHOCK)) {
             if(strike!=null){strike.punched=true;strike.punchTicks=0;strike.punchedAt=RailgunHandEffects.seconds();}
             Vec3 point=owner.getEyePosition().lerp(packet.point(),.7);
             VectorDefenseEffects.wave(point,owner.getYHeadRot()-20+RANDOM.nextFloat()*40,owner.getXRot()-10+RANDOM.nextFloat()*20,2+RANDOM.nextInt(1),1);
-            play(packet.point(),"vecmanip.directed_blast",.5f);
+            if(packet.kind()==BLAST)play(packet.point(),"vecmanip.groundshock",2);
+            else play(packet.point(),"vecmanip.directed_blast",.5f);
         } else if(packet.phase()==HIT) {
             float exp=owner==local?AbilityState.load(local).experience(packet.kind()==SHOCK?"vecmanip.dir_shock":"vecmanip.dir_blast"):packet.experience();
             for(int target:packet.entities()) {
-                var entity=world.getEntity(target);if(entity!=null)VectorStrikeContext.knockback(owner,entity,packet.kind(),exp);
+                var entity=world.getEntity(target);if(entity!=null && packet.kind()!=ENHANCED_SHOCK)VectorStrikeContext.knockback(owner,entity,packet.kind(),exp);
             }
             if(packet.kind()==SHOCK) {
                 if(strike!=null){strike.punched=true;strike.punchTicks=0;strike.punchedAt=RailgunHandEffects.seconds();}
@@ -104,7 +113,7 @@ public final class VectorStrikeEffects {
         } else if(packet.phase()==GROUND_EFFECT) {
             if(owner==local) {
                 var state=AbilityState.load(local);var skill=AbilityRegistry.skill("vecmanip.ground_shock");float exp=packet.experience();
-                state.consumeRaw(skill,80+(150-80)*exp,15+(10-15)*exp,local.isCreative());SLASH.add(0);
+                state.consumeRaw(skill,80+(150-80)*exp,15+(10-15)*exp,local.isCreative());
             }
             play(owner.position(),"vecmanip.groundshock",2);groundParticles(packet.blocks());
         }
@@ -127,13 +136,6 @@ public final class VectorStrikeEffects {
             }
         }
     }
-    /** HandlerLifePeroidEvent runs on ClientTick.START, four times after the ground release packet. */
-    public static void tickPre(Minecraft mc) {
-        if(!sync(mc) || mc.isPaused())return;
-        var iterator=SLASH.listIterator();while(iterator.hasNext()) {
-            int tick=iterator.next();if(tick>=4)iterator.remove();else{local.setXRot(local.getXRot()+3.4f);iterator.set(tick+1);}
-        }
-    }
     public static void tick(Minecraft mc) {
         if(!sync(mc) || mc.isPaused())return;
         for(var strike:List.copyOf(LOCAL.values()))tick(strike,true);
@@ -143,10 +145,6 @@ public final class VectorStrikeEffects {
     private static void tick(Strike strike,boolean isLocal) {
         if(strike.owner.isRemoved()){if(isLocal)LOCAL.remove(strike.request);else REMOTE.remove(strike.id);return;}
         if(isLocal || strike.kind==GROUND)strike.ticks++;
-        if(strike.kind==GROUND) {
-            float delta=strike.ticks<4?strike.ticks/4f:strike.ticks<=20?1:strike.ticks<=25?1-(strike.ticks-20)/5f:0;
-            strike.owner.setXRot(strike.owner.getXRot()-delta*.2f);
-        }
         if(isLocal) {
             if(strike.punched)strike.punchTicks++;
             if(strike.kind!=GROUND && strike.ticks>=200 || strike.punched && strike.punchTicks>6 || !AbilityState.load(local).active()) {

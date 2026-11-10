@@ -77,10 +77,6 @@ public final class ACClientEvents {
         cn.academy.client.render.VectorStrikeEffects.receive(event.payload);
     }
     @SubscribeEvent
-    public static void vectorStrikeTickPre(ClientTickEvent.Pre event) {
-        cn.academy.client.render.VectorStrikeEffects.tickPre(Minecraft.getInstance());
-    }
-    @SubscribeEvent
     public static void vectorDefenseEffect(cn.academy.network.VectorDefensePayload.Received event) {
         cn.academy.client.render.VectorDefenseEffects.receive(event.payload);
     }

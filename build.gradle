@@ -115,7 +115,7 @@ tasks.withType(ProcessResources).configureEach {
 }
 
 jar {
-    from('LICENSE.md', 'NOTICE.txt', 'upstream-lock.json')
+    from('COPYING', 'LICENSE.md', 'NOTICE.txt', 'upstream-lock.json')
     manifest {
         attributes([
             'Specification-Title': mod_name,
