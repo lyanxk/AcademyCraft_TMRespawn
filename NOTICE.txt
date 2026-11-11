@@ -1,5 +1,9 @@
 AcademyCraft TMRespawn
 
+TMRespawn 1.0.5 release modifications, 2026-11-11, by lyanxk and TMRespawn contributors:
+Adjusted default level-five CP and trainable CP/overload capacity limits, and
+the CP recovery rate in the bundled gameplay datapack.
+
 TMRespawn 1.0.4 release modifications, 2026-11-11, by lyanxk and TMRespawn contributors:
 Adjusted skill damage balance and maximum-health scaling, with minor Teleporter
 skill changes to range, damage, cooldowns and multi-item attacks. Updated related

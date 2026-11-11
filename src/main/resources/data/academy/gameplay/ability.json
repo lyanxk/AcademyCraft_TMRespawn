@@ -14,7 +14,7 @@
     2800,
     4000,
     5800,
-    8000
+    16000
   ],
   "initial_overload": [
     100,
@@ -30,7 +30,7 @@
     1000,
     1500,
     1700,
-    12000
+    128000
   ],
   "additional_overload": [
     0,
@@ -38,9 +38,9 @@
     70,
     80,
     100,
-    500
+    5000
   ],
-  "cp_recovery_rate": 0.0015,
+  "cp_recovery_rate": 0.0003,
   "overload_recovery_min": 0.002,
   "overload_recovery_rate": 0.007,
   "overload_recovery_divisor": 4.0,
