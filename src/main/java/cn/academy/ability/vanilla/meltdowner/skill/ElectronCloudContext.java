@@ -66,7 +66,9 @@ public final class ElectronCloudContext {
                     var ball=balls.remove(player.getRandom().nextInt(balls.size()));
                     send(new MdRayEffectPayload(MdRayEffectPayload.RAY,player.getId(),ball.position(),target.getEyePosition()));
                     // The original missile damages the selected entity directly, without a second line-of-sight trace.
-                    target.invulnerableTime=-1;MDDamageHelper.attack(ctx,target,lerp(Balance.i("electron_cloud_context", "tick_lerp_13"),Balance.i("electron_cloud_context", "tick_lerp_14")));
+                    target.invulnerableTime=-1;
+                    float shot = lerp(Balance.i("electron_cloud_context", "tick_lerp_13"), Balance.i("electron_cloud_context", "tick_lerp_14"));
+                    MDDamageHelper.attack(ctx,target,SkillHitDamage.low(shot).against(target));
                     state.addExperience(skill,Balance.f("electron_cloud_context", "tick_add_experience_1"));ball.discard();
                 }
             }

@@ -53,7 +53,9 @@ public final class RayBarrage {
             var trace=ElectricAttackTrace.trace(player,Balance.i("ray_barrage", "perform_trace_2"),false);end=trace.getLocation();
             if(trace instanceof EntityHitResult hit) {
                 end=hit.getEntity().position().add(0,hit.getEntity().getEyeHeight()*.6,0);
-                MDDamageHelper.attack(ctx,hit.getEntity(),upgraded?MeltdownerSkillRules.curve(skill,"upgraded_damage",proficiency):lerp(Balance.i("ray_barrage", "perform_lerp_7"),Balance.i("ray_barrage", "perform_lerp_8"),exp));
+                float damage = upgraded ? MeltdownerSkillRules.curve(skill,"upgraded_damage",proficiency)
+                        : SkillHitDamage.low(lerp(Balance.i("ray_barrage", "perform_lerp_7"), Balance.i("ray_barrage", "perform_lerp_8"), exp)).against(hit.getEntity());
+                MDDamageHelper.attack(ctx,hit.getEntity(),damage);
             }
         }
         var pre=new MdRayEffectPayload(silbarn==null?MdRayEffectPayload.PRE_PLAIN:MdRayEffectPayload.PRE_SCATTER,

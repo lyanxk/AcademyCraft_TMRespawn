@@ -18,5 +18,12 @@
   "release_add_experience_3": 0.003,
   "release_finish_context_1": 30,
   "release_finish_context_2": 15,
-  "release_finish_context_3": 30
+  "release_finish_context_3": 30,
+  "first_upgrade_level": 3,
+  "second_upgrade_level": 5,
+  "first_upgrade_max_range": 30.0,
+  "second_upgrade_max_range": 82.0,
+  "first_upgrade_max_damage": 12.0,
+  "second_upgrade_max_damage": 24.0,
+  "second_upgrade_max_items": 5
 }

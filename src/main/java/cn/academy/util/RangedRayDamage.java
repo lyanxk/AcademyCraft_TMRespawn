@@ -1,6 +1,7 @@
 package cn.academy.util;
 
 import cn.academy.ability.AbilityContext;
+import cn.academy.ability.SkillHitDamage;
 import cn.academy.event.BlockDestroyEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -32,7 +33,7 @@ public class RangedRayDamage {
     public int maxIncrement = 50;
     public float dropProb = .05f;
     public Predicate<Entity> entitySelector;
-    public float startDamage = 10;
+    public SkillHitDamage startDamage = SkillHitDamage.flat(10);
     private Vec3 start, slope;
 
     public RangedRayDamage(AbilityContext ctx, double range, float energy) {
@@ -108,7 +109,7 @@ public class RangedRayDamage {
 
     protected boolean attackEntity(Entity target) {
         float distance = Math.min(maxIncrement, (float) target.position().subtract(start).cross(slope).length());
-        float damage = startDamage * (1 + (distance / maxIncrement) * (.2f - 1));
+        float damage = startDamage.against(target) * (1 + (distance / maxIncrement) * (.2f - 1));
         return applyAttack(target, damage);
     }
     protected boolean applyAttack(Entity target, float damage) { ctx.attack(target, damage); return true; }

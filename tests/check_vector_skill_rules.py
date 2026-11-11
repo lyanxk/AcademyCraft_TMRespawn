@@ -20,6 +20,7 @@ def method(path, signature):
 methods = '\n'.join([
     method(skills / 'VectorImpulseContext.java', 'public static void attackBloodRetrograde('),
     method(skills / 'VectorDefenseContext.java', 'public static boolean cancelIncoming('),
+    method(skills / 'VectorDefenseContext.java', 'private static boolean withinCounterRange('),
     method(skills / 'VectorDefenseContext.java', 'private record PendingCounter(').replace('VectorDefenseContext', 'Defense'),
     method(skills / 'VectorDefenseContext.java', 'public static void queueCounterAttack('),
     method(skills / 'VectorDefenseContext.java', 'public static void processCounterAttacks('),
@@ -66,6 +67,8 @@ class VectorRulesCheck {
         boolean is(Object tag){return boss && tag==Tags.EntityTypes.BOSSES;}
     }
     static class Entity {
+        double x;
+        double distanceToSqr(Entity other){return (x-other.x)*(x-other.x);}
         final EntityType type=new EntityType();
         EntityType getType(){return type;}
         Object world=SERVER;boolean removed;
@@ -203,6 +206,12 @@ class VectorRulesCheck {
         ACTIVE.clear();
         var defender=new ServerPlayer();var attacker=new ServerPlayer();
         var shield=new Defense(defender,true);ACTIVE.add(shield);
+        attacker.x=4.01;
+        hit(defender,attacker,10);
+        check(PENDING_COUNTERS.isEmpty(),"out-of-range direct attacker must not queue a counter");
+        attacker.x=4;hit(defender,attacker,10);attacker.x=4.01;nextTick();
+        check(AbilityContext.counter.hits==0 && defender.state.payments==0,"moving outside counter range discards queued hit without payment");
+        attacker.x=0;
         var incoming=new LivingIncomingDamageEvent(defender,new DamageSource(attacker),10);
         AbilityContext.counter.hook=()->check(incoming.canceled,"cancel original hit before countering");
         onIncomingDamage(incoming);

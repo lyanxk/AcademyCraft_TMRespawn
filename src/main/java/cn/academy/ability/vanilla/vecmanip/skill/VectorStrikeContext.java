@@ -138,6 +138,7 @@ public final class VectorStrikeContext {
             var targets=world.getEntities(player,new AABB(point,point).inflate(Balance.i("vector_strike_context", "blast_inflate_1")),entity->withinBlast(entity,point));
             for(var entity:targets) {
                 float damage=levelFiveShock?snapshot(Balance.i("vector_strike_context", "blast_snapshot_5"),Balance.i("vector_strike_context", "blast_snapshot_6")):snapshot(Balance.i("vector_strike_context", "blast_snapshot_7"),Balance.i("vector_strike_context", "blast_snapshot_8"));
+                if (!levelFiveShock) damage = SkillHitDamage.low(damage).against(entity);
                 if(levelFiveShock && exp>=1f)ctx.attackIgnoreArmor(entity,damage);
                 else ctx.attack(entity,damage);
                 knockback(player,entity,kind,levelFiveShock?1f:state.experience(skill.id()));

@@ -21,4 +21,11 @@ def resolve_parameters(source):
         suffix = {'i': '', 'l': 'L', 'f': 'f', 'd': 'd'}[kind]
         return f'({int(value) if kind in "il" else float(value)}{suffix})'
 
-    return re.sub(r'Balance\.([ilfd])\("([^"]+)"\s*,\s*"([^"]+)"\)', literal, source)
+    source = re.sub(r'Balance\.([ilfd])\("([^"]+)"\s*,\s*"([^"]+)"\)', literal, source)
+
+    def gameplay_literal(match):
+        kind, path, key = match.groups()
+        value = document(path)[key]
+        return f'({int(value)})' if kind == 'integer' else f'({float(value)}{"f" if kind == "decimal" else "d"})'
+
+    return re.sub(r'GameplayData\.(integer|decimal|number)\("([^"]+)"\s*,\s*"([^"]+)"\)', gameplay_literal, source)

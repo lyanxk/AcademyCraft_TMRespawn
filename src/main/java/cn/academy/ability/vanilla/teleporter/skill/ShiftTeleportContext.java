@@ -103,7 +103,10 @@ public final class ShiftTeleportContext {
             // Original ignores placeBlockAt's return value; failure here does not enter the drop branch.
         } else world.addFreshEntity(new ItemEntity(world,point.x,point.y,point.z,stack.copyWithCount(1)));
         if(!player.isCreative()){if(stack.getCount()<=1)player.setItemInHand(InteractionHand.MAIN_HAND,ItemStack.EMPTY);else stack.shrink(1);}
-        var targets=targets(player,experience);for(var target:targets)TPSkillHelper.attack(AbilityContext.of(player,skill),target,Balance.i("shift_teleport_context", "release_attack_1")+(Balance.i("shift_teleport_context", "release_attack_2")-Balance.i("shift_teleport_context", "release_attack_3"))*experience,false);
+        var targets = targets(player,experience);
+        var damage = SkillHitDamage.low(Balance.i("shift_teleport_context", "release_attack_1")
+                + (Balance.i("shift_teleport_context", "release_attack_2") - Balance.i("shift_teleport_context", "release_attack_3")) * experience);
+        for (var target : targets) TPSkillHelper.attack(AbilityContext.of(player,skill),target,damage.against(target),false);
         world.playSound(player,player.blockPosition(),ACSounds.get("tp.tp_shift"),SoundSource.AMBIENT,.5f,1);
         state.addExperience(skill,(Balance.i("shift_teleport_context", "release_add_experience_1")+targets.size())*Balance.f("shift_teleport_context", "release_add_experience_2"));state.finishContext(skill,(int)(Balance.i("shift_teleport_context", "release_finish_context_1")+(Balance.i("shift_teleport_context", "release_finish_context_2")-Balance.i("shift_teleport_context", "release_finish_context_3"))*experience),0);performed=true;
     }

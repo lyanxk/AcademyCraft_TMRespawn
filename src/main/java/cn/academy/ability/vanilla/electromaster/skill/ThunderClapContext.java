@@ -1,6 +1,7 @@
 package cn.academy.ability.vanilla.electromaster.skill;
 
 import cn.academy.data.Balance;
+import cn.academy.ability.SkillHitDamage;
 
 import cn.academy.ability.AbilityContext;
 import cn.academy.ability.AbilitySkill;
@@ -73,8 +74,10 @@ public final class ThunderClapContext {
                 10000, .8f + level.random.nextFloat() * .2f);
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.WEATHER,
                 2, .5f + level.random.nextFloat() * .2f);
-        float damage = (Balance.i("thunder_clap_context", "perform_damage_1") + experience * Balance.i("thunder_clap_context", "perform_damage_2")) * (1 + ((ticks - Balance.f("thunder_clap_context", "perform_damage_3")) / Balance.f("thunder_clap_context", "perform_damage_4")) * (Balance.f("thunder_clap_context", "perform_damage_5") - 1));
-        AbilityContext.of(player, skill).attackRange(hit, 15 + experience * 15, damage,
+        float fixed = Balance.i("thunder_clap_context", "perform_damage_1") + experience * Balance.i("thunder_clap_context", "perform_damage_2");
+        float charge = (1 + ((ticks - Balance.f("thunder_clap_context", "perform_damage_3")) / Balance.f("thunder_clap_context", "perform_damage_4")) * (Balance.f("thunder_clap_context", "perform_damage_5") - 1));
+        var damage = new SkillHitDamage(fixed, experience * Balance.f("thunder_clap_context", "max_health_fraction_at_mastery"));
+        AbilityContext.of(player, skill).attackRange(hit, 15 + experience * 15, damage.scaled(charge),
                 entity -> entity != player && !(entity instanceof net.minecraft.world.entity.LightningBolt));
         state.finishContext(skill, (int) (ticks * (Balance.i("thunder_clap_context", "perform_finish_context_1") + experience * (Balance.i("thunder_clap_context", "perform_finish_context_2") - Balance.i("thunder_clap_context", "perform_finish_context_3")))), Balance.f("thunder_clap_context", "perform_finish_context_4"));
     }

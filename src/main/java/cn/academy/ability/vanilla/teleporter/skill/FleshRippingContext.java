@@ -46,8 +46,13 @@ public final class FleshRippingContext {
         send(EFFECT,target==null?-1:target.getId());
         if(target==null)return;
         state.consumeForce(skill,cost,Balance.i("flesh_ripping_context", "release_consume_force_1")+(Balance.i("flesh_ripping_context", "release_consume_force_2")-Balance.i("flesh_ripping_context", "release_consume_force_3"))*experience,player.isCreative());
-        TPSkillHelper.attack(AbilityContext.of(player,skill),target,Balance.i("flesh_ripping_context", "release_attack_1")+(Balance.i("flesh_ripping_context", "release_attack_2")-Balance.i("flesh_ripping_context", "release_attack_3"))*experience,true);
-        if(player.getRandom().nextDouble()<.05f)player.addEffect(new MobEffectInstance(MobEffects.CONFUSION,Balance.i("flesh_ripping_context", "release_add_effect_1")));
+        boolean upgraded=state.level()>=Balance.i("flesh_ripping_context","upgrade_level");
+        float maxDamage=Balance.f("flesh_ripping_context",upgraded?"upgraded_max_damage":"release_attack_2");
+        float damage = Balance.f("flesh_ripping_context","release_attack_1")
+                + (maxDamage - Balance.f("flesh_ripping_context","release_attack_3")) * experience;
+        if (upgraded) damage = SkillHitDamage.low(damage).against(target);
+        TPSkillHelper.attack(AbilityContext.of(player,skill),target,damage,true);
+        if(!upgraded && player.getRandom().nextDouble()<.05f)player.addEffect(new MobEffectInstance(MobEffects.CONFUSION,Balance.i("flesh_ripping_context", "release_add_effect_1")));
         state.finishContext(skill,(int)(Balance.i("flesh_ripping_context", "release_finish_context_1")+(Balance.i("flesh_ripping_context", "release_finish_context_2")-Balance.i("flesh_ripping_context", "release_finish_context_3"))*experience),Balance.f("flesh_ripping_context", "release_finish_context_4"));performed=true;
     }
     public boolean performed(){return performed;}

@@ -9,6 +9,8 @@ base = root / 'src/main/java/cn/academy'
 strike = (base / 'ability/vanilla/vecmanip/skill/VectorStrikeContext.java').read_text(encoding='utf-8')
 state = (base / 'ability/AbilityState.java').read_text(encoding='utf-8')
 skill_source = (base / 'ability/AbilitySkill.java').read_text(encoding='utf-8')
+hit_damage_source = (base / 'ability/SkillHitDamage.java').read_text(encoding='utf-8')
+hit_damage_source = resolve_parameters(hit_damage_source[hit_damage_source.index('/**'):])
 
 def method(source, signature):
     start = source.index(signature)
@@ -47,6 +49,7 @@ harness = r'''
 import java.util.*;
 import java.util.function.Predicate;
 class DirectedShockUpgradeCheck {
+    HIT_DAMAGE_SOURCE
     static final int SHOCK=0,GROUND=1,BLAST=2,ENHANCED_SHOCK=3,PERFORM=2,HIT=3;
     int kind=ENHANCED_SHOCK;float exp;double traceLength;Vec3 performedAt;
     boolean levelFiveShock,levelFiveBlast;
@@ -101,6 +104,11 @@ class DirectedShockUpgradeCheck {
         Vec3 getLookAngle(){return new Vec3(1,0,0);}
         AABB getBoundingBox(){return new AABB(pos,pos);}
     }
+    static class LivingEntity extends Entity {
+        float maxHealth=100;
+        LivingEntity(Vec3 pos){super(pos);}
+        float getMaxHealth(){return maxHealth;}
+    }
     static class Player extends Entity {
         final World world=new World();Vec3 look=new Vec3(1,0,0);Player(){super(Vec3.ZERO);}
         World serverLevel(){return world;}Vec3 getLookAngle(){return look;}
@@ -150,6 +158,15 @@ class DirectedShockUpgradeCheck {
     static void check(boolean value,String message){if(!value)throw new AssertionError(message);}
     static void close(double actual,double expected,String message){check(Math.abs(actual-expected)<1e-5,message+": "+actual+" != "+expected);}
     public static void main(String[] args){
+        var reference=new LivingEntity(Vec3.ZERO);
+        var weak=new LivingEntity(Vec3.ZERO);weak.maxHealth=20;
+        var boss=new LivingEntity(Vec3.ZERO);boss.maxHealth=1000;
+        var mixed=SkillHitDamage.low(10);
+        close(mixed.against(reference),10,"reference-health target retains original damage");
+        close(mixed.against(weak),9.2,"low damage includes 1% of weak target maximum health");
+        close(mixed.against(boss),19,"low damage includes 1% of boss maximum health");
+        close(mixed.scaled(.5f).against(boss),9.5,"falloff scales fixed and health damage together");
+        close(mixed.against(new Entity(Vec3.ZERO)),9,"nonliving targets receive fixed damage only");
         AbilityState state=new AbilityState();
         state.experience.put("vecmanip.dir_shock",1f);state.experience.put("vecmanip.ground_shock",.7f);
         state.setLevel(3);
@@ -198,7 +215,7 @@ class DirectedShockUpgradeCheck {
         for(int i=0;i<values.length;i++){
             DirectedShockUpgradeCheck attack=new DirectedShockUpgradeCheck();attack.exp=values[i];
             AbilityState costs=new AbilityState();costs.experience.put(attack.skill.id(),values[i]);
-            Entity center=new Entity(new Vec3(4,1.6,0)),edge=new Entity(new Vec3(7,1.6,0)),outside=new Entity(new Vec3(7.01,1.6,0));
+            Entity center=new LivingEntity(new Vec3(4,1.6,0)),edge=new LivingEntity(new Vec3(7,1.6,0)),outside=new LivingEntity(new Vec3(7.01,1.6,0));
             attack.player.world.entities.addAll(List.of(center,edge,outside));attack.blast(costs);
             close(center.damage,10+15*values[i],"blast damage curve");close(edge.damage,center.damage,"radius boundary hit");close(outside.damage,0,"outside radius excluded");
             check(center.knockbackTier==(int)(values[i]*4),"proficiency selects knockback tier");
@@ -234,7 +251,7 @@ class DirectedShockUpgradeCheck {
         System.out.println("PASS: level transitions, skill routing, aimed knockback tiers, eye-height casts, damage/range, LV5 damage/armor/cooldowns, block-only blast and growing destruction radius.");
     }
 }
-'''.replace('LEVEL_METHOD', level_method).replace('STRIKE_METHODS', strike_methods).replace(
+'''.replace('HIT_DAMAGE_SOURCE', hit_damage_source).replace('LEVEL_METHOD', level_method).replace('STRIKE_METHODS', strike_methods).replace(
     'CROSS_METHOD', method(skill_source, 'public boolean crossesEnhancement(')).replace(
     'CATEGORY_CASES', '\n'.join(category_cases)).replace(
     'LEARNING_METHOD', method(state, 'public float experienceForLearning('))

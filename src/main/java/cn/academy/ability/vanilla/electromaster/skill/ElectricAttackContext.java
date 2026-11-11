@@ -5,6 +5,7 @@ import cn.academy.data.GameplayRules;
 import cn.academy.data.GameplayData;
 
 import cn.academy.data.Balance;
+import cn.academy.ability.SkillHitDamage;
 
 import cn.academy.ability.AbilityContext;
 import cn.academy.ability.AbilitySkill;
@@ -98,11 +99,17 @@ public final class ElectricAttackContext {
             // MSG_PERFORM sends the selected targets before attack callbacks can move/remove them.
             sendEffects(range, center, targets);
             if (primary != null) {
-                attack(player, skill, primary, enhancedBolt?lerp(Balance.i("electric_attack_context", "perform_lerp_17"),Balance.i("electric_attack_context", "perform_lerp_18"),experience):lerp(Balance.i("electric_attack_context", "perform_lerp_19"), Balance.i("electric_attack_context", "perform_lerp_20"), experience));
+                float damage = enhancedBolt
+                        ? lerp(Balance.i("electric_attack_context", "perform_lerp_17"), Balance.i("electric_attack_context", "perform_lerp_18"), experience)
+                        : SkillHitDamage.low(lerp(Balance.i("electric_attack_context", "perform_lerp_19"), Balance.i("electric_attack_context", "perform_lerp_20"), experience)).against(primary);
+                attack(player, skill, primary, damage);
                 slowPrimary(primary, 40);
             }
             for (Entity secondary : targets) {
-                attack(player, skill, secondary, enhancedBolt?lerp(Balance.i("electric_attack_context", "perform_lerp_21"),Balance.i("electric_attack_context", "perform_lerp_22"),experience):lerp(Balance.i("electric_attack_context", "perform_lerp_23"), Balance.i("electric_attack_context", "perform_lerp_24"), experience));
+                float damage = enhancedBolt
+                        ? lerp(Balance.i("electric_attack_context", "perform_lerp_21"), Balance.i("electric_attack_context", "perform_lerp_22"), experience)
+                        : SkillHitDamage.low(lerp(Balance.i("electric_attack_context", "perform_lerp_23"), Balance.i("electric_attack_context", "perform_lerp_24"), experience)).against(secondary);
+                attack(player, skill, secondary, damage);
                 // Preserve the original ad.target reference in the AOE loop; do not slow each secondary.
                 slowPrimary(primary, 20);
             }

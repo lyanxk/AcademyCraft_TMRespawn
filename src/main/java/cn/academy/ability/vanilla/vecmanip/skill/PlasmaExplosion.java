@@ -66,6 +66,8 @@ final class PlasmaExplosion extends Explosion {
         // Forge 1.12's sole phase-A event; listeners can adjust entities and the affected block list.
         EventHooks.onExplosionDetonate(world,this,entities,diameter);
         if(!breakBlocks)getToBlow().clear();
+        float cap = cn.academy.data.Balance.f("plasma_cannon_context","blast_fixed_cap");
+        float reference = cn.academy.data.Balance.f("plasma_cannon_context","blast_reference_health");
         for(var entity:entities) {
             if(entity.ignoreExplosion(this))continue;
             double distance=(double)(float)Math.sqrt(entity.distanceToSqr(point))/(double)diameter;if(distance>1)continue;
@@ -73,7 +75,13 @@ final class PlasmaExplosion extends Explosion {
             double length=(float)Math.sqrt(dx*dx+dy*dy+dz*dz);if(length==0)continue;
             dx/=length;dy/=length;dz/=length;
             double impact=(1-distance)*exposure(entity);
-            entity.hurt(world.damageSources().explosion(caster,caster),(float)(int)((impact*impact+impact)/2*7*diameter+1));
+            float rawDamage = (int)((impact*impact+impact)/2*7*diameter+1);
+            float damage = rawDamage;
+            if (rawDamage > cap) {
+                var hit = new cn.academy.ability.SkillHitDamage(cap, (rawDamage-cap)/reference);
+                damage = hit.against(entity);
+            }
+            entity.hurt(world.damageSources().explosion(caster,caster),damage);
             double knockback=impact;
             if(entity instanceof LivingEntity living) {
                 var protection=world.registryAccess().registryOrThrow(Registries.ENCHANTMENT).getHolderOrThrow(Enchantments.BLAST_PROTECTION);

@@ -1,6 +1,7 @@
 package cn.academy.ability.vanilla.electromaster.skill;
 
 import cn.academy.data.Balance;
+import cn.academy.ability.SkillHitDamage;
 
 import cn.academy.ability.*;
 import cn.academy.entity.ACThrownItemEntity;
@@ -73,7 +74,9 @@ public final class Railgun {
             visual(player, reflector.getId(), Balance.i("railgun", "perform_server_damage_4"), radiusScale);
         });
         damage.maxIncrement = Balance.i("railgun", "perform_server_damage_max_increment_1");
-        damage.startDamage = enhanced ? Balance.i("railgun", "perform_server_damage_start_damage_1") + exp * Balance.i("railgun", "perform_server_damage_start_damage_2") : Balance.i("railgun", "perform_server_damage_start_damage_3") + exp * Balance.i("railgun", "perform_server_damage_start_damage_4");
+        float fixedDamage = enhanced ? Balance.i("railgun", "perform_server_damage_start_damage_1") + exp * Balance.i("railgun", "perform_server_damage_start_damage_2") : Balance.i("railgun", "perform_server_damage_start_damage_3") + exp * Balance.i("railgun", "perform_server_damage_start_damage_4");
+        float fraction = enhanced ? exp * Balance.f("railgun", "enhanced_max_health_fraction") : 0;
+        damage.startDamage = new SkillHitDamage(fixedDamage, fraction);
         damage.perform();
         state.addExperience(skill, hitEntity ? Balance.f("railgun", "perform_server_add_experience_1") : Balance.f("railgun", "perform_server_add_experience_2"));
         state.finishContext(skill, enhanced ? (int) (Balance.i("railgun", "perform_server_finish_context_1") - exp * Balance.i("railgun", "perform_server_finish_context_2")) : (int) (Balance.i("railgun", "perform_server_finish_context_3") + exp * -Balance.i("railgun", "perform_server_finish_context_4")), 0);

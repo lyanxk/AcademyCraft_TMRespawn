@@ -358,7 +358,7 @@ public final class AbilityContextManager {
         for(var session:sessions.values().toArray(Session[]::new))if(session.targetTeleport!=null && session.targetTeleport.request==packet.request()) {
             // Bound malformed/network-only values to the legitimate wheel range. Ordinary clients use the original endpoints.
             if(!packet.abort() && (session.targetTeleport.kind==cn.academy.ability.vanilla.teleporter.skill.TargetTeleportContext.MARK
-                    || Float.isFinite(packet.distance()) && packet.distance()>=Balance.f("ability_context_manager", "target_teleport_input_threshold_1") && packet.distance()<=Balance.i("ability_context_manager", "target_teleport_input_threshold_2")+(Balance.i("ability_context_manager", "target_teleport_input_threshold_3")-Balance.i("ability_context_manager", "target_teleport_input_threshold_4"))*session.initialExperience))
+                    || Float.isFinite(packet.distance()) && packet.distance()>=Balance.f("ability_context_manager", "target_teleport_input_threshold_1") && packet.distance()<=cn.academy.ability.vanilla.teleporter.skill.TargetTeleportContext.maximumRange(state,session.initialExperience)))
                 session.targetTeleport.release(state,packet.distance());
             sessions.remove(session.slot, session);terminate(player,state,session,true,false);cleanup(player);
             cn.academy.network.ACNetwork.sync(player,state);return;

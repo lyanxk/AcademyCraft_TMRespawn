@@ -1,4 +1,5 @@
 {
+  "enhanced_max_health_fraction": 0.04,
   "on_throw_threshold_1": 900,
   "perform_server_threshold_1": 5,
   "perform_server_radius_scale_1": 2,
@@ -18,7 +19,7 @@
   "perform_server_damage_4": 15,
   "perform_server_damage_max_increment_1": 100,
   "perform_server_damage_start_damage_1": 220,
-  "perform_server_damage_start_damage_2": 280,
+  "perform_server_damage_start_damage_2": 80,
   "perform_server_damage_start_damage_3": 100,
   "perform_server_damage_start_damage_4": 120,
   "perform_server_add_experience_1": 0.01,

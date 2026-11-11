@@ -164,8 +164,7 @@ public final class AbilityExecutor {
                     .attack(target, cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext.damage(target, exp));
             target.invulnerableTime = 0;
         }
-        level.explode(player, destination.x, destination.y, destination.z, cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext.explosionPower(exp),
-                canDestroy(player, skill) ? Level.ExplosionInteraction.BLOCK : Level.ExplosionInteraction.NONE);
+        cn.academy.ability.vanilla.vecmanip.skill.PlasmaCannonContext.explodeTerrain(player, destination, exp, canDestroy(player, skill));
         level.sendParticles(ACParticles.VECTOR.get(), destination.x, destination.y, destination.z,
                 100, 5, 5, 5, .15);
     }

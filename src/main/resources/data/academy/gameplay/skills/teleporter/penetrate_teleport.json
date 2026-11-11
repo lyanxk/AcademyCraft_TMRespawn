@@ -22,10 +22,10 @@
     50,
     30
   ],
-  "cooldown_enhanced_level": 6,
+  "cooldown_enhanced_level": 4,
   "cooldown_enhanced_curve": [
     50,
-    30
+    0
   ],
   "cooldown_tiers": 0,
   "experience_per_use": 0.003

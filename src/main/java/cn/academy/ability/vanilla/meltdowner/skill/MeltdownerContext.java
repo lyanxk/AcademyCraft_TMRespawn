@@ -76,10 +76,17 @@ public final class MeltdownerContext {
             var ray=new RangedRayDamage.Reflectible(ctx,upgraded?MeltdownerSkillRules.curve(skill,"upgraded_radius",proficiency):lerp(Balance.i("meltdowner_context", "release_lerp_1"),Balance.i("meltdowner_context", "release_lerp_2")),rate*lerp(Balance.i("meltdowner_context", "release_lerp_3"),Balance.i("meltdowner_context", "release_lerp_4")),reflector->{
                 length[0]=Math.min(length[0],reflector.distanceToSqr(player));
                 var result=ElectricAttackTrace.trace(reflector,Balance.i("meltdowner_context", "release_trace_1"),false);
-                if(result instanceof EntityHitResult target)ctx.attack(target.getEntity(),Balance.f("meltdowner_context", "release_attack_1")*(upgraded?MeltdownerSkillRules.curve(skill,"upgraded_damage",proficiency):lerp(Balance.i("meltdowner_context", "release_lerp_5"),Balance.i("meltdowner_context", "release_lerp_6"))));
+                if(result instanceof EntityHitResult target) {
+                    float reflected = upgraded ? MeltdownerSkillRules.curve(skill,"upgraded_damage",proficiency)
+                            : SkillHitDamage.low(lerp(Balance.i("meltdowner_context","release_lerp_5"), Balance.i("meltdowner_context","release_lerp_6"))).against(target.getEntity());
+                    ctx.attack(target.getEntity(),Balance.f("meltdowner_context","release_attack_1") * reflected);
+                }
                 send(REFLECT,reflector.getId(),Vec3.ZERO,10);
             });
-            ray.startDamage=rate*(upgraded?MeltdownerSkillRules.curve(skill,"upgraded_damage",proficiency):lerp(Balance.i("meltdowner_context", "release_lerp_7"),Balance.i("meltdowner_context", "release_lerp_8")));ray.perform();
+            var beamDamage = upgraded ? SkillHitDamage.flat(MeltdownerSkillRules.curve(skill,"upgraded_damage",proficiency))
+                    : SkillHitDamage.low(lerp(Balance.i("meltdowner_context","release_lerp_7"), Balance.i("meltdowner_context","release_lerp_8")));
+            ray.startDamage = beamDamage.scaled(rate);
+            ray.perform();
             state.addExperience(skill,rate*Balance.f("meltdowner_context", "release_add_experience_1"));state.finishContext(skill,(int)(rate*Balance.i("meltdowner_context", "release_finish_context_1")*lerp(Balance.i("meltdowner_context", "release_lerp_9"),Balance.i("meltdowner_context", "release_lerp_10"))),0);
             send(PERFORM,-1,Vec3.ZERO,length[0]);
         } else if(kind==JET) {

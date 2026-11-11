@@ -1,5 +1,10 @@
 AcademyCraft TMRespawn
 
+TMRespawn 1.0.4 release modifications, 2026-11-11, by lyanxk and TMRespawn contributors:
+Adjusted skill damage balance and maximum-health scaling, with minor Teleporter
+skill changes to range, damage, cooldowns and multi-item attacks. Updated related
+effects, payloads and datapack parameters.
+
 TMRespawn 1.0.3 release modifications, 2026-11-10, by lyanxk and TMRespawn contributors:
 Extensively revised Meltdowner skills and migrated legacy 1.12.2 gameplay
 configuration, skill balance, machine recipes, world generation and related

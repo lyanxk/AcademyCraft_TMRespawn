@@ -36,5 +36,7 @@
   "release_finish_context_5": 30,
   "initial_range_start": 10.0,
   "initial_range_end": 35.0,
-  "minimum_selected_range": 0.5
+  "minimum_selected_range": 0.5,
+  "upgrade_level": 4,
+  "upgraded_max_range": 60.0
 }

@@ -26,7 +26,7 @@ public final class TargetTeleportEffects {
     private static final class Marker {
         final int slot,request,kind;final float maxDistance;final Random random=new Random();
         Vec3 previous,position;float selected,yaw;int ticks;boolean available=true,hidden,sent;
-        Marker(int slot,int request,int kind,float experience){this.slot=slot;this.request=request;this.kind=kind;maxDistance=selected=cn.academy.data.Balance.f("target_teleport_context", "initial_range_start")+(cn.academy.data.Balance.f("target_teleport_context", "initial_range_end")-cn.academy.data.Balance.f("target_teleport_context", "initial_range_start"))*experience;previous=position=local.position();}
+        Marker(int slot,int request,int kind,float experience){this.slot=slot;this.request=request;this.kind=kind;maxDistance=selected=maximumRange(AbilityState.load(local),experience);previous=position=local.position();}
     }
     private static boolean sync(Minecraft mc){if(world!=mc.level || local!=mc.player){MARKERS.clear();REQUESTS.end(-1);world=mc.level;local=mc.player;}return world!=null && local!=null;}
     public static int beginLocal(int slot) {

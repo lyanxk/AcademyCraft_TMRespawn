@@ -13,5 +13,7 @@
   "release_finish_context_1": 90,
   "release_finish_context_2": 40,
   "release_finish_context_3": 90,
-  "release_finish_context_4": 0.005
+  "release_finish_context_4": 0.005,
+  "upgrade_level": 5,
+  "upgraded_max_damage": 40.0
 }

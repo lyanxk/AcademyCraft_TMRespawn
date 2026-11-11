@@ -22,7 +22,9 @@ public final class ElectronBomb {
         float proficiency=state.experience(ID);
         boolean upgraded=MeltdownerSkillRules.upgraded(state,skill);
         float exp=upgraded?1:proficiency;
-        var ball=ACElectronBallEntity.create(player,exp>Balance.f("electron_bomb", "perform_threshold_1")?5:20,upgraded?MeltdownerSkillRules.curve(skill,"upgraded_damage",proficiency):6+(12-6)*exp);
+        var damage = upgraded ? SkillHitDamage.low(MeltdownerSkillRules.curve(skill,"upgraded_damage",proficiency))
+                : SkillHitDamage.flat(6+(12-6)*exp);
+        var ball=ACElectronBallEntity.create(player,exp>Balance.f("electron_bomb", "perform_threshold_1")?5:20,damage);
         player.serverLevel().addFreshEntity(ball);
         state.addExperience(skill,Balance.f("electron_bomb", "perform_add_experience_1"));
         state.finishContext(skill,(int)(Balance.i("electron_bomb", "perform_finish_context_1")+(Balance.i("electron_bomb", "perform_finish_context_2")-Balance.i("electron_bomb", "perform_finish_context_3"))*exp),0);
@@ -38,13 +40,13 @@ public final class ElectronBomb {
         return trace instanceof EntityHitResult entity
                 ? trace.getLocation().add(0,entity.getEntity().getEyeHeight()*.6,0):trace.getLocation();
     }
-    public static void fire(ServerPlayer player,ACElectronBallEntity ball,float damage) {
+    public static void fire(ServerPlayer player,ACElectronBallEntity ball,SkillHitDamage damage) {
         Vec3 start=ball.position().add(0,player.getDimensions(Pose.STANDING).eyeHeight(),0);
         Vec3 destination=destination(player);
         var trace=ElectricAttackTrace.traceSegment(player,start,destination,
                 target->target!=player && !(target instanceof ACElectronBallEntity));
         if(trace instanceof EntityHitResult hit) {
-            MDDamageHelper.attack(AbilityContext.of(player,AbilityRegistry.skill(ID)),hit.getEntity(),damage);
+            MDDamageHelper.attack(AbilityContext.of(player,AbilityRegistry.skill(ID)),hit.getEntity(),damage.against(hit.getEntity()));
         }
         // Original callback notifies around the caster at firing time, even when no entity was hit.
         var visual=new ElectronBombEffectPayload(ball.getId());

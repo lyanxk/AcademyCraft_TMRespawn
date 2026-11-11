@@ -28,11 +28,16 @@ public final class AbilityContext {
     /** Original WorldUtils sphere selection and float falloff, including nonliving entities and zero edge damage events. */
     public void attackRange(net.minecraft.world.phys.Vec3 center, double range, float damage,
                             java.util.function.Predicate<Entity> selector) {
+        attackRange(center, range, SkillHitDamage.flat(damage), selector);
+    }
+
+    public void attackRange(net.minecraft.world.phys.Vec3 center, double range, SkillHitDamage damage,
+                            java.util.function.Predicate<Entity> selector) {
         for (var entity : player.level().getEntities((Entity) null, new net.minecraft.world.phys.AABB(center, center).inflate(range),
                 target -> target.distanceToSqr(center) <= range * range && selector.test(target))) {
             float ratio = (float) (entity.position().distanceTo(center) / range);
             float factor = 1 - Math.max(0, Math.min(1, ratio));
-            attack(entity, damage * factor);
+            attack(entity, damage.against(entity) * factor);
         }
     }
 

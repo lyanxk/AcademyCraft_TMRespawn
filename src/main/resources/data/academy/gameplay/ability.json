@@ -1,4 +1,6 @@
 {
+  "low_damage_health_fraction": 0.01,
+  "low_damage_reference_health": 100.0,
   "damage_scale": 1.0,
   "progression_scale": 1.0,
   "cp_recovery_scale": 1.0,

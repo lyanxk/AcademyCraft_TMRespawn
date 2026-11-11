@@ -3,6 +3,7 @@ package cn.academy.entity;
 import cn.academy.data.GameplayData;
 
 import cn.academy.data.Balance;
+import cn.academy.ability.SkillHitDamage;
 
 import cn.academy.ability.AbilityState;
 import cn.academy.network.VisualEffectPayload;
@@ -41,7 +42,7 @@ public final class ACElectronBallEntity extends Entity {
     private static final EntityDataAccessor<Integer> MODE = SynchedEntityData.defineId(
             ACElectronBallEntity.class, EntityDataSerializers.INT);
 
-    private float damage;
+    private SkillHitDamage damage = SkillHitDamage.flat(0);
     private boolean fired;
     private ServerPlayer spawner;
     private LivingEntity clientSpawner;
@@ -55,6 +56,10 @@ public final class ACElectronBallEntity extends Entity {
     }
 
     public static ACElectronBallEntity create(ServerPlayer owner, int life, float damage) {
+        return create(owner, life, SkillHitDamage.flat(damage));
+    }
+
+    public static ACElectronBallEntity create(ServerPlayer owner, int life, SkillHitDamage damage) {
         ACElectronBallEntity ball = new ACElectronBallEntity(ACEntities.ELECTRON_BALL.get(), owner.level());
         float pi=(float)Math.PI;
         float theta = -owner.getYRot()/180*pi + (-pi*.45f+owner.getRandom().nextFloat()*(pi*.45f-(-pi*.45f)));
@@ -72,7 +77,7 @@ public final class ACElectronBallEntity extends Entity {
     }
 
     public static ACElectronBallEntity createHeld(ServerPlayer owner, int mode) {
-        ACElectronBallEntity ball = create(owner, 2_333_333, 0);
+        ACElectronBallEntity ball = create(owner, 2_333_333, SkillHitDamage.flat(0));
         ball.getEntityData().set(MODE, mode);
         return ball;
     }
@@ -161,6 +166,10 @@ public final class ACElectronBallEntity extends Entity {
     }
 
     public void fireAt(LivingEntity owner, Vec3 intended, float shotDamage) {
+        fireAt(owner, intended, SkillHitDamage.flat(shotDamage));
+    }
+
+    private void fireAt(LivingEntity owner, Vec3 intended, SkillHitDamage shotDamage) {
         if (!(level() instanceof ServerLevel server) || isRemoved()) return;
         damage = shotDamage;
         Vec3 start = position().add(0, owner.getEyeHeight(), 0);
@@ -182,10 +191,10 @@ public final class ACElectronBallEntity extends Entity {
                     default -> "electron_bomb";
                 };
                 cn.academy.ability.AbilityContext.of(player,
-                        cn.academy.ability.AbilityRegistry.skill("meltdowner." + skillName)).attack(target, damage);
+                        cn.academy.ability.AbilityRegistry.skill("meltdowner." + skillName)).attack(target, damage.against(target));
                 cn.academy.ability.AbilityExecutor.applyMeltdownerMark(player, target);
             } else {
-                target.hurt(server.damageSources().mobAttack(owner), damage);
+                target.hurt(server.damageSources().mobAttack(owner), damage.against(target));
             }
         }
         VisualEffectPayload visual = new VisualEffectPayload("meltdowner", start.x, start.y, start.z,

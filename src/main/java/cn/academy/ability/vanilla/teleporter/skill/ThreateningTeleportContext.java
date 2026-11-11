@@ -32,10 +32,25 @@ public final class ThreateningTeleportContext {
         audience.add(player);for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=Balance.i("threatening_teleport_context", "threatening_teleport_context_threshold_1"))audience.add(viewer);
     }
     public static void reject(ServerPlayer player,AbilitySkill skill,int slot,int request) {
-        if(skill.name().equals("threatening_teleport") && request>0)PacketDistributor.sendToPlayer(player,new ThreateningTeleportPayload(0,player.getId(),END,slot,request,0,false));
+        if(skill.name().equals("threatening_teleport") && request>0)PacketDistributor.sendToPlayer(player,new ThreateningTeleportPayload(0,player.getId(),END,slot,request,0,0,false));
+    }
+    private static float maximum(AbilityState state,String original,String first,String second) {
+        return Balance.f("threatening_teleport_context",state.level()>=Balance.i("threatening_teleport_context","second_upgrade_level")
+                ?second:state.level()>=Balance.i("threatening_teleport_context","first_upgrade_level")?first:original);
+    }
+    public static float range(AbilityState state,float experience) {
+        float start=Balance.f("threatening_teleport_context","target_scale_1");
+        return start+(maximum(state,"target_scale_2","first_upgrade_max_range","second_upgrade_max_range")-start)*experience;
+    }
+    public static int itemCount(AbilityState state,float experience) {
+        return state.level()>=Balance.i("threatening_teleport_context","second_upgrade_level")
+                ?1+(int)((Balance.i("threatening_teleport_context","second_upgrade_max_items")-1)*experience):1;
     }
     public static Target target(Player player,float experience) {
-        Vec3 start=player.getEyePosition(),end=start.add(player.getLookAngle().scale(Balance.i("threatening_teleport_context", "target_scale_1")+(Balance.i("threatening_teleport_context", "target_scale_2")-Balance.i("threatening_teleport_context", "target_scale_3"))*experience));
+        return targetAtRange(player,range(AbilityState.load(player),experience));
+    }
+    public static Target targetAtRange(Player player,float range) {
+        Vec3 start=player.getEyePosition(),end=start.add(player.getLookAngle().scale(range));
         var hit=ElectricAttackTrace.traceSegmentFiltered(player,start,end,e->e!=player && e instanceof LivingEntity,s->false);
         if(hit instanceof EntityHitResult entityHit){var entity=entityHit.getEntity();return new Target(entity.position().add(0,entity.getBbHeight(),0),entity);}
         return new Target(ElectricAttackTrace.traceBlockSegment(player,start,end,null).getLocation(),null);
@@ -46,15 +61,27 @@ public final class ThreateningTeleportContext {
         if(ended)return;var stack=player.getMainHandItem();
         if(!stack.isEmpty() && state.consumeRaw(skill,Balance.i("threatening_teleport_context", "release_consume_raw_1")+(Balance.i("threatening_teleport_context", "release_consume_raw_2")-Balance.i("threatening_teleport_context", "release_consume_raw_3"))*experience,Balance.i("threatening_teleport_context", "release_consume_raw_4")+(Balance.i("threatening_teleport_context", "release_consume_raw_5")-Balance.i("threatening_teleport_context", "release_consume_raw_6"))*experience,player.isCreative())) {
             performed=true;var target=target(player,experience);
-            if(target.entity!=null) {
-                float damage=(Balance.i("threatening_teleport_context", "release_damage_1")+(Balance.i("threatening_teleport_context", "release_damage_2")-Balance.i("threatening_teleport_context", "release_damage_3"))*state.experience(skill.id()))*(stack.is(GameplayRules.itemTag("threatening_teleport_damage_boost"))?Balance.f("threatening_teleport_context", "release_damage_4"):1);
-                TPSkillHelper.attack(AbilityContext.of(player,skill),target.entity,damage,true);
-            }
-            if(!player.isCreative())stack.shrink(1);
-            if(player.getRandom().nextDouble()<(target.entity==null?1:.3)) {
-                // In 1.12 copy() of a now-empty stack stays empty even after setCount(1).
-                var drop=stack.isEmpty()?ItemStack.EMPTY:stack.copyWithCount(1);
-                player.serverLevel().addFreshEntity(new ItemEntity(player.level(),target.point.x,target.point.y,target.point.z,drop));
+            int count=Math.min(stack.getCount(),itemCount(state,experience));
+            float baseDamage = Balance.i("threatening_teleport_context","release_damage_1")
+                    + (maximum(state,"release_damage_2","first_upgrade_max_damage","second_upgrade_max_damage")
+                    - Balance.i("threatening_teleport_context","release_damage_3")) * state.experience(skill.id());
+            var damage = state.level() >= Balance.i("threatening_teleport_context","second_upgrade_level")
+                    ? SkillHitDamage.low(baseDamage) : SkillHitDamage.flat(baseDamage);
+            float itemMultiplier = stack.is(GameplayRules.itemTag("threatening_teleport_damage_boost"))
+                    ? Balance.f("threatening_teleport_context","release_damage_4") : 1;
+            var context=AbilityContext.of(player,skill);
+            for(int i=0;i<count;i++) {
+                if(target.entity!=null) {
+                    // Each additional item is a separate hit in the same tick.
+                    if(i>0)target.entity.invulnerableTime=0;
+                    TPSkillHelper.attack(context,target.entity,damage.against(target.entity) * itemMultiplier,true);
+                }
+                if(!player.isCreative())stack.shrink(1);
+                if(player.getRandom().nextDouble()<(target.entity==null?1:.3)) {
+                    // In 1.12 copy() of a now-empty stack stays empty even after setCount(1).
+                    var drop=stack.isEmpty()?ItemStack.EMPTY:stack.copyWithCount(1);
+                    player.serverLevel().addFreshEntity(new ItemEntity(player.level(),target.point.x,target.point.y,target.point.z,drop));
+                }
             }
             state.addExperience(skill,(target.entity==null?Balance.f("threatening_teleport_context", "release_add_experience_1"):Balance.i("threatening_teleport_context", "release_add_experience_2"))*Balance.f("threatening_teleport_context", "release_add_experience_3"));
             state.finishContext(skill,(int)(Balance.i("threatening_teleport_context", "release_finish_context_1")+(Balance.i("threatening_teleport_context", "release_finish_context_2")-Balance.i("threatening_teleport_context", "release_finish_context_3"))*experience),0);
@@ -63,5 +90,5 @@ public final class ThreateningTeleportContext {
     }
     public boolean performed(){return performed;}
     public void end(){if(ended)return;ended=true;send(END);audience.clear();}
-    private void send(int phase){var packet=new ThreateningTeleportPayload(id,player.getId(),phase,slot,request,experience,performed);for(var viewer:audience)PacketDistributor.sendToPlayer(viewer,packet);}
+    private void send(int phase){var packet=new ThreateningTeleportPayload(id,player.getId(),phase,slot,request,experience,range(AbilityState.load(player),experience),performed);for(var viewer:audience)PacketDistributor.sendToPlayer(viewer,packet);}
 }

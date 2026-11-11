@@ -64,9 +64,11 @@ public final class PlasmaCannonContext {
             return ticks>=chargeTime || state.consumeRaw(skill,Balance.i("plasma_cannon_context", "tick_consume_raw_1")+(Balance.i("plasma_cannon_context", "tick_consume_raw_2")-Balance.i("plasma_cannon_context", "tick_consume_raw_3"))*state.experience(skill.id()),0,player.isCreative());
         }
         Vec3 previous=position;position=move(position,destination);
-        if(ElectricAttackTrace.traceSegment(player,previous,position,e->true).getType()!=HitResult.Type.MISS)explode(state);
-        // Two independent original checks: a collision at arrival can execute both explosions.
-        if(ticks>=Balance.i("plasma_cannon_context", "tick_threshold_1") || position.distanceTo(destination)<Balance.d("plasma_cannon_context", "tick_threshold_2"))explode(state);
+        if (ElectricAttackTrace.traceSegment(player,previous,position,e->true).getType() != HitResult.Type.MISS
+                || ticks >= Balance.i("plasma_cannon_context","tick_threshold_1")
+                || position.distanceTo(destination) < Balance.d("plasma_cannon_context","tick_threshold_2")) {
+            explode(state);
+        }
         if(syncTicks==0){syncTicks=Balance.i("plasma_cannon_context", "tick_sync_ticks_1");send(POSITION,position);}else syncTicks--;
         return !finished;
     }
@@ -76,13 +78,14 @@ public final class PlasmaCannonContext {
         for(var entity:world.getEntities((Entity)null,new AABB(destination,destination).inflate(Balance.i("plasma_cannon_context", "explode_inflate_1")),e->e.distanceToSqr(destination)<=Balance.i("plasma_cannon_context", "explode_threshold_1"))) {
             ctx.attack(entity,damage(entity,state.experience(skill.id())));entity.invulnerableTime=-1;
         }
-        float radius=explosionPower(state.experience(skill.id()));
-        var explosion=new PlasmaExplosion(player,destination,radius,ctx.canBreakBlock(world));
-        // Do not use Level.explode(NONE): that would still damage/knock back entities when breaking is disabled.
-        if(ctx.canBreakBlock(world))explosion.explode();
-        explosion.finalizeExplosion(true);
-        // The original manually invokes the phases, without WorldServer.newExplosion's explosion packet.
+        explodeTerrain(player, destination, state.experience(skill.id()), ctx.canBreakBlock(world));
         finished=true;
+    }
+    public static void explodeTerrain(ServerPlayer player,Vec3 destination,float experience,boolean breakBlocks) {
+        var explosion=new PlasmaExplosion(player,destination,explosionPower(experience),breakBlocks);
+        // Do not use Level.explode(NONE): that would still damage/knock back entities when breaking is disabled.
+        if(breakBlocks)explosion.explode();
+        explosion.finalizeExplosion(true);
     }
     public void end(){if(ended)return;ended=true;send(END,position);audience.clear();}
     private void send(int phase,Vec3 point){var packet=new PlasmaCannonPayload(id,player.getId(),phase,slot,request,exp,point);for(var viewer:audience)PacketDistributor.sendToPlayer(viewer,packet);}

@@ -42,7 +42,7 @@ public final class ThreateningTeleportEffects {
         }
         if(packet.phase()==EFFECT && packet.performed() && world.getEntity(packet.caster()) instanceof Player owner) {
             ACContextSounds.once(owner.getUUID(),"tp.tp",.5f,SoundSource.AMBIENT,packet.context());
-            var target=ThreateningTeleportContext.target(owner,packet.experience());
+            var target=ThreateningTeleportContext.targetAtRange(owner,packet.range());
             TeleportParticleEffects.trail(owner,target.point().add(.5,.5,.5),false);
         }
     }

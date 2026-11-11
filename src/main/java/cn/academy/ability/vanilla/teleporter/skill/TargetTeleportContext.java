@@ -26,17 +26,23 @@ public final class TargetTeleportContext {
     private int ticks;private float selected;private boolean ended,performed;
     public TargetTeleportContext(ServerPlayer player,AbilityState state,AbilitySkill skill,int slot,int request) {
         this.player=player;this.skill=skill;this.slot=slot;this.request=request;
-        kind=skill.name().equals("penetrate_teleport")?PENETRATE:MARK;experience=state.experience(skill.id());selected=cn.academy.data.Balance.f("target_teleport_context", "initial_range_start")+(cn.academy.data.Balance.f("target_teleport_context", "initial_range_end")-cn.academy.data.Balance.f("target_teleport_context", "initial_range_start"))*experience;
+        kind=skill.name().equals("penetrate_teleport")?PENETRATE:MARK;experience=state.experience(skill.id());selected=maximumRange(state,experience);
         audience.add(player);for(var viewer:player.serverLevel().players())if(viewer!=player && viewer.distanceToSqr(player)<=Balance.i("target_teleport_context", "target_teleport_context_threshold_1"))audience.add(viewer);
     }
     public static boolean handles(AbilitySkill skill){return skill.name().equals("penetrate_teleport") || skill.name().equals("mark_teleport");}
     public static void reject(ServerPlayer player,AbilitySkill skill,int slot,int request) {
         if(handles(skill) && request>0)PacketDistributor.sendToPlayer(player,new TargetTeleportPayload(0,player.getId(),END,slot,request,0,0));
     }
+    public static float maximumRange(AbilityState state,float experience) {
+        float start=Balance.f("target_teleport_context","initial_range_start");
+        float end=Balance.f("target_teleport_context",state.level()>=Balance.i("target_teleport_context","upgrade_level")
+                ?"upgraded_max_range":"initial_range_end");
+        return start+(end-start)*experience;
+    }
     public void start(){send(START);}
     public void tick(){ticks++;}
     public float selected(){return selected;}
-    public void wheel(float delta){float proposed=selected+delta;if(proposed>=.5f && proposed<=Balance.i("target_teleport_context", "wheel_threshold_1")+(Balance.i("target_teleport_context", "wheel_threshold_2")-Balance.i("target_teleport_context", "wheel_threshold_3"))*experience)selected=proposed;}
+    public void wheel(float delta){float proposed=selected+delta;if(proposed>=.5f && proposed<=maximumRange(AbilityState.load(player),experience))selected=proposed;}
     public record Destination(Vec3 position,boolean available){}
     public static Destination penetrate(Player player,float selected,float liveExperience,float cp) {
         double range=Math.min(selected,cp/(Balance.i("target_teleport_context", "penetrate_range_1")+(Balance.i("target_teleport_context", "penetrate_range_2")-Balance.i("target_teleport_context", "penetrate_range_3"))*liveExperience));
@@ -92,7 +98,7 @@ public final class TargetTeleportContext {
             // Entity.getDistance in 1.12 returned a float sqrt, then PTContext promoted it to double.
             double distance=(float)Math.sqrt(player.distanceToSqr(point));
             state.consumeForce(skill,(float)(distance*(Balance.i("target_teleport_context", "release_consume_force_1")+(Balance.i("target_teleport_context", "release_consume_force_2")-Balance.i("target_teleport_context", "release_consume_force_3"))*experience)),Balance.i("target_teleport_context", "release_consume_force_4")+(Balance.i("target_teleport_context", "release_consume_force_5")-Balance.i("target_teleport_context", "release_consume_force_6"))*experience,player.isCreative());
-            state.addExperience(skill,(float)(Balance.f("target_teleport_context", "release_add_experience_1")*distance));state.finishContext(skill,(int)(Balance.i("target_teleport_context", "release_finish_context_1")+(Balance.i("target_teleport_context", "release_finish_context_2")-Balance.i("target_teleport_context", "release_finish_context_3"))*experience),0);
+            state.addExperience(skill,(float)(Balance.f("target_teleport_context", "release_add_experience_1")*distance));state.finishContext(skill,cooldown(state,experience),0);
             count(state);move(point);performed=true;
         } else {
             var point=mark(player,ticks,state.experience(skill.id()),state.cp());float distance=(float)point.distanceTo(player.position());
@@ -103,6 +109,12 @@ public final class TargetTeleportContext {
                 state.finishContext(skill,(int)(Balance.i("target_teleport_context", "release_finish_context_4")+(0-Balance.i("target_teleport_context", "release_finish_context_5"))*experience),0);count(state);performed=true;
             }
         }
+    }
+    private int cooldown(AbilityState state,float experience) {
+        var data=cn.academy.data.GameplayData.document("skills/teleporter/penetrate_teleport");
+        var curve=data.getAsJsonArray(state.level()>=data.get("cooldown_enhanced_level").getAsInt()
+                ?"cooldown_enhanced_curve":"cooldown_curve");
+        return (int)(curve.get(0).getAsFloat()+(curve.get(1).getAsFloat()-curve.get(0).getAsFloat())*experience);
     }
     private void move(Vec3 point){if(player.isPassenger())player.stopRiding();player.teleportTo(point.x,point.y,point.z);player.fallDistance=0;}
     private void count(AbilityState state){if(state.recordTeleport()>=400)ACAdvancements.grant(player,"legacy/teleporter/mastery");}

@@ -87,11 +87,15 @@ public final class VectorDefenseContext {
             return true;
         return false;
     }
+    private static boolean withinCounterRange(ServerPlayer victim, LivingEntity attacker) {
+        double range = Balance.d("vector_defense_context", "direct_counter_range");
+        return victim.distanceToSqr(attacker) <= range * range;
+    }
     public static void queueCounterAttack(ServerPlayer victim,DamageSource source,float damage) {
         // Projectiles and reflectable abilities have their own reflection paths.
         if(!(damage>0) || !Float.isFinite(damage) || source instanceof SkillDamageSource
                 || !(source.getDirectEntity() instanceof LivingEntity attacker)
-                || attacker==victim || !attacker.isAlive())return;
+                || attacker==victim || !attacker.isAlive() || !withinCounterRange(victim,attacker))return;
         // Check before payment, experience gain or attacking: two reflectors only cancel damage.
         if(attacker instanceof ServerPlayer other && cancelIncoming(other))return;
         for(var context:ACTIVE)if(!context.ended && context.reflection && context.player==victim) {
@@ -116,7 +120,8 @@ public final class VectorDefenseContext {
     private static void performCounter(PendingCounter pending) {
         var context=pending.context();var victim=context.player;var attacker=pending.attacker();
         if(context.ended || !victim.isAlive() || victim.isRemoved() || victim.hasDisconnected()
-                || !attacker.isAlive() || attacker.isRemoved() || victim.level()!=attacker.level())return;
+                || !attacker.isAlive() || attacker.isRemoved() || victim.level()!=attacker.level()
+                || !withinCounterRange(victim,attacker))return;
         // The attacker may have activated reflection since this counter was queued.
         if(attacker instanceof ServerPlayer other && (other.hasDisconnected() || cancelIncoming(other)))return;
         var state=AbilityState.load(victim);
